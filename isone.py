@@ -19,9 +19,9 @@ class ISONEClient:
             'Oil': 'oil',
             'Solar': 'solar',
             'Wind': 'wind',
-            'Wood': 'renewable',
-            'Refuse': 'renewable',
-            'Landfill Gas': 'renewable',
+            'Wood': 'wood',
+            'Refuse': 'refuse',
+            'Landfill Gas': 'landfill',
         }
         
 
@@ -48,11 +48,9 @@ class ISONEClient:
             # set up request
             payload = copy.deepcopy(self.base_payload)
             payload.update({'_ns0_requestUrl':'/genfuelmix/%s' % request_url})
-            print payload
             
             # carry out request
             response = requests.post(self.base_url, data=payload).json()
-            print response[0]['data']
             raw_data += response[0]['data']['GenFuelMixes']['GenFuelMix']
 
         # parse data
