@@ -53,4 +53,12 @@ class TestGenMix(TestCase):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
                 
+    def test_spp_latest(self):
+        # basic test
+        data = self._run_test('SPS', latest=True)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+                
         

@@ -38,7 +38,7 @@ class MISOClient:
             url += request_url
             
             # carry out request
-            response = requests.post(url).content
+            response = requests.get(url).text
             
             # preliminary parsing
             rows = response.split('\n')
