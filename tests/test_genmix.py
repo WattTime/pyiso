@@ -44,4 +44,13 @@ class TestGenMix(TestCase):
         # test multiple
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+    def test_miso_latest(self):
+        # basic test
+        data = self._run_test('MISO', latest=True)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+                
         

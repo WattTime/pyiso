@@ -62,7 +62,7 @@ class ISONEClient:
             parsed_dp['timestamp'] = dateutil_parse(raw_dp['BeginDate']).astimezone(pytz.utc)
             parsed_dp['gen_MW'] = raw_dp['GenMw']
             parsed_dp['fuel_name'] = self.fuels[raw_dp['FuelCategory']]
-            parsed_dp['ba_name'] = 'ISNE'
+            parsed_dp['ba_name'] = self.ba_name
             
             # add to full storage
             parsed_data.append(parsed_dp)
