@@ -25,8 +25,14 @@ class SPPClient:
         aware_local_timestamp = pytz.timezone('America/Chicago').localize(naive_local_timestamp)
         aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
         return aware_utc_timestamp
+        
+    def _preprocess(self, row):
+        vals = row.split(',')
+        vals[0] = self._utcify(dateutil_parse(vals[0]))
+        return vals
 
-    def get_generation(self, latest=False, market='RTHR', **kwargs):
+    def get_generation(self, latest=False, market='RTHR',
+                       start_at=None, end_at=None,**kwargs):
         # process args
         if market == 'RTHR':
             file_freq = 'Hourly'
@@ -38,8 +44,13 @@ class SPPClient:
         if latest:
             request_urls.append('%d_%s_GenMix.csv' % (datetime.today().year, file_freq))
 
+        elif start_at and end_at:
+            this_year = start_at.year
+            while this_year <= end_at.year:
+                request_urls.append('%d_%s_GenMix.csv' % (this_year, file_freq))
+                this_year += 1
         else:
-            raise ValueError('Latest must be True.')
+            raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
             
         # set up storage
         raw_data = []
@@ -57,19 +68,22 @@ class SPPClient:
             # preliminary parsing
             rows = response.split('\n')
             header = rows[0].split(',')
-            raw_data.append(dict(zip(header, rows[-2].split(','))))
+            if latest:
+                raw_data.append(dict(zip(header, self._preprocess(rows[-2]))))
+            else:
+                for row in rows[1:]:
+                    vals = self._preprocess(row)
+                    if vals[0] >= start_at and vals[0] <= end_at:
+                        raw_data.append(dict(zip(header, vals)))
             
         # parse data
         for raw_dp in raw_data:            
-            # parse times
-            timestamp = self._utcify(dateutil_parse(raw_dp['']))
-            
             for raw_fuel_name, parsed_fuel_name in self.fuels.iteritems():
                 # set up storage
                 parsed_dp = {}   
     
                 # add values
-                parsed_dp['timestamp'] = timestamp
+                parsed_dp['timestamp'] = raw_dp['']
                 parsed_dp['gen_MW'] = raw_dp[raw_fuel_name]
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name

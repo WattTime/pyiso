@@ -69,6 +69,22 @@ class TestGenMix(TestCase):
             self.assertEqual(dp['market'], DataPoint.RTHR)
             self.assertEqual(dp['freq'], DataPoint.HOURLY)                
         
+    def test_spp_date_range_hr(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SPP', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1),
+                                market=DataPoint.RTHR)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RTHR)
+            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+        
     def test_spp_latest_5min(self):
         # basic test
         data = self._run_test('SPP', latest=True, market=DataPoint.RT5M)
