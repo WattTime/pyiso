@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
 from apps.griddata.models import DataPoint
+import pandas as pd
+import urllib2
 
 
 class BPAClient:
@@ -28,6 +30,52 @@ class BPAClient:
         vals = row.split('\t')
         vals[0] = self._utcify(dateutil_parse(vals[0]))
         return vals
+        
+    def _request_tsv(self, url, latest, start_at, end_at):
+        # set up
+        raw_data = []
+        response = requests.get(url)
+        rows = response.text.split('\n')
+        header = [x.strip() for x in rows[6].split('\t')]
+        
+        # process rows
+        for row in rows[7:]:
+            vals = self._preprocess(row)
+            # save valid values
+            if len(vals) > 1:
+                if vals[1]:
+                    if latest: # overwrite list every time
+                        raw_data = [dict(zip(header, vals))]
+                    else: # save if date in range
+                        if vals[0] >= start_at and vals[0] <= end_at:
+                            raw_data.append(dict(zip(header, vals)))
+        return raw_data
+
+    def _request_xls(self, url, latest, start_at, end_at):
+        # set up
+        raw_data = []
+        socket = urllib2.urlopen(url)
+        xd = pd.ExcelFile(socket)
+        
+        for sheet in xd.sheet_names:
+            df = xd.parse(sheet, skiprows=18, parse_cols=[0, 2, 4, 5])
+            df.columns = ['Date/Time', 'Wind', 'Hydro', 'Thermal']
+            
+            for vals in df.values:
+                try:
+                    vals[0] = self._utcify(dateutil_parse(vals[0]))
+                except TypeError: # last row can be missing data
+                    continue
+
+                # save valid values
+                if not pd.isnull(vals).any():
+                    if latest: # overwrite list every time
+                        raw_data = [dict(zip(df.columns, vals))]
+                    else: # save if date in range
+                        if vals[0] >= start_at and vals[0] <= end_at:
+                            raw_data.append(dict(zip(df.columns, vals)))
+                
+        return raw_data
 
     def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
         # process args
@@ -40,10 +88,19 @@ class BPAClient:
             if start_at >= pytz.utc.localize(datetime.today() - timedelta(days=7)):
                 request_urls.append('wind/baltwg.txt')
             else:
-                raise ValueError('start_at can be no more than 7 days in the past')
+                this_year = start_at.year
+                while this_year <= end_at.year:
+                    if this_year >= 2011:
+                        request_urls.append('wind/WindGenTotalLoadYTD_%d.xls' % (this_year))
+                    else:
+                        raise ValueError('Cannot get BPA generation data before 2011.')
+                    this_year += 1
         else:
             raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
-
+        market = kwargs.get('market', DataPoint.RT5M)
+        if market != DataPoint.RT5M:
+            raise ValueError('Market must be %s' % DataPoint.RT5M)
+            
         # set up storage
         raw_data = []
         parsed_data = []
@@ -54,23 +111,12 @@ class BPAClient:
             url = copy.deepcopy(self.base_url)
             url += request_url
             
-            # carry out request
-            response = requests.get(url).text
+            # carry out request with preliminary parsing
+            if 'xls' in url:
+                raw_data += self._request_xls(url, latest, start_at, end_at)
+            else:
+                raw_data += self._request_tsv(url, latest, start_at, end_at)
                         
-            # preliminary parsing
-            rows = response.split('\n')
-            header = [x.strip() for x in rows[6].split('\t')]
-            for row in rows[7:]:
-                vals = self._preprocess(row)
-                # save valid values
-                if len(vals) > 1:
-                    if vals[1]:
-                        if latest: # overwrite list every time
-                            raw_data = [dict(zip(header, vals))]
-                        else: # save if date in range
-                            if vals[0] >= start_at and vals[0] <= end_at:
-                                raw_data.append(dict(zip(header, vals)))
-                    
         # parse data
         for raw_dp in raw_data:
             for raw_fuel_name, parsed_fuel_name in self.fuels.iteritems():

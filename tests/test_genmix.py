@@ -115,8 +115,17 @@ class TestGenMix(TestCase):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1),
-                                market=DataPoint.RTHR)
+                              end_at=today-timedelta(days=1))
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_bpa_date_range_farpast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('BPA', start_at=today-timedelta(days=20),
+                              end_at=today-timedelta(days=10))
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
