@@ -31,7 +31,7 @@ class TestGenMix(TestCase):
         
     def test_isne_latest(self):
         # basic test
-        data = self._run_test('ISNE', latest=True)
+        data = self._run_test('ISONE', latest=True)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -39,7 +39,7 @@ class TestGenMix(TestCase):
                 
     def test_isne_date_range(self):
         # basic test
-        data = self._run_test('ISNE', start_at=datetime(2014, 2, 1), end_at=datetime(2014, 2, 2))
+        data = self._run_test('ISONE', start_at=datetime(2014, 2, 1), end_at=datetime(2014, 2, 2))
         
         # test multiple
         timestamps = [d['timestamp'] for d in data]
@@ -55,7 +55,7 @@ class TestGenMix(TestCase):
                 
     def test_spp_latest(self):
         # basic test
-        data = self._run_test('SPS', latest=True)
+        data = self._run_test('SPP', latest=True)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]

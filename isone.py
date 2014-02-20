@@ -6,7 +6,7 @@ import pytz
 
 class ISONEClient:
     def __init__(self):
-        self.ba_name = 'ISNE'
+        self.ba_name = 'ISONE'
         
         self.base_url = 'http://isoexpress.iso-ne.com/ws/wsclient'
         self.base_payload = {'_ns0_requestType':'url'}

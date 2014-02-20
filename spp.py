@@ -7,7 +7,7 @@ import pytz
 
 class SPPClient:
     def __init__(self):
-        self.ba_name = 'SPS'
+        self.ba_name = 'SPP'
         
         self.base_url = 'http://www.spp.org/GenerationMix/'
         
