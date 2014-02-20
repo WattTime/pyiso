@@ -98,3 +98,26 @@ class TestGenMix(TestCase):
             self.assertEqual(dp['market'], DataPoint.RT5M)
             self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
         
+    def test_bpa_latest(self):
+        # basic test
+        data = self._run_test('BPA', latest=True, market=DataPoint.RT5M)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RT5M)
+            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
+
+    def test_bpa_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('BPA', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1),
+                                market=DataPoint.RTHR)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
