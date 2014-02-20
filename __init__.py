@@ -7,9 +7,13 @@ def client_factory(client_name, **kwargs):
     module_name = client_name.lower()
     class_name = '%sClient' % client_name.upper()
     dir_name = os.path.dirname(os.path.abspath(__file__))
+    error_msg = 'No client found for name %s' % client_name
     
     # find module
-    fp, pathname, description = imp.find_module(module_name, [dir_name])
+    try:
+        fp, pathname, description = imp.find_module(module_name, [dir_name])
+    except ImportError:
+        raise ValueError(error_msg)
 
     # load
     try:
@@ -23,6 +27,6 @@ def client_factory(client_name, **kwargs):
     try:
         client_inst = getattr(mod, class_name)(**kwargs)
     except AttributeError:
-        raise ValueError('No client found for name %s' % client_name)
+        raise ValueError(error_msg)
         
     return client_inst
