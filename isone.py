@@ -3,6 +3,8 @@ import copy
 from datetime import timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
+from apps.griddata.models import DataPoint
+
 
 class ISONEClient:
     def __init__(self):
@@ -34,7 +36,7 @@ class ISONEClient:
         elif start_at and end_at:
             this_date = start_at.date()
             while this_date <= end_at.date():
-                request_urls.append(this_date.strftime('day/%Y%m%H'))
+                request_urls.append(this_date.strftime('day/%Y%m%d'))
                 this_date += timedelta(days=1)
         else:
             raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
@@ -63,6 +65,8 @@ class ISONEClient:
             parsed_dp['gen_MW'] = raw_dp['GenMw']
             parsed_dp['fuel_name'] = self.fuels[raw_dp['FuelCategory']]
             parsed_dp['ba_name'] = self.ba_name
+            parsed_dp['market'] = DataPoint.RT5M
+            parsed_dp['freq'] = DataPoint.IRREGULAR
             
             # add to full storage
             parsed_data.append(parsed_dp)

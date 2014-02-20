@@ -1,8 +1,9 @@
 from apps.clients import client_factory
 from django.test import TestCase
 from apps.gridentities.models import FuelType, BalancingAuthority
+from apps.griddata.models import DataPoint
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class TestGenMix(TestCase):
     fixtures = ['isos.json', 'gentypes.json']
@@ -18,7 +19,8 @@ class TestGenMix(TestCase):
         # test contents
         for dp in data:
             # test key names
-            self.assertEqual(set(['gen_MW', 'ba_name', 'fuel_name', 'timestamp']),
+            self.assertEqual(set(['gen_MW', 'ba_name', 'fuel_name',
+                                  'timestamp', 'freq', 'market']),
                              set(dp.keys()))
     
             # test values
@@ -39,7 +41,8 @@ class TestGenMix(TestCase):
                 
     def test_isne_date_range(self):
         # basic test
-        data = self._run_test('ISONE', start_at=datetime(2014, 2, 1), end_at=datetime(2014, 2, 2))
+        data = self._run_test('ISONE', start_at=datetime.today()-timedelta(days=2),
+                              end_at=datetime.today()-timedelta(days=1))
         
         # test multiple
         timestamps = [d['timestamp'] for d in data]
@@ -53,12 +56,29 @@ class TestGenMix(TestCase):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
                 
-    def test_spp_latest(self):
+    def test_spp_latest_hr(self):
         # basic test
-        data = self._run_test('SPP', latest=True)
+        data = self._run_test('SPP', latest=True, market=DataPoint.RTHR)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-                
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RTHR)
+            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+        
+    def test_spp_latest_5min(self):
+        # basic test
+        data = self._run_test('SPP', latest=True, market=DataPoint.RT5M)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RT5M)
+            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
         
