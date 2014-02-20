@@ -3,9 +3,12 @@ import copy
 from dateutil.parser import parse as dateutil_parse
 import pytz
 from apps.griddata.models import DataPoint
+import logging
 
 
 class MISOClient:
+    logger = logging.getLogger(__name__)
+
     def __init__(self):
         self.ba_name = 'MISO'
         
@@ -18,6 +21,8 @@ class MISOClient:
             'Other': 'other',
             'Wind': 'wind',
         }
+        
+        self.logger = logging.getLogger(__name__)
 
     def get_generation(self, latest=False, **kwargs):
         # process args
@@ -41,6 +46,11 @@ class MISOClient:
             # carry out request
             response = requests.get(url).text
             
+            # test for valid content
+            if 'The page cannot be displayed' in response:
+                self.logger.error('Error in source data for MISO generation')
+                return parsed_data
+            
             # preliminary parsing
             rows = response.split('\n')
             header = rows[0].split(',')
@@ -51,11 +61,10 @@ class MISOClient:
         for raw_dp in raw_data:
             # set up storage
             parsed_dp = {}
-            
             naive_local_timestamp = dateutil_parse(raw_dp['INTERVALEST'])
             aware_local_timestamp = pytz.timezone('America/New_York').localize(naive_local_timestamp)
             aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
-
+                
             # add values
             try:
                 parsed_dp['timestamp'] = aware_utc_timestamp
