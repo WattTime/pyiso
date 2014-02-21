@@ -130,3 +130,25 @@ class TestGenMix(TestCase):
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+        
+    def test_caiso_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=today-timedelta(days=3),
+                              end_at=today-timedelta(days=2), market=DataPoint.RTHR)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RTHR)
+            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['solarpv', 'solarth', 'geo', 'smhydro', 'wind', 'biomass', 'biogas',
+                          'thermal', 'hydro', 'nuclear']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)

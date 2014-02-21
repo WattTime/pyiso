@@ -7,8 +7,6 @@ import logging
 
 
 class MISOClient:
-    logger = logging.getLogger(__name__)
-
     def __init__(self):
         self.ba_name = 'MISO'
         

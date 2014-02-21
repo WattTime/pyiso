@@ -21,9 +21,9 @@ class ISONEClient:
             'Oil': 'oil',
             'Solar': 'solar',
             'Wind': 'wind',
-            'Wood': 'wood',
+            'Wood': 'biomass',
             'Refuse': 'refuse',
-            'Landfill Gas': 'landfill',
+            'Landfill Gas': 'biogas',
         }
         
 
