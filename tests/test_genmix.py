@@ -152,3 +152,23 @@ class TestGenMix(TestCase):
                           'thermal', 'hydro', 'nuclear']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
+
+    def test_caiso_latest(self):
+        # basic test
+        data = self._run_test('CAISO', latest=True, market=DataPoint.RTHR)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RT5M)
+            self.assertEqual(dp['freq'], DataPoint.TENMIN)                
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['solar', 'wind', 'renewable', 'other']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+            
