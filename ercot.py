@@ -71,21 +71,23 @@ class ERCOTClient:
         raw_ts = self._utcify(total_dp, ts_key='SE_EXE_TIME',
                               dst_key='SE_EXE_TIME_DST', dst_val='s')
         if raw_ts.minute > 30:
-            ts = raw_ts.replace(hour=raw_ts.hour+1, minute=0, second=0, microsecond=0)
+            ts_hour_ending = raw_ts.replace(hour=raw_ts.hour+1, minute=0, second=0, microsecond=0)
         else:
-            ts = raw_ts.replace(hour=raw_ts.hour, minute=0, second=0, microsecond=0)
+            ts_hour_ending = raw_ts.replace(hour=raw_ts.hour, minute=0, second=0, microsecond=0)
+        ts_hour_starting = ts_hour_ending - timedelta(hours=1)
 
         # process wind data
         wind_gen = 0
         for wind_dp in self._request_report('wind_hrly'):
             wind_ts = self._utcify(wind_dp, 'HOUR_ENDING', 'DSTFlag', 'N')
-            if wind_ts == ts:
+            if wind_ts == ts_hour_ending:
                 wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
                 break
             
         # set up storage
         parsed_data = []
-        base_dp = {'timestamp': ts, 'freq': DataPoint.HOURLY, 'market': DataPoint.RTHR,
+        base_dp = {'timestamp': ts_hour_starting,
+                   'freq': DataPoint.HOURLY, 'market': DataPoint.RTHR,
                    'gen_MW': 0, 'ba_name': self.ba_name}
 
         # collect parsed data
