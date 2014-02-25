@@ -1,5 +1,6 @@
 import requests
 import copy
+import logging
 from datetime import timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
@@ -25,7 +26,8 @@ class ISONEClient:
             'Refuse': 'refuse',
             'Landfill Gas': 'biogas',
         }
-        
+
+        self.logger = logging.getLogger(__name__)        
 
     def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
         # process args
@@ -52,7 +54,12 @@ class ISONEClient:
             payload.update({'_ns0_requestUrl':'/genfuelmix/%s' % request_url})
             
             # carry out request
-            response = requests.post(self.base_url, data=payload).json()
+            try:
+                response = requests.post(self.base_url, data=payload).json()
+            except ValueError: # no JSON found
+                msg = 'Error in source data for ISONE with payload %s' % payload
+                self.logger.error(msg)
+                return []
             raw_data += response[0]['data']['GenFuelMixes']['GenFuelMix']
 
         # parse data
