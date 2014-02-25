@@ -173,8 +173,34 @@ class TestGenMix(TestCase):
             self.assertIn(expfuel, fuels)
 
     def test_ercot_latest(self):
+        # before min 32, will not have wind data
+        if datetime.now().minute >= 32:
+            # basic test
+            data = self._run_test('ERCOT', latest=True)
+            
+            # test all timestamps are equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertEqual(len(set(timestamps)), 1)
+            
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], DataPoint.RTHR)
+                self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+    
+            # test fuel names
+            fuels = set([d['fuel_name'] for d in data])
+            expected_fuels = ['wind', 'nonwind']
+            for expfuel in expected_fuels:
+                self.assertIn(expfuel, fuels)
+                
+        else:
+            c = client_factory('ERCOT')
+            data = c.get_generation(latest=True)
+            self.assertEqual(len(data), 0)
+            
+    def test_pjm_latest(self):
         # basic test
-        data = self._run_test('ERCOT', latest=True)
+        data = self._run_test('PJM', latest=True)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -182,8 +208,8 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RTHR)
-            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+            self.assertEqual(dp['market'], DataPoint.RT5M)
+            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])

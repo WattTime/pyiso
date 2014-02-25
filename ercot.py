@@ -77,11 +77,15 @@ class ERCOTClient:
         ts_hour_starting = ts_hour_ending - timedelta(hours=1)
 
         # process wind data
-        wind_gen = 0
+        wind_gen = None
         for wind_dp in self._request_report('wind_hrly'):
             wind_ts = self._utcify(wind_dp, 'HOUR_ENDING', 'DSTFlag', 'N')
             if wind_ts == ts_hour_ending:
-                wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
+                try:
+                    wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
+                except ValueError: # empty string
+                    wind_gen = None
+                    self.logger.error('No wind data available at %s in ERCOT for hour ending %s' % (raw_ts, ts_hour_ending))
                 break
             
         # set up storage
@@ -91,7 +95,7 @@ class ERCOTClient:
                    'gen_MW': 0, 'ba_name': self.ba_name}
 
         # collect parsed data
-        if wind_gen > 0:
+        if wind_gen is not None:
             nonwind_gen = total_gen - wind_gen
             for gen_MW, fuel_name in [(wind_gen, 'wind'), (nonwind_gen, 'nonwind')]:
                 parsed_dp = copy.deepcopy(base_dp)
