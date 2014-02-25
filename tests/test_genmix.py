@@ -155,7 +155,7 @@ class TestGenMix(TestCase):
 
     def test_caiso_latest(self):
         # basic test
-        data = self._run_test('CAISO', latest=True, market=DataPoint.RTHR)
+        data = self._run_test('CAISO', latest=True)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -169,6 +169,25 @@ class TestGenMix(TestCase):
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
         expected_fuels = ['solar', 'wind', 'renewable', 'other']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+
+    def test_ercot_latest(self):
+        # basic test
+        data = self._run_test('ERCOT', latest=True)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], DataPoint.RTHR)
+            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['wind', 'nonwind']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
             

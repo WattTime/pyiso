@@ -4,7 +4,7 @@ from django.test import TestCase
 
 class TestFactory(TestCase):
     def test_names(self):
-        for name in ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO']:
+        for name in ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'ERCOT']:
             c = client_factory(name)
             self.assertIsNotNone(c)
             
