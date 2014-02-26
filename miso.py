@@ -66,7 +66,7 @@ class MISOClient:
             # add values
             try:
                 parsed_dp['timestamp'] = aware_utc_timestamp
-                parsed_dp['gen_MW'] = raw_dp['ACT']
+                parsed_dp['gen_MW'] = float(raw_dp['ACT'])
                 parsed_dp['fuel_name'] = self.fuels[raw_dp['CATEGORY']]
                 parsed_dp['ba_name'] = self.ba_name
                 parsed_dp['market'] = DataPoint.RT5M

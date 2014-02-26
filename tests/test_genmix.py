@@ -28,6 +28,9 @@ class TestGenMix(TestCase):
             self.assertEqual(FuelType.objects.filter(name=dp['fuel_name']).count(), 1)
             self.assertEqual(BalancingAuthority.objects.filter(abbrev=dp['ba_name']).count(), 1)
             
+            # test for numeric gen
+            self.assertGreaterEqual(dp['gen_MW']+1, dp['gen_MW'])
+            
         # return
         return data
         

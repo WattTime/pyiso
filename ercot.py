@@ -70,10 +70,9 @@ class ERCOTClient:
         # get timestamp on hour
         raw_ts = self._utcify(total_dp, ts_key='SE_EXE_TIME',
                               dst_key='SE_EXE_TIME_DST', dst_val='s')
+        ts_hour_ending = raw_ts.replace(minute=0, second=0, microsecond=0)
         if raw_ts.minute > 30:
-            ts_hour_ending = raw_ts.replace(hour=raw_ts.hour+1, minute=0, second=0, microsecond=0)
-        else:
-            ts_hour_ending = raw_ts.replace(hour=raw_ts.hour, minute=0, second=0, microsecond=0)
+            ts_hour_ending += timedelta(hours=1)
         ts_hour_starting = ts_hour_ending - timedelta(hours=1)
 
         # process wind data
