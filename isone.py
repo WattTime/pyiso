@@ -56,8 +56,9 @@ class ISONEClient:
             # carry out request
             try:
                 response = requests.post(self.base_url, data=payload).json()
-            except ValueError: # no JSON found
-                msg = 'Error in source data for ISONE with payload %s' % payload
+            except (ValueError, requests.exceptions.ChunkedEncodingError) as e:
+                # JSON incomplete or not found
+                msg = 'Error in source data for ISONE with payload %s: %s' % (payload, e)
                 self.logger.error(msg)
                 return []
             raw_data += response[0]['data']['GenFuelMixes']['GenFuelMix']
