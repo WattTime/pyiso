@@ -84,7 +84,7 @@ class SPPClient:
     
                 # add values
                 parsed_dp['timestamp'] = raw_dp['']
-                parsed_dp['gen_MW'] = raw_dp[raw_fuel_name]
+                parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
                 if market == 'RTHR':
