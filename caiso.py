@@ -39,10 +39,15 @@ class CAISOClient:
 
         self.logger = logging.getLogger(__name__)
 
-    def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
+    def get_generation(self, latest=False, yesterday=False,
+                       start_at=False, end_at=False, **kwargs):
         if latest:
             return self.get_generation_latest(**kwargs)
         else:
+            if yesterday:
+                ca_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('America/Los_Angeles'))
+                end_at = ca_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                start_at = end_at - timedelta(days=1)
             return self.get_generation_historical(start_at, end_at, **kwargs)
             
     def _split_tsv(self, row):

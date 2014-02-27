@@ -1,8 +1,9 @@
 import requests
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
+import logging
 from apps.griddata.models import DataPoint
 
 
@@ -11,6 +12,8 @@ class SPPClient:
         self.ba_name = 'SPP'
         
         self.base_url = 'http://www.spp.org/GenerationMix/'
+        
+        self.logger = logging.getLogger(__name__)
         
         self.fuels = {
             'COAL': 'coal',
@@ -32,7 +35,7 @@ class SPPClient:
         return vals
 
     def get_generation(self, latest=False, market='RTHR',
-                       start_at=None, end_at=None,**kwargs):
+                       start_at=None, end_at=None, yesterday=False, **kwargs):
         # process args
         if market == 'RTHR':
             file_freq = 'Hourly'
@@ -40,17 +43,20 @@ class SPPClient:
             file_freq = '5Minute'
         else:
             raise ValueError('market must be RTHR or RT5M.')
-        request_urls = []            
+        request_urls = []
+        if yesterday:
+            midnight = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+            end_at = self._utcify(midnight) - timedelta(hours=1)
+            start_at = end_at - timedelta(days=1) + timedelta(hours=1)
         if latest:
-            request_urls.append('%d_%s_GenMix.csv' % (datetime.today().year, file_freq))
-
+            request_urls.append('%d_%s_GenMix.csv' % (datetime.today().year, file_freq))            
         elif start_at and end_at:
             this_year = start_at.year
             while this_year <= end_at.year:
                 request_urls.append('%d_%s_GenMix.csv' % (this_year, file_freq))
                 this_year += 1
         else:
-            raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
+            raise ValueError('Either latest or yesterday must be True, or start_at and end_at must both be provided.')
             
         # set up storage
         raw_data = []
@@ -77,14 +83,18 @@ class SPPClient:
                         raw_data.append(dict(zip(header, vals)))
             
         # parse data
-        for raw_dp in raw_data:            
+        for raw_dp in raw_data:
             for raw_fuel_name, parsed_fuel_name in self.fuels.iteritems():
                 # set up storage
                 parsed_dp = {}   
     
                 # add values
                 parsed_dp['timestamp'] = raw_dp['']
-                parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
+                try:
+                    parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
+                except KeyError:
+                    self.logger.error('No data for %s found in %s' % (raw_fuel_name, raw_dp))
+                    continue
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
                 if market == 'RTHR':
