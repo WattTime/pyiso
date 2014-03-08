@@ -286,13 +286,18 @@ class CAISOClient:
                   }
         gen_payload.update(self.base_payload)
         gen_oasis_data = self._request_oasis(payload=gen_payload)
+        has_other = False
         for dp in self._parse_oasis_slrs(gen_oasis_data):
+            print dp['timestamp'], ts
             if dp['timestamp'] == ts:
                 dp['gen_MW'] -= total_ren_MW
                 dp['freq'] = DataPoint.TENMIN
                 parsed_data.append(dp)
+                has_other = True
                 break
 
-        # return
-        return parsed_data
-             
+        # check and return
+        if has_other:
+            return parsed_data
+        else:
+            return []
