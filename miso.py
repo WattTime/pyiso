@@ -1,6 +1,7 @@
 import requests
 import copy
 from dateutil.parser import parse as dateutil_parse
+from datetime import timedelta
 import pytz
 from apps.griddata.models import DataPoint
 import logging
@@ -21,6 +22,14 @@ class MISOClient:
         }
         
         self.logger = logging.getLogger(__name__)
+        
+    def _utcify(self, naive_local_timestamp):
+        # MISO is always on Eastern Standard Time, even during DST
+        # ie UTC offset = -5 always
+        aware_local_timestamp = pytz.timezone('America/New_York').localize(naive_local_timestamp, is_dst=False)
+        aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
+        aware_utc_timestamp += aware_local_timestamp.dst() # adjust for EST
+        return aware_utc_timestamp
 
     def get_generation(self, latest=False, **kwargs):
         # process args
@@ -57,12 +66,12 @@ class MISOClient:
             
         # parse data
         for raw_dp in raw_data:
+            # process timestamp
+            aware_utc_timestamp = self._utcify(dateutil_parse(raw_dp['INTERVALEST']))
+
             # set up storage
             parsed_dp = {}
-            naive_local_timestamp = dateutil_parse(raw_dp['INTERVALEST'])
-            aware_local_timestamp = pytz.timezone('America/New_York').localize(naive_local_timestamp)
-            aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
-                
+            
             # add values
             try:
                 parsed_dp['timestamp'] = aware_utc_timestamp
