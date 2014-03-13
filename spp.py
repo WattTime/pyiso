@@ -3,18 +3,16 @@ import copy
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
-import logging
 from apps.griddata.models import DataPoint
+from apps.clients.base import BaseClient
 
 
-class SPPClient:
+class SPPClient(BaseClient):
     def __init__(self):
         self.ba_name = 'SPP'
         
         self.base_url = 'http://www.spp.org/GenerationMix/'
-        
-        self.logger = logging.getLogger(__name__)
-        
+                
         self.fuels = {
             'COAL': 'coal',
             'HYDRO': 'hydro',

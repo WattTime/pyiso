@@ -1,13 +1,13 @@
 import requests
 import copy
-import logging
 from datetime import timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
 from apps.griddata.models import DataPoint
+from apps.clients.base import BaseClient
 
 
-class ISONEClient:
+class ISONEClient(BaseClient):
     def __init__(self):
         self.ba_name = 'ISONE'
         
@@ -26,8 +26,6 @@ class ISONEClient:
             'Refuse': 'refuse',
             'Landfill Gas': 'biogas',
         }
-
-        self.logger = logging.getLogger(__name__)        
 
     def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
         # process args

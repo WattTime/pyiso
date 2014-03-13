@@ -1,13 +1,12 @@
 import requests
 import copy
 from dateutil.parser import parse as dateutil_parse
-from datetime import timedelta
 import pytz
 from apps.griddata.models import DataPoint
-import logging
+from apps.clients.base import BaseClient
 
 
-class MISOClient:
+class MISOClient(BaseClient):
     def __init__(self):
         self.ba_name = 'MISO'
         
@@ -20,9 +19,7 @@ class MISOClient:
             'Other': 'other',
             'Wind': 'wind',
         }
-        
-        self.logger = logging.getLogger(__name__)
-        
+                
     def _utcify(self, naive_local_timestamp):
         # MISO is always on Eastern Standard Time, even during DST
         # ie UTC offset = -5 always

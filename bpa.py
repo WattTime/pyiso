@@ -6,9 +6,10 @@ import pytz
 from apps.griddata.models import DataPoint
 import pandas as pd
 import urllib2
+from apps.clients.base import BaseClient
 
 
-class BPAClient:
+class BPAClient(BaseClient):
     def __init__(self):
         self.ba_name = 'BPA'
         

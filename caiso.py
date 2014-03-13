@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, time
 from dateutil.parser import parse as dateutil_parse
 import pytz
 from apps.griddata.models import DataPoint
-import logging
+from apps.clients.base import BaseClient
 import copy
 import zipfile
 import StringIO
@@ -11,7 +11,7 @@ import re
 from bs4 import BeautifulSoup
 
 
-class CAISOClient:
+class CAISOClient(BaseClient):
     def __init__(self):
         self.ba_name = 'CAISO'
         
@@ -36,8 +36,6 @@ class CAISOClient:
             'THERMAL': 'thermal',
             'HYDRO': 'hydro',            
         }
-
-        self.logger = logging.getLogger(__name__)
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
@@ -82,7 +80,9 @@ class CAISOClient:
             
             # carry out request
             response = requests.get(url)
-            if response.status_code != 200:
+            if response.status_code == 200:
+                self.logger.debug('Got source data for CAISO generation for %s' % this_date)
+            else:
                 self.logger.error('Error in source data for CAISO generation for %s' % this_date)
                 this_date += timedelta(days=1)
                 continue

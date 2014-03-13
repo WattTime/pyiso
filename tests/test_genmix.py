@@ -4,13 +4,20 @@ from apps.gridentities.models import FuelType, BalancingAuthority
 from apps.griddata.models import DataPoint
 import pytz
 from datetime import datetime, timedelta
+import logging
+
 
 class TestGenMix(TestCase):
     fixtures = ['isos.json', 'gentypes.json']
     
     def _run_test(self, ba_name, **kwargs):
-        # get data
+        # set up client with logging
         c = client_factory(ba_name)
+        handler = logging.StreamHandler()
+        c.logger.addHandler(handler)
+        c.logger.setLevel(logging.DEBUG)
+
+        # get data
         data = c.get_generation(**kwargs)
         
         # test number

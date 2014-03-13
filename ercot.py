@@ -3,20 +3,18 @@ from dateutil.parser import parse as dateutil_parse
 import pytz
 from datetime import timedelta
 from apps.griddata.models import DataPoint
-import logging
 import copy
 import zipfile
 import StringIO
 from bs4 import BeautifulSoup
+from apps.clients.base import BaseClient
 
 
-class ERCOTClient:
+class ERCOTClient(BaseClient):
     def __init__(self):
         self.ba_name = 'ERCOT'
         self.base_report_url = 'http://mis.ercot.com'
-        
-        self.logger = logging.getLogger(__name__)
-        
+                
         self.report_type_ids = {
             'wind_5min': '13071',
             'wind_hrly': '13028',

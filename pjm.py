@@ -2,16 +2,15 @@ import requests
 from dateutil.parser import parse as dateutil_parse
 import pytz
 import copy
-import logging
 from bs4 import BeautifulSoup
 from apps.griddata.models import DataPoint
+from apps.clients.base import BaseClient
 
 
-class PJMClient:
+class PJMClient(BaseClient):
     def __init__(self):
         self.ba_name = 'PJM'
         self.base_url = 'http://edatamobile.pjm.com/eDataWireless/SessionManager'
-        self.logger = logging.getLogger(__name__)
 
     def _get_edata(self, data_type, key):
         # get request
