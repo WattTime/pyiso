@@ -13,14 +13,30 @@ class SPPClient(BaseClient):
         
         self.base_url = 'http://www.spp.org/GenerationMix/'
                 
-        self.fuels = {
-            'COAL': 'coal',
-            'HYDRO': 'hydro',
-            'GAS': 'natgas',
-            'NUCLEAR': 'nuclear',
-            'DFO': 'oil',
-            'WIND': 'wind',
-        }
+    def get_fuels(self, year=2014):
+        if year == 2014:
+            return {
+                'COAL': 'coal',
+                'FUEL_OIL': 'oil',
+                'GAS': 'natgas',
+                'HYDRO': 'hydro',
+                'NUCLEAR': 'nuclear',
+                'OTHER': 'other',
+                'PUMP_HYDRO': 'smhydro',
+                'SOLAR': 'solar',
+                'WASTE': 'refuse',
+                'WIND': 'wind',
+            }
+            
+        else:
+            return {
+                'COAL': 'coal',
+                'HYDRO': 'hydro',
+                'GAS': 'natgas',
+                'NUCLEAR': 'nuclear',
+                'DFO': 'oil',
+                'WIND': 'wind',
+            }
         
     def _utcify(self, naive_local_timestamp):
         aware_local_timestamp = pytz.timezone('America/Chicago').localize(naive_local_timestamp)
@@ -79,20 +95,27 @@ class SPPClient(BaseClient):
                     vals = self._preprocess(row)
                     if vals[0] >= start_at and vals[0] <= end_at:
                         raw_data.append(dict(zip(header, vals)))
-            
+                                    
         # parse data
         for raw_dp in raw_data:
-            for raw_fuel_name, parsed_fuel_name in self.fuels.iteritems():
+            # get timestamp and expected fuels
+            ts = raw_dp['']
+            fuels = self.get_fuels(ts.year)
+            
+            for raw_fuel_name, parsed_fuel_name in fuels.iteritems():
                 # set up storage
                 parsed_dp = {}   
     
                 # add values
-                parsed_dp['timestamp'] = raw_dp['']
+                parsed_dp['timestamp'] = ts
                 try:
                     parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
                 except KeyError:
-                    self.logger.error('No data for %s found in %s' % (raw_fuel_name, raw_dp))
-                    continue
+                    self.logger.error('No data for %s found in %s; skipping this time.' % (raw_fuel_name, raw_dp))
+                    break
+                except ValueError:
+                    self.logger.error('Found %s instead of float for %s; skipping time %s.' % (raw_dp[raw_fuel_name], raw_fuel_name, ts))
+                    break                    
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
                 if market == 'RTHR':
