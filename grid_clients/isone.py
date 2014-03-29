@@ -3,8 +3,7 @@ import copy
 from datetime import timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from apps.griddata.models import DataPoint
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class ISONEClient(BaseClient):
@@ -71,8 +70,8 @@ class ISONEClient(BaseClient):
             parsed_dp['gen_MW'] = raw_dp['GenMw']
             parsed_dp['fuel_name'] = self.fuels[raw_dp['FuelCategory']]
             parsed_dp['ba_name'] = self.ba_name
-            parsed_dp['market'] = DataPoint.RT5M
-            parsed_dp['freq'] = DataPoint.IRREGULAR
+            parsed_dp['market'] = self.MARKET_CHOICES.na
+            parsed_dp['freq'] = self.FREQUENCY_CHOICES.na
             
             # add to full storage
             parsed_data.append(parsed_dp)

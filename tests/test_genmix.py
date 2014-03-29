@@ -1,15 +1,22 @@
-from apps.clients import client_factory
-from django.test import TestCase
-from apps.gridentities.models import FuelType, BalancingAuthority
-from apps.griddata.models import DataPoint
+from grid_clients import client_factory
+from grid_clients.base import FUEL_CHOICES, BaseClient
+from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
 import logging
 
 
 class TestGenMix(TestCase):
-    fixtures = ['isos.json', 'gentypes.json']
-    
+    def setUp(self):
+        # set up expected values from base client
+        bc = BaseClient()
+        self.MARKET_CHOICES = bc.MARKET_CHOICES
+        self.FREQUENCY_CHOICES = bc.FREQUENCY_CHOICES
+
+        # set up other expected values
+        self.FUEL_CHOICES = FUEL_CHOICES
+        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'ERCOT', 'PJM']
+
     def _run_test(self, ba_name, **kwargs):
         # set up client with logging
         c = client_factory(ba_name)
@@ -32,8 +39,8 @@ class TestGenMix(TestCase):
     
             # test values
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
-            self.assertEqual(FuelType.objects.filter(name=dp['fuel_name']).count(), 1)
-            self.assertEqual(BalancingAuthority.objects.filter(abbrev=dp['ba_name']).count(), 1)
+            self.assertIn(dp['fuel_name'], self.FUEL_CHOICES)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
             
             # test for numeric gen
             self.assertGreaterEqual(dp['gen_MW']+1, dp['gen_MW'])
@@ -68,7 +75,7 @@ class TestGenMix(TestCase):
                 
     def test_spp_latest_hr(self):
         # basic test
-        data = self._run_test('SPP', latest=True, market=DataPoint.RTHR)
+        data = self._run_test('SPP', latest=True, market=self.MARKET_CHOICES.hourly)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -76,15 +83,15 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RTHR)
-            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
         
     def test_spp_date_range_hr(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
-                                market=DataPoint.RTHR)
+                                market=self.MARKET_CHOICES.hourly)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -92,12 +99,12 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RTHR)
-            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
         
     def test_spp_latest_5min(self):
         # basic test
-        data = self._run_test('SPP', latest=True, market=DataPoint.RT5M)
+        data = self._run_test('SPP', latest=True, market=self.MARKET_CHOICES.fivemin)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -105,12 +112,12 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RT5M)
-            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
         
     def test_spp_yesterday_5min(self):
         # basic test
-        data = self._run_test('SPP', yesterday=True, market=DataPoint.RT5M)
+        data = self._run_test('SPP', yesterday=True, market=self.MARKET_CHOICES.fivemin)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -118,12 +125,12 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RT5M)
-            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
 
     def test_bpa_latest(self):
         # basic test
-        data = self._run_test('BPA', latest=True, market=DataPoint.RT5M)
+        data = self._run_test('BPA', latest=True, market=self.MARKET_CHOICES.fivemin)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -131,8 +138,8 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RT5M)
-            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
 
     def test_bpa_date_range(self):
         # basic test
@@ -158,7 +165,7 @@ class TestGenMix(TestCase):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
-                              end_at=today-timedelta(days=2), market=DataPoint.RTHR)
+                              end_at=today-timedelta(days=2), market=self.MARKET_CHOICES.hourly)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -166,8 +173,8 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RTHR)
-            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
@@ -178,7 +185,7 @@ class TestGenMix(TestCase):
 
     def test_caiso_yesterday(self):
         # basic test
-        data = self._run_test('CAISO', yesterday=True, market=DataPoint.RTHR)
+        data = self._run_test('CAISO', yesterday=True, market=self.MARKET_CHOICES.hourly)
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -186,8 +193,8 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RTHR)
-            self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
@@ -206,8 +213,8 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RT5M)
-            self.assertEqual(dp['freq'], DataPoint.TENMIN)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.tenmin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.tenmin)                
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
@@ -227,8 +234,8 @@ class TestGenMix(TestCase):
             
             # test flags
             for dp in data:
-                self.assertEqual(dp['market'], DataPoint.RTHR)
-                self.assertEqual(dp['freq'], DataPoint.HOURLY)                
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
     
             # test fuel names
             fuels = set([d['fuel_name'] for d in data])
@@ -251,12 +258,11 @@ class TestGenMix(TestCase):
         
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], DataPoint.RT5M)
-            self.assertEqual(dp['freq'], DataPoint.FIVEMIN)                
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
         expected_fuels = ['wind', 'nonwind']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
-            

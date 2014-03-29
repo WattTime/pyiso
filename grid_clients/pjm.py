@@ -3,8 +3,7 @@ from dateutil.parser import parse as dateutil_parse
 import pytz
 import copy
 from bs4 import BeautifulSoup
-from apps.griddata.models import DataPoint
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class PJMClient(BaseClient):
@@ -58,7 +57,7 @@ class PJMClient(BaseClient):
         # set up storage
         parsed_data = []
         base_dp = {'timestamp': load_ts,
-                   'freq': DataPoint.FIVEMIN, 'market': DataPoint.RT5M,
+                   'freq': self.FREQUENCY_CHOICES.fivemin, 'market': self.MARKET_CHOICES.fivemin,
                    'gen_MW': 0, 'ba_name': self.ba_name}
 
         # collect data
@@ -70,4 +69,3 @@ class PJMClient(BaseClient):
 
         # return
         return parsed_data
-        

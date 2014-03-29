@@ -2,8 +2,7 @@ import requests
 import copy
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from apps.griddata.models import DataPoint
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class MISOClient(BaseClient):
@@ -75,8 +74,8 @@ class MISOClient(BaseClient):
                 parsed_dp['gen_MW'] = float(raw_dp['ACT'])
                 parsed_dp['fuel_name'] = self.fuels[raw_dp['CATEGORY']]
                 parsed_dp['ba_name'] = self.ba_name
-                parsed_dp['market'] = DataPoint.RT5M
-                parsed_dp['freq'] = DataPoint.FIVEMIN
+                parsed_dp['market'] = self.MARKET_CHOICES.fivemin
+                parsed_dp['freq'] = self.FREQUENCY_CHOICES.fivemin
             except KeyError: # blank last line
                 continue
             

@@ -2,12 +2,11 @@ import requests
 from dateutil.parser import parse as dateutil_parse
 import pytz
 from datetime import timedelta
-from apps.griddata.models import DataPoint
 import copy
 import zipfile
 import StringIO
 from bs4 import BeautifulSoup
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class ERCOTClient(BaseClient):
@@ -88,7 +87,7 @@ class ERCOTClient(BaseClient):
         # set up storage
         parsed_data = []
         base_dp = {'timestamp': ts_hour_starting,
-                   'freq': DataPoint.HOURLY, 'market': DataPoint.RTHR,
+                   'freq': self.FREQUENCY_CHOICES.hourly, 'market': self.MARKET_CHOICES.hourly,
                    'gen_MW': 0, 'ba_name': self.ba_name}
 
         # collect parsed data

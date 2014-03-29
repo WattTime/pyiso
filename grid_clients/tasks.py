@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from celery import shared_task
-from apps.clients import client_factory
+from grid_clients import client_factory
 import logging
 from datetime import datetime
 

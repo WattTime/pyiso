@@ -3,8 +3,7 @@ import copy
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from apps.griddata.models import DataPoint
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class SPPClient(BaseClient):
@@ -119,11 +118,11 @@ class SPPClient(BaseClient):
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
                 if market == 'RTHR':
-                    parsed_dp['freq'] = DataPoint.HOURLY
-                    parsed_dp['market'] = DataPoint.RTHR
+                    parsed_dp['freq'] = self.FREQUENCY_CHOICES.hourly
+                    parsed_dp['market'] = self.MARKET_CHOICES.hourly
                 elif market == 'RT5M':
-                    parsed_dp['freq'] = DataPoint.FIVEMIN
-                    parsed_dp['market'] = DataPoint.RT5M                    
+                    parsed_dp['freq'] = self.FREQUENCY_CHOICES.fivemin
+                    parsed_dp['market'] = self.MARKET_CHOICES.fivemin
                 
                 # add to full storage
                 parsed_data.append(parsed_dp)

@@ -2,8 +2,7 @@ import requests
 from datetime import datetime, timedelta, time
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from apps.griddata.models import DataPoint
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 import copy
 import zipfile
 import StringIO
@@ -119,8 +118,8 @@ class CAISOClient(BaseClient):
                 parsed_dp['timestamp'] = raw_dp['Hour']
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
-                parsed_dp['market'] = DataPoint.RTHR
-                parsed_dp['freq'] = DataPoint.HOURLY
+                parsed_dp['market'] = self.MARKET_CHOICES.hourly
+                parsed_dp['freq'] = self.FREQUENCY_CHOICES.hourly
                 
                 # add to full storage
                 parsed_data.append(parsed_dp)
@@ -185,8 +184,8 @@ class CAISOClient(BaseClient):
         for ts, preparsed_dp in preparsed_data.iteritems():
             # set up base
             base_parsed_dp = {'timestamp': ts,
-                              'freq': DataPoint.HOURLY,
-                              'market': DataPoint.RTHR,
+                              'freq': self.FREQUENCY_CHOICES.hourly,
+                              'market': self.MARKET_CHOICES.hourly,
                               'gen_MW': 0, 'ba_name': self.ba_name}
                           
             # collect data
@@ -213,8 +212,8 @@ class CAISOClient(BaseClient):
 
                 # set up base
                 parsed_dp = {'timestamp': ts, 'fuel_name': 'other',
-                              'freq': DataPoint.FIVEMIN,
-                              'market': DataPoint.RT5M,
+                              'freq': self.FREQUENCY_CHOICES.fivemin,
+                              'market': self.MARKET_CHOICES.fivemin,
                               'ba_name': self.ba_name}
                     
                 # store generation value
@@ -251,8 +250,8 @@ class CAISOClient(BaseClient):
             match = re.search('(?P<val>\d+.?\d+) MW', resource_soup.string)
             if match:
                 parsed_dp = {'timestamp': ts,
-                              'freq': DataPoint.TENMIN,
-                              'market': DataPoint.RT5M,
+                              'freq': self.FREQUENCY_CHOICES.tenmin,
+                              'market': self.MARKET_CHOICES.tenmin,
                               'ba_name': self.ba_name}
                 parsed_dp['gen_MW'] = float(match.group('val'))
                 parsed_dp['fuel_name'] = fuel_name
@@ -290,7 +289,7 @@ class CAISOClient(BaseClient):
         for dp in self._parse_oasis_slrs(gen_oasis_data):
             if dp['timestamp'] == ts:
                 dp['gen_MW'] -= total_ren_MW
-                dp['freq'] = DataPoint.TENMIN
+                dp['freq'] = self.FREQUENCY_CHOICES.tenmin
                 parsed_data.append(dp)
                 has_other = True
                 break

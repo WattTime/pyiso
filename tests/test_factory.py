@@ -1,5 +1,5 @@
-from apps.clients import client_factory
-from django.test import TestCase
+from grid_clients import client_factory
+from unittest import TestCase
 import inspect
 
 

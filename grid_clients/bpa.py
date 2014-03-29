@@ -3,10 +3,9 @@ import copy
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from apps.griddata.models import DataPoint
 import pandas as pd
 import urllib2
-from apps.clients.base import BaseClient
+from grid_clients.base import BaseClient
 
 
 class BPAClient(BaseClient):
@@ -98,9 +97,9 @@ class BPAClient(BaseClient):
                     this_year += 1
         else:
             raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
-        market = kwargs.get('market', DataPoint.RT5M)
-        if market != DataPoint.RT5M:
-            raise ValueError('Market must be %s' % DataPoint.RT5M)
+        market = kwargs.get('market', self.MARKET_CHOICES.fivemin)
+        if market != self.MARKET_CHOICES.fivemin:
+            raise ValueError('Market must be %s' % self.MARKET_CHOICES.fivemin)
             
         # set up storage
         raw_data = []
@@ -129,8 +128,8 @@ class BPAClient(BaseClient):
                 parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
                 parsed_dp['fuel_name'] = parsed_fuel_name
                 parsed_dp['ba_name'] = self.ba_name
-                parsed_dp['market'] = DataPoint.RT5M
-                parsed_dp['freq'] = DataPoint.FIVEMIN
+                parsed_dp['market'] = self.MARKET_CHOICES.fivemin
+                parsed_dp['freq'] = self.FREQUENCY_CHOICES.fivemin
                 
                 # add to full storage
                 parsed_data.append(parsed_dp)

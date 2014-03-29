@@ -1,22 +1,22 @@
-from distutils.core import setup
-import os
+from setuptools import setup
+import codecs
 
-# Utility function to read the README file.
-# Used for the long_description.  It's nice, because now 1) we have a top level
-# README file and 2) it's easier to type in the README file than to put a raw
-# string in below ...
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+# Get the long description from the relevant file
+with codecs.open('README.md', encoding='utf-8') as f:
+    long_description = f.read()
+
 
 setup(
     name='grid-clients',
-    packages=['grid_clients', 'tests'],
+    packages=['grid_clients'],
     version='0.1',
     description='Client libraries for power grid data sources.',
-    long_description=read('README.md'),
+    long_description=long_description,
     author='Anna Schneider',
     author_email='anna@watttime.org',
     url='https://github.com/WattTime/grid-clients',
+    license='Apache',
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
@@ -31,5 +31,14 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
+    ],
+    test_suite = 'nose.collector',
+    install_requires=[
+        'beautifulsoup4',
+        'pandas>=0.12',
+        'python-dateutil',
+        'pytz',
+        'requests',
+        'xlrd',
     ],
 )
