@@ -3,7 +3,7 @@ from dateutil.parser import parse as dateutil_parse
 import pytz
 import copy
 from bs4 import BeautifulSoup
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 
 
 class PJMClient(BaseClient):

@@ -2,7 +2,7 @@ import requests
 from datetime import datetime, timedelta, time
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 import copy
 import zipfile
 import StringIO

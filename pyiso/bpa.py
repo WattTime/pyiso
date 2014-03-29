@@ -5,7 +5,7 @@ from dateutil.parser import parse as dateutil_parse
 import pytz
 import pandas as pd
 import urllib2
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 
 
 class BPAClient(BaseClient):

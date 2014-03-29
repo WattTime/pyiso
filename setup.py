@@ -8,14 +8,14 @@ with codecs.open('README.md', encoding='utf-8') as f:
 
 
 setup(
-    name='grid-clients',
-    packages=['grid_clients'],
+    name='pyiso',
+    packages=['pyiso'],
     version='0.1',
-    description='Client libraries for power grid data sources.',
+    description='Python client libraries for ISO and other power grid data sources.',
     long_description=long_description,
     author='Anna Schneider',
     author_email='anna@watttime.org',
-    url='https://github.com/WattTime/grid-clients',
+    url='https://github.com/WattTime/pyiso',
     license='Apache',
     classifiers=[
         'Programming Language :: Python',

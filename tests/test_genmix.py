@@ -1,5 +1,5 @@
-from grid_clients import client_factory
-from grid_clients.base import FUEL_CHOICES, BaseClient
+from pyiso import client_factory
+from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta

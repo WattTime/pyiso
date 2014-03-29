@@ -1,4 +1,4 @@
-from grid_clients import client_factory
+from pyiso import client_factory
 from unittest import TestCase
 import inspect
 
@@ -26,4 +26,3 @@ class TestFactory(TestCase):
             
             # check for BaseClient
             self.assertIn('BaseClient', parent_names)
-            

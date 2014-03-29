@@ -1,4 +1,4 @@
-grid-clients
+pyiso
 ============
 
-Client libraries for power grid data sources.
+Python client libraries for ISO and other power grid data sources.

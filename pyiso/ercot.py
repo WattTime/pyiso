@@ -6,7 +6,7 @@ import copy
 import zipfile
 import StringIO
 from bs4 import BeautifulSoup
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 
 
 class ERCOTClient(BaseClient):

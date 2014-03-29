@@ -1,5 +1,5 @@
 from unittest import TestCase
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 import logging
 
 

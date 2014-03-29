@@ -3,7 +3,7 @@ import copy
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pytz
-from grid_clients.base import BaseClient
+from pyiso.base import BaseClient
 
 
 class SPPClient(BaseClient):
