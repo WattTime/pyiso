@@ -1,6 +1,10 @@
 import imp
 import os.path
 
+
+__version__ = '0.1'
+
+
 def client_factory(client_name, **kwargs):
     """Return a client for an external data set"""
     # set up
