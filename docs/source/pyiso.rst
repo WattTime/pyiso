@@ -1,8 +1,13 @@
 pyiso package
 =============
 
-Submodules
-----------
+Module contents
+---------------
+
+.. automodule:: pyiso
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 pyiso.tasks module
 ------------------
@@ -13,10 +18,38 @@ pyiso.tasks module
     :show-inheritance:
 
 
-Module contents
----------------
+Submodules
+----------
 
-.. automodule:: pyiso
+.. automodule:: pyiso.base
     :members:
     :undoc-members:
-    :show-inheritance:
+
+.. automodule:: pyiso.bpa
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.caiso
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.ercot
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.isone
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.miso
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.pjm
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.spp
+    :members:
+    :undoc-members:
+

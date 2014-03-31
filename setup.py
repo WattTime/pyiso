@@ -63,4 +63,7 @@ setup(
         'requests',
         'xlrd',
     ],
+    extras_require={
+        'celery': ['celery>=3.1'],
+    }
 )

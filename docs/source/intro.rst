@@ -13,7 +13,7 @@ Electricity markets are operated by "balancing authorities,"
 which manage supply and demand for a given service area.
 The bigger balancing authorities, called
 Independent Services Operators and Regional Transmission Organizations
-(`ISOs/RTOs <http://www.isorto.org/>`_),
+(`ISOs/RTOs <http://www.isorto.org/>`_, or simply ISOs),
 together cover about 2/3 of US electricity consumers.
 The US ISO-like entities are:
 
@@ -32,4 +32,6 @@ but choose to do so in a wide variety of unstandardized, inconvenient formats.
 What's included
 ----------------
 
-Pyiso 
+Pyiso makes it easier to collect data from ISOs by providing a uniform Python interface
+to each ISO's data streams.
+See the :doc:`usage` page for instructions on how to get started.

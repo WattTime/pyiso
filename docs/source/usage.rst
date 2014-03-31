@@ -13,28 +13,20 @@ Clients
 
 First, create a client using the ``client_factory(ba_name)`` function.
 ``ba_name`` should be taken from this list of abbreviated names for ISO balancing authorities:
-
-* BPA
-* CAISO
-* ERCOT
-* ISONE
-* MISO
-* PJM
-* SPP
-
-(See the :doc:`intro` for more details about the ISOs.)
-
+``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'MISO', 'PJM', 'SPP']``.
+(See the :doc:`intro` for background about the ISOs.)
 For example::
 
    >>> from pyiso import client_factory
    >>> isone = client_factory('ISONE')
 
 
-Each client returned by ``client_factory`` is derived from :py:class:`BaseClient` and provides the following methods:
+Each client returned by ``client_factory`` is derived from :py:class:`BaseClient` and provides the following method:
 
 .. automethod:: BaseClient.get_generation
+   :noindex:
 
-The lists returned by each of these methods are conveniently structured for import into other data structures like :py:class:`pandas.DataFrame`::
+The lists returned by clients are conveniently structured for import into other data structures like :py:class:`pandas.DataFrame`::
 
    >>> import pandas as pd
    >>> data = isone.get_generation(latest=True)
@@ -49,6 +41,8 @@ The lists returned by each of these methods are conveniently structured for impo
    5   ISONE  n/a    refuse   428.6   RT5M  2014-03-29 20:40:27+00:00
    6   ISONE  n/a      wind    85.8   RT5M  2014-03-29 20:40:27+00:00
    7   ISONE  n/a   biomass   434.3   RT5M  2014-03-29 20:40:27+00:00
+
+Happy data analysis!
 
 
 Tasks

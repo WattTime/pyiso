@@ -39,13 +39,13 @@ class CAISOClient(BaseClient):
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
         if latest:
-            return self.get_generation_latest(**kwargs)
+            return self._generation_latest(**kwargs)
         else:
             if yesterday:
                 ca_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('America/Los_Angeles'))
                 end_at = ca_now.replace(hour=0, minute=0, second=0, microsecond=0)
                 start_at = end_at - timedelta(days=1)
-            return self.get_generation_historical(start_at, end_at, **kwargs)
+            return self._generation_historical(start_at, end_at, **kwargs)
             
     def _split_tsv(self, row):
         vals = row.split('\t')
@@ -62,7 +62,7 @@ class CAISOClient(BaseClient):
         aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
         return aware_utc_timestamp
 
-    def get_generation_historical(self, start_at, end_at, **kwargs):
+    def _generation_historical(self, start_at, end_at, **kwargs):
         # process args
         assert start_at <= end_at
 
@@ -268,7 +268,7 @@ class CAISOClient(BaseClient):
                 
         return parsed_data            
         
-    def get_generation_latest(self, **kwargs):
+    def _generation_latest(self, **kwargs):
         # set up
         parsed_data = []
         
