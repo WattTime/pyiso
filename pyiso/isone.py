@@ -58,6 +58,11 @@ class ISONEClient(BaseClient):
                 msg = 'Error in source data for ISONE with payload %s: %s' % (payload, e)
                 self.logger.error(msg)
                 return []
+            except requests.exceptions.ConnectionError as e:
+                # eg max retries exceeded
+                msg = 'Connection error for ISONE with payload %s: %s' % (payload, e)
+                self.logger.error(msg)
+                return []                
             raw_data += response[0]['data']['GenFuelMixes']['GenFuelMix']
 
         # parse data
