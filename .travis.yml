@@ -4,7 +4,9 @@ python:
 install:
 - python setup.py install
 - pip install -r requirements.txt
-script: nosetests
+- pip install coveralls
+script:
+  coverage run --source=pyiso setup.py test
 deploy:
   provider: pypi
   user: Anna.Schneider
@@ -13,3 +15,5 @@ deploy:
   on:
     tags: true
     repo: WattTime/pyiso
+after_success:
+  - coveralls
