@@ -40,7 +40,11 @@ class PJMClient(BaseClient):
     def _utcify(self, ts_str):
         naive_local_time = dateutil_parse(ts_str)
         is_dst = 'EDT' in ts_str
-        aware_local_time = pytz.timezone('America/New_York').localize(naive_local_time, is_dst=is_dst)
+        if naive_local_time.tzinfo is None:
+            aware_local_time = pytz.timezone('America/New_York').localize(naive_local_time, is_dst=is_dst)
+        else:
+            aware_local_time = naive_local_time
+
         aware_utc_time = aware_local_time.astimezone(pytz.utc)
         return aware_utc_time
         

@@ -289,3 +289,13 @@ class TestPJMGenMix(TestBaseGenMix):
         expected_fuels = ['wind', 'nonwind']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
+
+    def test_utcify(self):
+        ts_str = '04/13/14 21:45 EDT'
+        ts = client_factory('PJM')._utcify(ts_str)
+        self.assertEqual(ts.year, 2014)
+        self.assertEqual(ts.month, 4)
+        self.assertEqual(ts.day, 13+1)
+        self.assertEqual(ts.hour, 21-20)
+        self.assertEqual(ts.minute, 45)
+        self.assertEqual(ts.tzinfo, pytz.utc)
