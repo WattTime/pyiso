@@ -28,12 +28,17 @@ class ERCOTClient(BaseClient):
         report_list_soup = BeautifulSoup(report_list_contents)
         
         # find the endpoint to download
+        report_endpoint = None
         for elt in report_list_soup.find_all('tr'):
             label = elt.find(class_='labelOptional_ind')
             if label:
-                if label.string[-3:] == 'csv':
+                if 'csv' in label.string:
                     report_endpoint = self.base_report_url + elt.a.attrs['href']
                     break
+
+        # test endpoint found
+        if not report_endpoint:
+            raise ValueError('ERCOT: No report available for %s, soup:\n%s' % (report_type, report_list_soup))
                 
         # read report from zip
         r = requests.get(report_endpoint)

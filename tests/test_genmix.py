@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import logging
 
 
-class TestGenMix(TestCase):
+class TestBaseGenMix(TestCase):
     def setUp(self):
         # set up expected values from base client
         bc = BaseClient()
@@ -47,7 +47,9 @@ class TestGenMix(TestCase):
             
         # return
         return data
-        
+
+
+class TestISONEGenMix(TestBaseGenMix):
     def test_isne_latest(self):
         # basic test
         data = self._run_test('ISONE', latest=True)
@@ -65,6 +67,8 @@ class TestGenMix(TestCase):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+
+class TestMISOGenMix(TestBaseGenMix):
     def test_miso_latest(self):
         # basic test
         data = self._run_test('MISO', latest=True)
@@ -73,6 +77,8 @@ class TestGenMix(TestCase):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
                 
+
+class TestSPPGenMix(TestBaseGenMix):
     def test_spp_latest_hr(self):
         # basic test
         data = self._run_test('SPP', latest=True, market=self.MARKET_CHOICES.hourly)
@@ -128,6 +134,8 @@ class TestGenMix(TestCase):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
 
+
+class TestBPAGenMix(TestBaseGenMix):
     def test_bpa_latest(self):
         # basic test
         data = self._run_test('BPA', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -161,6 +169,8 @@ class TestGenMix(TestCase):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
+
+class TestCAISOGenMix(TestBaseGenMix):
     def test_caiso_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
@@ -222,6 +232,8 @@ class TestGenMix(TestCase):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
+
+class TestERCOTGenMix(TestBaseGenMix):
     def test_ercot_latest(self):
         # before min 32, will not have wind data
         if datetime.now().minute >= 32:
@@ -247,7 +259,18 @@ class TestGenMix(TestCase):
             c = client_factory('ERCOT')
             data = c.get_generation(latest=True)
             self.assertEqual(len(data), 0)
+
+    def test_request_report(self):
+        # get data
+        c = client_factory('ERCOT')
+        result = c._request_report('gen_hrly')
+
+        # should be a list containing 1 dict
+        self.assertEqual(len(result), 1)
+        self.assertIn('SE_MW', result[0].keys())
             
+
+class TestPJMGenMix(TestBaseGenMix):
     def test_pjm_latest(self):
         # basic test
         data = self._run_test('PJM', latest=True)
