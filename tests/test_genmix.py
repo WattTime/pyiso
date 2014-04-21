@@ -4,6 +4,7 @@ from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
 import logging
+import StringIO
 
 
 class TestBaseGenMix(TestCase):
@@ -17,12 +18,17 @@ class TestBaseGenMix(TestCase):
         self.FUEL_CHOICES = FUEL_CHOICES
         self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'ERCOT', 'PJM']
 
-    def _run_test(self, ba_name, **kwargs):
+    def create_client(self, ba_name):
         # set up client with logging
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
         c.logger.setLevel(logging.DEBUG)
+        return c
+
+    def _run_test(self, ba_name, **kwargs):
+        # set up
+        c = self.create_client(ba_name)
 
         # get data
         data = c.get_generation(**kwargs)
@@ -44,6 +50,9 @@ class TestBaseGenMix(TestCase):
             
             # test for numeric gen
             self.assertGreaterEqual(dp['gen_MW']+1, dp['gen_MW'])
+
+            # test earlier than now
+            self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
             
         # return
         return data
@@ -132,7 +141,12 @@ class TestSPPGenMix(TestBaseGenMix):
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_preprocess(self):
+        row = '04/09/2014 05:55,12966.33,0,3836.029,149.3688,1306.19,2.025,0,0,6.81,5540.4,23876.7'
+        processed_row = client_factory('SPP')._preprocess(row)
+        self.assertEqual(len(processed_row), len(row.split(',')))
 
 
 class TestBPAGenMix(TestBaseGenMix):
@@ -289,13 +303,3 @@ class TestPJMGenMix(TestBaseGenMix):
         expected_fuels = ['wind', 'nonwind']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
-
-    def test_utcify(self):
-        ts_str = '04/13/14 21:45 EDT'
-        ts = client_factory('PJM')._utcify(ts_str)
-        self.assertEqual(ts.year, 2014)
-        self.assertEqual(ts.month, 4)
-        self.assertEqual(ts.day, 13+1)
-        self.assertEqual(ts.hour, 21-20)
-        self.assertEqual(ts.minute, 45)
-        self.assertEqual(ts.tzinfo, pytz.utc)

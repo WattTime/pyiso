@@ -1,6 +1,7 @@
 from unittest import TestCase
 from pyiso.base import BaseClient
 import logging
+import pytz
 
 
 class TestBaseClient(TestCase):
@@ -35,3 +36,13 @@ class TestBaseClient(TestCase):
         self.assertEqual('5m', bc.FREQUENCY_CHOICES.fivemin)
         self.assertEqual('10m', bc.FREQUENCY_CHOICES.tenmin)
         self.assertEqual('n/a', bc.FREQUENCY_CHOICES.na)
+
+    def test_utcify_pjmlike(self):
+        ts_str = '04/13/14 21:45 EDT'
+        ts = BaseClient().utcify(ts_str)
+        self.assertEqual(ts.year, 2014)
+        self.assertEqual(ts.month, 4)
+        self.assertEqual(ts.day, 13+1)
+        self.assertEqual(ts.hour, 21-20)
+        self.assertEqual(ts.minute, 45)
+        self.assertEqual(ts.tzinfo, pytz.utc)

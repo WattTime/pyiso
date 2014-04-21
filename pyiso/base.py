@@ -1,5 +1,12 @@
 import logging
 from collections import namedtuple
+from dateutil.parser import parse as dateutil_parse
+import pytz
+import urllib2
+import requests
+import pandas as pd
+import zipfile
+import StringIO
 
 
 # named tuple for time period interval labels
@@ -22,7 +29,13 @@ class BaseClient:
     # choices for market and frequency interval labels
     MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M')
     FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a')
-        
+
+    # timezone
+    TZ_NAME = 'UTC'
+
+    # name
+    NAME = ''
+
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse generation fuel mix data.
@@ -43,3 +56,167 @@ class BaseClient:
 
         """
         raise NotImplementedError('Derived classes must implement the get_generation method.')
+
+    def utcify(self, local_ts_str, tz_name=None, is_dst=None):
+        """
+        Convert a datetime or datetime string to UTC.
+
+        Uses the default behavior of dateutil.parser.parse to convert the string to a datetime object.
+
+        :param string local_ts: The local datetime to be converted.
+        :param string tz_name: If local_ts is naive, it is assumed to be in timezone tz. If tz is not provided, the client's default timezone is used.
+        :param bool is_dst: If provided, explicitly set daylight savings time as True or False.
+        :return: Datetime in UTC.
+        :rtype: datetime
+        """
+        # set up tz
+        if tz_name is None:
+            tz = pytz.timezone(self.TZ_NAME)
+        else:
+            tz = pytz.timezone(tz_name)
+
+        # parse
+        try:
+            local_ts = dateutil_parse(local_ts_str)
+        except AttributeError: # already parsed
+            local_ts = local_ts_str
+
+        # localize
+        if local_ts.tzinfo is None: # unaware
+            if is_dst is None:
+                aware_local_ts = tz.localize(local_ts)
+            else:
+                aware_local_ts = tz.localize(local_ts, is_dst=is_dst)
+        else: # already aware
+            aware_local_ts = local_ts
+
+        # convert to utc
+        aware_utc_ts = aware_local_ts.astimezone(pytz.utc)
+
+        # return
+        return aware_utc_ts
+
+    def parse_row(self, row, delimiter=',', datetime_col=None, drop_vals=None):
+        raw_vals = row.split(delimiter)
+        if datetime_col is not None:
+            raw_vals[datetime_col] = self.utcify(raw_vals[datetime_col])
+
+        if drop_vals is not None:
+            cleaned_vals = [val for val in raw_vals if val not in drop_vals]
+        else:
+            cleaned_vals = raw_vals
+
+        return cleaned_vals
+
+    def fetch_xls(self, url):
+        socket = urllib2.urlopen(url)
+        xd = pd.ExcelFile(socket)
+        return xd
+
+    def request(self, url, mode='get', **kwargs):
+        # check args
+        allowed_modes = ['get', 'post']
+        if mode not in allowed_modes:
+            raise ValueError('Invalid request mode %s' % mode)
+
+        # carry out request
+        try:
+            response = getattr(requests, mode)(url, **kwargs)
+            return response
+        except requests.exceptions.ConnectionError as e:
+            # eg max retries exceeded
+            msg = '%s: request failure for %s, %s: %s' % (self.NAME, url, kwargs, e)
+            self.logger.error(msg)
+
+        if response.status_code == 200:
+            self.logger.debug('%s: request success for %s, %s' % (self.NAME, url, kwargs))
+        else:
+            self.logger.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
+
+        return None
+
+    def unzip(self, content):
+        z = zipfile.ZipFile(StringIO.StringIO(content)) # have zipfile
+        unzipped = z.read(z.namelist()[0]) # have unzipped content
+        z.close()
+        return unzipped
+
+    def parse_to_df(self, filelike, mode='csv', header_names=None, sheet_names=None, **kwargs):
+        """
+        Parse a delimited or excel file from the provided content and return a DataFrame.
+
+        Any extra kwargs are passed to the appropriate pandas parser;
+        read the pandas docs for details.
+        Recommended kwargs: skiprows, parse_cols, header.
+
+        :param string filelike: filelike object containing formatted data
+        :param string mode: Choose from 'csv' or 'xls'. Default 'csv'.
+            If 'csv', kwargs are passed to pandas.read_csv.
+        :param list header_names: List of strings to use as column names.
+            If provided, this will override the header extracted by pandas.
+        :param list sheet_names: List of strings for excel sheet names to read.
+            Default is to concatenate all sheets.
+        """
+        # check mode
+        allowed_modes = ['csv', 'xls']
+        if mode not in allowed_modes:
+            raise ValueError('Invalid mode %s' % mode)
+
+        # do csv/tsv
+        if mode == 'csv':
+            df = pd.read_csv(filelike, **kwargs)
+
+        # set names
+        if header_names is not None:
+            df.columns = header_names
+
+        # drop na
+        df = df.dropna()
+                
+        return df
+
+    def utcify_index(self, local_index, tz_name=None):
+        """
+        Convert a DateTimeIndex to UTC.
+
+        :param DateTimeIndex local_index: The local DateTimeIndex to be converted.
+        :param string tz_name: If local_ts is naive, it is assumed to be in timezone tz. If tz is not provided, the client's default timezone is used.
+        :return: DatetimeIndex in UTC.
+        :rtype: DatetimeIndex
+        """
+        # set up tz
+        if tz_name is None:
+            tz_name = self.TZ_NAME
+
+        # localize
+        try:
+            aware_local_index = local_index.tz_localize(tz_name)
+        except Exception as e:
+            print e  # already aware
+            aware_local_index = local_index
+
+        # convert to utc
+        aware_utc_index = aware_local_index.tz_convert('UTC')
+
+        # return
+        return aware_utc_index
+
+    def slice_times(self, df, latest=False, start_at=None, end_at=None):
+        if latest:
+            start_at = df.iloc[-1].name
+            end_at = start_at
+
+        return df.truncate(before=start_at, after=end_at)
+
+    def unpivot(self, df):
+        return df.stack().reset_index(level=1)
+
+    def serialize(self, df, header, extras={}):
+        data = []
+
+        for row in df.to_records():
+            dp = dict(zip(header, row))
+            dp.update(extras)
+            data.append(dp)
+
+        return data
