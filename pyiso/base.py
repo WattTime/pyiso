@@ -19,7 +19,7 @@ FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
                 'solarth', 'thermal', 'wind']
 
 
-class BaseClient:
+class BaseClient(object):
     """
     Base class for scraper/parser clients.
     """
@@ -56,6 +56,42 @@ class BaseClient:
 
         """
         raise NotImplementedError('Derived classes must implement the get_generation method.')
+
+    def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+        """
+        Scrape and parse load data.
+
+        :param bool latest: If True, only get the load at the one most recent available time point.
+           Available for all regions.
+        :param bool yesterday: If True, get the load for every time point yesterday.
+           Not available for all regions.
+        :param datetime start_at: A timezone-aware datetime. The timestamp of all returned data points will be greater than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
+           Timestamps are in UTC.
+        :rtype: list 
+
+        """
+        raise NotImplementedError('Derived classes must implement the get_load method.')
+
+    def handle_options(self, **kwargs):
+        """
+        Process and store keyword argument options.
+        """
+        self.options = kwargs
+
+        # check start_at and end_at args
+        if self.options.get('start_at', None) and self.options.get('end_at', None):
+            assert self.options['start_at'] < self.options['end_at']
+            self.options['start_at'] = self.utcify(self.options['start_at'])
+            self.options['end_at'] = self.utcify(self.options['end_at'])
+            self.options['sliceable'] = True
+        else:
+            self.options['sliceable'] = False            
 
     def utcify(self, local_ts_str, tz_name=None, is_dst=None):
         """
@@ -166,6 +202,13 @@ class BaseClient:
         if mode == 'csv':
             df = pd.read_csv(filelike, **kwargs)
 
+        # do xls
+        elif mode == 'xls':
+            pieces = []
+            for sheet in sheet_names:
+                pieces.append(filelike.parse(sheet, **kwargs))
+            df = pd.concat(pieces)
+
         # set names
         if header_names is not None:
             df.columns = header_names
@@ -201,10 +244,19 @@ class BaseClient:
         # return
         return aware_utc_index
 
-    def slice_times(self, df, latest=False, start_at=None, end_at=None):
-        if latest:
+    def slice_times(self, df, options=None):
+        if options is None:
+            options = self.options
+
+        if options.get('latest', None):
             start_at = df.iloc[-1].name
             end_at = start_at
+        else:
+            try:
+                start_at = options['start_at']
+                end_at = options['end_at']
+            except KeyError:
+                raise ValueError('Slicing by time requires start_at and end_at')
 
         return df.truncate(before=start_at, after=end_at)
 
@@ -214,8 +266,8 @@ class BaseClient:
     def serialize(self, df, header, extras={}):
         data = []
 
-        for row in df.to_records():
-            dp = dict(zip(header, row))
+        for row in df.itertuples():
+            dp = dict(zip(header, list(row)))
             dp.update(extras)
             data.append(dp)
 

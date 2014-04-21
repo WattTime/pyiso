@@ -46,3 +46,10 @@ class TestBaseClient(TestCase):
         self.assertEqual(ts.hour, 21-20)
         self.assertEqual(ts.minute, 45)
         self.assertEqual(ts.tzinfo, pytz.utc)
+
+    def test_handle_options(self):
+        bc = BaseClient()
+        bc.handle_options(test='a', another=20)
+        self.assertEqual(bc.options['test'], 'a')
+        self.assertEqual(bc.options['another'], 20)
+        self.assertFalse(bc.options['sliceable'])
