@@ -159,6 +159,11 @@ class BaseClient(object):
         return xd
 
     def request(self, url, mode='get', **kwargs):
+        """
+        Get or post to a URL with the provided kwargs.
+        Returns the response, or None if an error was encountered.
+        If the mode is not 'get' or 'post', raises ValueError.
+        """
         # check args
         allowed_modes = ['get', 'post']
         if mode not in allowed_modes:
@@ -167,21 +172,35 @@ class BaseClient(object):
         # carry out request
         try:
             response = getattr(requests, mode)(url, **kwargs)
-            return response
         except requests.exceptions.ConnectionError as e:
             # eg max retries exceeded
-            msg = '%s: request failure for %s, %s: %s' % (self.NAME, url, kwargs, e)
+            msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
             self.logger.error(msg)
+            return None
+        except requests.exceptions.RequestException:
+            msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+            self.logger.error(msg)
+            return None
 
         if response.status_code == 200:
             self.logger.debug('%s: request success for %s, %s' % (self.NAME, url, kwargs))
         else:
             self.logger.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
 
-        return None
+        return response
 
     def unzip(self, content):
-        z = zipfile.ZipFile(StringIO(content)) # have zipfile
+        """
+        Unzip encoded data.
+        Returns the unzipped content, or None if an error was encountered.
+        """
+        # create zip file
+        try:
+            z = zipfile.ZipFile(StringIO(content)) # have zipfile
+        except zipfile.BadZipfile:
+            self.logger.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
+            return None
+
         unzipped = z.read(z.namelist()[0]) # have unzipped content
         z.close()
         return unzipped

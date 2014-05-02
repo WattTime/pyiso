@@ -53,3 +53,9 @@ class TestBaseClient(TestCase):
         self.assertEqual(bc.options['test'], 'a')
         self.assertEqual(bc.options['another'], 20)
         self.assertFalse(bc.options['sliceable'])
+
+    def test_bad_zipfile(self):
+        bc = BaseClient()
+        badzip = 'I am not a zipfile'
+        result = bc.unzip(badzip)
+        self.assertIsNone(result)

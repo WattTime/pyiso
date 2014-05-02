@@ -1,4 +1,3 @@
-import requests
 from datetime import datetime, timedelta, time
 from pyiso.base import BaseClient
 import copy
@@ -8,7 +7,7 @@ from bs4 import BeautifulSoup
 
 class CAISOClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'CAISO'
+        self.NAME = 'CAISO'
         
         self.base_url_oasis = 'http://oasis.caiso.com/oasisapi/SingleZip'
         self.base_url_gen = 'http://content.caiso.com/green/renewrpt/'
@@ -101,7 +100,7 @@ class CAISOClient(BaseClient):
                 # store
                 parsed_data += self.serialize(pivoted,
                                       header=['timestamp', 'fuel_name', 'gen_MW'],
-                                      extras={'ba_name': self.ba_name,
+                                      extras={'ba_name': self.NAME,
                                               'market': self.MARKET_CHOICES.hourly,
                                               'freq': self.FREQUENCY_CHOICES.hourly})
 
@@ -112,18 +111,19 @@ class CAISOClient(BaseClient):
         return parsed_data
         
     def _request_oasis(self, payload={}):
+        """Returns a list of report data elements, or an empty list if an error was encountered."""
         # set up storage
         raw_data = []
  
         # try get
-        try: 
-            r = requests.get(self.base_url_oasis, params=payload) # have request
-        except requests.exceptions.RequestException:
-            self.logger.error('Exception raised for CAISO OASIS with payload %s' % payload)
+        response = self.request(self.base_url_oasis, params=payload) # have request
+        if not response:
             return []
             
         # read data from zip
-        content = self.unzip(r.content)
+        content = self.unzip(response.content)
+        if not content:
+            return []
         
         # load xml into soup
         soup = BeautifulSoup(content)
@@ -169,7 +169,7 @@ class CAISOClient(BaseClient):
             base_parsed_dp = {'timestamp': ts,
                               'freq': self.FREQUENCY_CHOICES.hourly,
                               'market': self.MARKET_CHOICES.hourly,
-                              'gen_MW': 0, 'ba_name': self.ba_name}
+                              'gen_MW': 0, 'ba_name': self.NAME}
                           
             # collect data
             for fuel_name in ['wind', 'solar']:
@@ -197,7 +197,7 @@ class CAISOClient(BaseClient):
                 parsed_dp = {'timestamp': ts, 'fuel_name': 'other',
                               'freq': self.FREQUENCY_CHOICES.fivemin,
                               'market': self.MARKET_CHOICES.fivemin,
-                              'ba_name': self.ba_name}
+                              'ba_name': self.NAME}
                     
                 # store generation value
                 parsed_dp['gen_MW'] = float(raw_soup_dp.find('value').string)
@@ -206,24 +206,33 @@ class CAISOClient(BaseClient):
         # return
         return parsed_data
         
-    def _get_todays_outlook(self):
-        # set up storage
-        parsed_data = []
-        
-        # get timestamp
-        demand_contents = requests.get(self.base_url_outlook+'systemconditions.html').content
-        demand_soup = BeautifulSoup(demand_contents)
-        ts = None
+    def todays_outlook_time(self):
+       # get timestamp
+        response = self.request(self.base_url_outlook+'systemconditions.html')
+        if not response:
+            return None
+
+        demand_soup = BeautifulSoup(response.content)
         for ts_soup in demand_soup.find_all(class_='docdate'):
             match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', ts_soup.string)
             if match:
                 ts_str = match.group(0)
-                ts = self.utcify(ts_str)
-                break
-                
+                return self.utcify(ts_str)
+
+    def _get_todays_outlook(self):
+        # set up storage
+        parsed_data = []
+        
+        # get timestamp from outlook page
+        ts = self.todays_outlook_time()
+        if not ts:
+            return []
+
         # get renewables data
-        ren_contents = requests.get(self.base_url_outlook+'renewables.html').content
-        ren_soup = BeautifulSoup(ren_contents)
+        response = self.request(self.base_url_outlook+'renewables.html')
+        if not response:
+            return []
+        ren_soup = BeautifulSoup(response.content)
         
         # get all renewables values
         for (id_name, fuel_name) in [('totalrenewables', 'renewable'),
@@ -235,7 +244,7 @@ class CAISOClient(BaseClient):
                 parsed_dp = {'timestamp': ts,
                               'freq': self.FREQUENCY_CHOICES.tenmin,
                               'market': self.MARKET_CHOICES.tenmin,
-                              'ba_name': self.ba_name}
+                              'ba_name': self.NAME}
                 parsed_dp['gen_MW'] = float(match.group('val'))
                 parsed_dp['fuel_name'] = fuel_name
                 parsed_data.append(parsed_dp)
