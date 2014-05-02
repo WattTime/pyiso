@@ -1,6 +1,3 @@
-import requests
-from dateutil.parser import parse as dateutil_parse
-import pytz
 import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
@@ -8,61 +5,88 @@ from pyiso.base import BaseClient
 
 class PJMClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'PJM'
+        self.NAME = 'PJM'
+        self.TZ_NAME = 'America/New_York'
         self.base_url = 'http://edatamobile.pjm.com/eDataWireless/SessionManager'
 
-    def _get_edata(self, data_type, key):
-        # get request
-        r = requests.get(self.base_url, params={'a': data_type})
-        soup = BeautifulSoup(r.content)
-        
-        # get time
-        ts_str = soup.find(class_='ts').string
-        ts = self._utcify(ts_str)
-        
-        # get value
-        val = None
+    def time_from_soup(self, soup):
+        """
+        Returns a UTC timestamp if one is found in the soup,
+        or None if an error was encountered.
+        """
+        ts_elt = soup.find(class_='ts')
+        if not ts_elt:
+            self.logger.error('PJM: Timestamp not found in soup:\n%s' % soup)
+            return None
+        return self.utcify(ts_elt.string)
+
+    def val_from_soup(self, soup, key):
+        """
+        Returns a float value if one is found in the soup for the provided key,
+        or None if an error was encountered.
+        """
         for elt in soup.find_all('td'):
             try:
                 if elt.find('a').string == key:
                     # numbers may have commas in the thousands
                     val_str = elt.next_sibling.string.replace(',', '')
-                    val = float(val_str)
+                    return float(val_str)
             except AttributeError: # no 'a' child
                 continue
             
-        if val is None:
-            self.logger.error('Data not found in PJM for query %s at %s' % (data_type, ts))
-            
+        # no value found
+        self.logger.error('PJM: Value for %s not found in soup:\n%s' % (key, soup))
+        return None
+
+    def fetch_edata(self, data_type, key):
+        # get request
+        response = self.request(self.base_url, params={'a': data_type})
+        if not response:
+            return None, None
+
+        # soup it up
+        soup = BeautifulSoup(response.content)
+        
+        # get time and value
+        ts = self.time_from_soup(soup)
+        val = self.val_from_soup(soup, key)
+
         # return
         return ts, val
-        
-    def _utcify(self, ts_str):
-        naive_local_time = dateutil_parse(ts_str)
-        is_dst = 'EDT' in ts_str
-        if naive_local_time.tzinfo is None:
-            aware_local_time = pytz.timezone('America/New_York').localize(naive_local_time, is_dst=is_dst)
-        else:
-            aware_local_time = naive_local_time
-
-        aware_utc_time = aware_local_time.astimezone(pytz.utc)
-        return aware_utc_time
-        
+                
     def get_generation(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', **kwargs)
+
         # get data
-        load_ts, load_val = self._get_edata('instLoad', 'PJM RTO Total')
-        imports_ts, imports_val = self._get_edata('tieFlow', 'PJM RTO')
-        wind_ts, wind_gen = self._get_edata('wind', 'RTO Wind Power')
+        load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
+        imports_ts, imports_val = self.fetch_edata('tieFlow', 'PJM RTO')
+        wind_ts, wind_gen = self.fetch_edata('wind', 'RTO Wind Power')
         
         # compute nonwind gen
-        total_gen = load_val - imports_val
-        nonwind_gen = total_gen - wind_gen
-        
+        try:
+            total_gen = load_val - imports_val
+            nonwind_gen = total_gen - wind_gen
+        except TypeError: # value was None
+            self.logger.error('PJM: No timestamps found for options %s' % str(self.options))
+            return []
+
+        # choose best time to use
+        if load_ts:
+            ts = load_ts
+        elif imports_ts:
+            ts = imports_ts
+        elif wind_ts:
+            ts = wind_ts
+        else:
+            self.logger.error('PJM: No timestamps found for options %s' % str(self.options))
+            return []
+
         # set up storage
         parsed_data = []
-        base_dp = {'timestamp': load_ts,
+        base_dp = {'timestamp': ts,
                    'freq': self.FREQUENCY_CHOICES.fivemin, 'market': self.MARKET_CHOICES.fivemin,
-                   'gen_MW': 0, 'ba_name': self.ba_name}
+                   'gen_MW': 0, 'ba_name': self.NAME}
 
         # collect data
         for gen_MW, fuel_name in [(wind_gen, 'wind'), (nonwind_gen, 'nonwind')]:
@@ -73,3 +97,20 @@ class PJMClient(BaseClient):
 
         # return
         return parsed_data
+
+    def get_load(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='load', **kwargs)
+
+        # get data
+        load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
+
+        if load_ts and load_val:
+            return [{'timestamp': load_ts,
+                        'freq': self.FREQUENCY_CHOICES.fivemin,
+                        'market': self.MARKET_CHOICES.fivemin,
+                        'load_MW': load_val,
+                        'ba_name': self.NAME,
+                    }]
+        else:
+            return []
