@@ -1,12 +1,13 @@
 import logging
 from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
+from datetime import datetime, timedelta
 import pytz
 import urllib2
 import requests
 import pandas as pd
 import zipfile
-import StringIO
+from StringIO import StringIO
 
 
 # named tuple for time period interval labels
@@ -90,6 +91,14 @@ class BaseClient(object):
             self.options['start_at'] = self.utcify(self.options['start_at'])
             self.options['end_at'] = self.utcify(self.options['end_at'])
             self.options['sliceable'] = True
+
+        # set start_at and end_at for yesterday in local time
+        elif self.options.get('yesterday', None):
+            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+            self.options['end_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.options['start_at'] = self.options['end_at'] - timedelta(days=1)
+            self.options['sliceable'] = True
+
         else:
             self.options['sliceable'] = False            
 
@@ -172,7 +181,7 @@ class BaseClient(object):
         return None
 
     def unzip(self, content):
-        z = zipfile.ZipFile(StringIO.StringIO(content)) # have zipfile
+        z = zipfile.ZipFile(StringIO(content)) # have zipfile
         unzipped = z.read(z.namelist()[0]) # have unzipped content
         z.close()
         return unzipped
@@ -185,7 +194,8 @@ class BaseClient(object):
         read the pandas docs for details.
         Recommended kwargs: skiprows, parse_cols, header.
 
-        :param string filelike: filelike object containing formatted data
+        :param filelike: string-like or filelike object containing formatted data
+        :paramtype: string or file
         :param string mode: Choose from 'csv' or 'xls'. Default 'csv'.
             If 'csv', kwargs are passed to pandas.read_csv.
         :param list header_names: List of strings to use as column names.
@@ -200,6 +210,13 @@ class BaseClient(object):
 
         # do csv/tsv
         if mode == 'csv':
+            # convert string to filelike if needed
+            try:
+                is_closed = filelike.closed
+            except AttributeError: # string, unicode, etc
+                filelike = StringIO(filelike)
+
+            # read csv
             df = pd.read_csv(filelike, **kwargs)
 
         # do xls

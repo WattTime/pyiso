@@ -1,4 +1,3 @@
-import StringIO
 from datetime import datetime, timedelta
 import pytz
 import pandas as pd
@@ -71,8 +70,7 @@ class BPAClient(BaseClient):
             raise ValueError('Cannot fetch data without a data mode')
 
         # parse like tsv
-        filelike = StringIO.StringIO(response.text)
-        df = self.parse_to_df(filelike, skiprows=6, header=0, delimiter='\t',
+        df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
                             index_col=0, parse_dates=True, usecols=cols)
 
         return df
