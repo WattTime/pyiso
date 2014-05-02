@@ -1,11 +1,7 @@
 import requests
 from datetime import datetime, timedelta, time
-from dateutil.parser import parse as dateutil_parse
-import pytz
 from pyiso.base import BaseClient
 import copy
-import zipfile
-import StringIO
 import re
 from bs4 import BeautifulSoup
 
@@ -20,7 +16,7 @@ class CAISOClient(BaseClient):
         self.base_payload = {'version': 1}
         self.oasis_request_time_format = '%Y%m%dT%H:%M-0000'
         
-        self.tz = pytz.timezone('America/Los_Angeles')
+        self.TZ_NAME = 'America/Los_Angeles'
         
         self.fuels = {
             'GEOTHERMAL': 'geo',
@@ -38,92 +34,81 @@ class CAISOClient(BaseClient):
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', latest=latest, yesterday=yesterday,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
         if latest:
-            return self._generation_latest(**kwargs)
+            return self._generation_latest()
         else:
-            if yesterday:
-                ca_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('America/Los_Angeles'))
-                end_at = ca_now.replace(hour=0, minute=0, second=0, microsecond=0)
-                start_at = end_at - timedelta(days=1)
-            return self._generation_historical(start_at, end_at, **kwargs)
-            
-    def _split_tsv(self, row):
-        vals = row.split('\t')
-        real_vals = [val for val in vals if val != '']
-        return real_vals
-            
-    def _preprocess_tsv(self, row, date):
-        vals = self._split_tsv(row)
-        vals[0] = self._utcify(datetime.combine(date, time(hour=int(vals[0])-1)))
-        return vals
+            return self._generation_historical()
 
-    def _utcify(self, naive_local_timestamp):
-        aware_local_timestamp = self.tz.localize(naive_local_timestamp)
-        aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
-        return aware_utc_timestamp
+    def set_dt_index(self, df, date, hours, end_of_hour=True):
+        if end_of_hour:
+            offset = -1
+        else:
+            offset = 0
 
-    def _generation_historical(self, start_at, end_at, **kwargs):
-        # process args
-        assert start_at <= end_at
+        # create list of combined datetimes
+        dts = [datetime.combine(date, time(hour=(h+offset))) for h in hours]
 
+        # set list as index
+        df.index = dts
+
+        # utcify
+        df.index = self.utcify_index(df.index)
+
+        # return
+        return df
+
+    def _generation_historical(self):
         # set up storage
-        raw_data = []
         parsed_data = []
 
-        # collect raw data
-        this_date = start_at.date()
-        while this_date <= end_at.date():
+        # collect data
+        this_date = self.options['start_at'].date()
+        while this_date <= self.options['end_at'].date():
             # set up request
             url_file = this_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
             url = self.base_url_gen + url_file
             
             # carry out request
-            response = requests.get(url)
-            if response.status_code == 200:
-                self.logger.debug('Got source data for CAISO generation for %s' % this_date)
-            else:
-                self.logger.error('Error in source data for CAISO generation for %s' % this_date)
+            response = self.request(url)
+            if not response:
                 this_date += timedelta(days=1)
                 continue
-            rows = response.text.split('\n')
-        
-            # process renewables
-            ren_header = [x.strip() for x in self._split_tsv(rows[1])]
-            for row in rows[2:(2+24)]:
-                vals = self._preprocess_tsv(row, this_date)
-                raw_data.append(dict(zip(ren_header, vals)))
-            
-            # process other
-            other_header = [x.strip() for x in self._split_tsv(rows[29])]
-            for row in rows[30:(30+24)]:
-                vals = self._preprocess_tsv(row, this_date)
-                raw_data.append(dict(zip(other_header, vals)))
+
+            # process both halves of page
+            for header in [1, 29]:
+                df = self.parse_to_df(response.text,
+                                    skiprows=header, nrows=24, header=header,
+                                    delimiter='\t+')
+
+                # combine date with hours to index
+                indexed = self.set_dt_index(df, this_date, df['Hour'])
+
+                # original header is fuel names
+                indexed.rename(columns=self.fuels, inplace=True)
+
+                # remove non-fuel cols
+                fuel_cols = list( set(self.fuels.values()) & set(indexed.columns) )
+                subsetted = indexed[fuel_cols]
+
+                # pivot
+                pivoted = self.unpivot(subsetted)
+                pivoted.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
+
+                # store
+                parsed_data += self.serialize(pivoted,
+                                      header=['timestamp', 'fuel_name', 'gen_MW'],
+                                      extras={'ba_name': self.ba_name,
+                                              'market': self.MARKET_CHOICES.hourly,
+                                              'freq': self.FREQUENCY_CHOICES.hourly})
 
             # finish day
             this_date += timedelta(days=1)
 
-        # parse data
-        for raw_dp in raw_data:
-            for raw_fuel_name, parsed_fuel_name in self.fuels.iteritems():
-                # set up storage
-                parsed_dp = {}
-
-                # check for fuel
-                try:
-                    parsed_dp['gen_MW'] = float(raw_dp[raw_fuel_name])
-                except KeyError:
-                    continue                    
-
-                # add other values
-                parsed_dp['timestamp'] = raw_dp['Hour']
-                parsed_dp['fuel_name'] = parsed_fuel_name
-                parsed_dp['ba_name'] = self.ba_name
-                parsed_dp['market'] = self.MARKET_CHOICES.hourly
-                parsed_dp['freq'] = self.FREQUENCY_CHOICES.hourly
-                
-                # add to full storage
-                parsed_data.append(parsed_dp)
-
+        # return
         return parsed_data
         
     def _request_oasis(self, payload={}):
@@ -138,9 +123,7 @@ class CAISOClient(BaseClient):
             return []
             
         # read data from zip
-        z = zipfile.ZipFile(StringIO.StringIO(r.content)) # have zipfile
-        content = z.read(z.namelist()[0]) # have xml
-        z.close()
+        content = self.unzip(r.content)
         
         # load xml into soup
         soup = BeautifulSoup(content)
@@ -167,7 +150,7 @@ class CAISOClient(BaseClient):
         # extract values from xml
         for raw_soup_dp in raw_data:
             # set up storage for timestamp
-            ts = dateutil_parse(raw_soup_dp.find('interval_start_gmt').string).astimezone(pytz.utc)
+            ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
             if ts not in preparsed_data:
                 preparsed_data[ts] = {'wind': 0, 'solar': 0}
                 
@@ -208,7 +191,7 @@ class CAISOClient(BaseClient):
             if raw_soup_dp.find('data_item').string == 'ISO_TOT_GEN_MW':
                 
                 # parse timestamp
-                ts = dateutil_parse(raw_soup_dp.find('interval_start_gmt').string).astimezone(pytz.utc)
+                ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
 
                 # set up base
                 parsed_dp = {'timestamp': ts, 'fuel_name': 'other',
@@ -235,7 +218,7 @@ class CAISOClient(BaseClient):
             match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', ts_soup.string)
             if match:
                 ts_str = match.group(0)
-                ts = self.tz.localize(dateutil_parse(ts_str)).astimezone(pytz.utc)
+                ts = self.utcify(ts_str)
                 break
                 
         # get renewables data
