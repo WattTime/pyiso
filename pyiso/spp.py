@@ -1,17 +1,23 @@
 import requests
 import copy
-from datetime import datetime, timedelta
-from dateutil.parser import parse as dateutil_parse
-import pytz
+import re
 from pyiso.base import BaseClient
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import os
+from datetime import datetime
 
 
 class SPPClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'SPP'
+        self.NAME = 'SPP'
+        self.TZ_NAME = 'America/Chicago'
         
-        self.base_url = 'http://www.spp.org/GenerationMix/'
-                
+        self.base_url = 'https://marketplace.spp.org/web/guest/'
+        
     def get_fuels(self, year=2014):
         if year == 2014:
             return {
@@ -36,41 +42,95 @@ class SPPClient(BaseClient):
                 'DFO': 'oil',
                 'WIND': 'wind',
             }
-        
-    def _utcify(self, naive_local_timestamp):
-        aware_local_timestamp = pytz.timezone('America/Chicago').localize(naive_local_timestamp)
-        aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
-        return aware_utc_timestamp
-        
-    def _preprocess(self, row):
-        vals = row.split(',')
-        vals[0] = self._utcify(dateutil_parse(vals[0]))
-        return vals
+                
+    def auth_keys(self):
+        # use genmix page as example url
+        url = self.base_url + 'generation-mix'
+
+        # get page with link
+        response = self.request(url)
+        if not response:
+            return ''
+
+        # get tags from js
+        idstr = 'PublicDisplays_WAR_PublicDisplaysportlet_INSTANCE_'
+        m_auth = re.search('p_p_auth=(?P<val>[a-zA-Z0-9]{8})', response.content)
+        m_id = re.search('p_p_id=%s(?P<val>[a-zA-Z0-9]{12})' % idstr, response.content)
+
+        # return matches
+        return m_auth.group('val'), idstr+m_id.group('val'), response.headers
+
+    def fetch_csv(self, auth, idstr, headers):
+        # assemble url params
+        if self.options['data'] == 'gen':
+            tail = 'generation-mix'
+            params = {'p_p_auth': auth,
+                        'p_p_id': idstr,
+                        'p_p_lifecycle': 2,
+                        'p_p_state': 'normal',
+                        'p_p_mode': 'view',
+                        'p_p_resource_id': 'APP/1/GenMix.csv',
+                        'p_p_cacheability': 'cacheLevelPage',
+                        }
+
+        url = self.base_url +tail #+'?'+'&'.join('%s=%s' % (k,v) for k,v in params.iteritems())
+
+        fp = webdriver.FirefoxProfile()
+
+        fp.set_preference("browser.download.folderList",2)
+        fp.set_preference("browser.download.manager.showWhenStarting",False)
+        fp.set_preference("browser.download.dir", os.getcwd())
+        fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/msexcel")
+
+
+        driver = webdriver.Firefox()
+        driver.get(url)
+        driver.refresh()
+        try:
+            div = WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "v-link"))
+            )
+            link = div.find_element_by_css_selector('a')
+            link.click()
+            print link.get_attribute('href')
+            time.sleep(20)
+
+        finally:
+            driver.quit()
+
+        # request
+        # response = self.request(self.base_url+tail,
+        #                         params=params,
+        #                         headers={'etag': headers['etag']})
+        # if not response:
+        #     return ''
+
+        # print response.cookies
+        # print response.headers
+        # print len(response.content)
 
     def get_generation(self, latest=False, market='RTHR',
                        start_at=None, end_at=None, yesterday=False, **kwargs):
-        # process args
-        if market == 'RTHR':
+        # set args
+        self.handle_options(data='gen', latest=latest, yesterday=yesterday,
+                            start_at=start_at, end_at=end_at, market=market, **kwargs)
+
+        # set up requests
+        if self.options['market'] == 'RTHR':
             file_freq = 'Hourly'
-        elif market == 'RT5M':
+        elif self.options['market'] == 'RT5M':
             file_freq = '5Minute'
         else:
             raise ValueError('market must be RTHR or RT5M.')
         request_urls = []
-        if yesterday:
-            midnight = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
-            end_at = self._utcify(midnight) - timedelta(hours=1)
-            start_at = end_at - timedelta(days=1) + timedelta(hours=1)
-        if latest:
+        if self.options['latest']:
             request_urls.append('%d_%s_GenMix.csv' % (datetime.today().year, file_freq))            
-        elif start_at and end_at:
-            this_year = start_at.year
-            while this_year <= end_at.year:
+        elif self.options['sliceable']:
+            this_year = self.options['start_at'].year
+            while this_year <= self.options['end_at'].year:
                 request_urls.append('%d_%s_GenMix.csv' % (this_year, file_freq))
                 this_year += 1
-        else:
-            raise ValueError('Either latest or yesterday must be True, or start_at and end_at must both be provided.')
-            
+        
         # set up storage
         raw_data = []
         parsed_data = []
