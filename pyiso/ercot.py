@@ -1,17 +1,12 @@
-import requests
-from dateutil.parser import parse as dateutil_parse
-import pytz
 from datetime import timedelta
 import copy
-import zipfile
-import StringIO
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 
 
 class ERCOTClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'ERCOT'
+        self.NAME = 'ERCOT'
         self.base_report_url = 'http://mis.ercot.com'
                 
         self.report_type_ids = {
@@ -19,11 +14,18 @@ class ERCOTClient(BaseClient):
             'wind_hrly': '13028',
             'gen_hrly': '12358',
         }
+
+        self.TZ_NAME = 'US/Central'
         
+    def utcify(self, local_ts, **kwargs):
+        # ERCOT is hour ending, want hour beginning
+        utc_ts = super(ERCOTClient, self).utcify(local_ts, **kwargs)
+        return utc_ts - timedelta(hours=1)
+
     def _request_report(self, report_type):
         # request reports list
         params = {'reportTypeId': self.report_type_ids[report_type]}
-        report_list_contents = requests.get(self.base_report_url+'/misapp/GetReports.do',
+        report_list_contents = self.request(self.base_report_url+'/misapp/GetReports.do',
                                             params=params).content
         report_list_soup = BeautifulSoup(report_list_contents)
         
@@ -41,26 +43,22 @@ class ERCOTClient(BaseClient):
             raise ValueError('ERCOT: No report available for %s, soup:\n%s' % (report_type, report_list_soup))
                 
         # read report from zip
-        r = requests.get(report_endpoint)
-        z = zipfile.ZipFile(StringIO.StringIO(r.content)) # have zipfile
-        content = z.read(z.namelist()[0]) # have csv
-        z.close()
+        r = self.request(report_endpoint)
+        if r:
+            content = self.unzip(r.content)
+        else:
+            return []
         
         # parse csv
         rows = content.split('\n')
         header = rows[0].split(',')
-        raw_data = [dict(zip(header, row.split(','))) for row in rows[1:-1]]
+        raw_data = [dict(zip(header, self.parse_row(row))) for row in rows[1:-1]]
         
         # return
         return raw_data
-        
-    def _utcify(self, dp, ts_key, dst_key, dst_val):
-        naive_local_time = dateutil_parse(dp[ts_key])
-        is_dst = dp[dst_key] != dst_val
-        aware_local_time = pytz.timezone('US/Central').localize(naive_local_time,
-                                                                is_dst=is_dst)
-        ts = aware_local_time.astimezone(pytz.utc)
-        return ts
+
+    def is_dst(self, val, standard):
+        return val != standard
         
     def get_generation(self, latest=False, **kwargs):
         # get nonwind gen data
@@ -70,8 +68,8 @@ class ERCOTClient(BaseClient):
         total_gen = float(total_dp['SE_MW'])
         
         # get timestamp on hour
-        raw_ts = self._utcify(total_dp, ts_key='SE_EXE_TIME',
-                              dst_key='SE_EXE_TIME_DST', dst_val='s')
+        raw_ts = self.utcify(total_dp['SE_EXE_TIME'],
+                             is_dst=self.is_dst(total_dp['SE_EXE_TIME_DST'], 's'))
         ts_hour_ending = raw_ts.replace(minute=0, second=0, microsecond=0)
         if raw_ts.minute > 30:
             ts_hour_ending += timedelta(hours=1)
@@ -80,7 +78,9 @@ class ERCOTClient(BaseClient):
         # process wind data
         wind_gen = None
         for wind_dp in self._request_report('wind_hrly'):
-            wind_ts = self._utcify(wind_dp, 'HOUR_ENDING', 'DSTFlag', 'N')
+            print wind_dp
+            wind_ts = self.utcify(wind_dp['HOUR_ENDING'],
+                                  is_dst=self.is_dst(wind_dp['DSTFlag'], 'N'))
             if wind_ts == ts_hour_ending:
                 try:
                     wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
@@ -93,7 +93,7 @@ class ERCOTClient(BaseClient):
         parsed_data = []
         base_dp = {'timestamp': ts_hour_starting,
                    'freq': self.FREQUENCY_CHOICES.hourly, 'market': self.MARKET_CHOICES.hourly,
-                   'gen_MW': 0, 'ba_name': self.ba_name}
+                   'gen_MW': 0, 'ba_name': self.NAME}
 
         # collect parsed data
         if wind_gen is not None:
