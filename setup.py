@@ -66,6 +66,7 @@ setup(
         'pytz',
         'requests',
         'xlrd',
+        'selenium',
     ],
     extras_require={
         'celery': ['celery>=3.1'],
