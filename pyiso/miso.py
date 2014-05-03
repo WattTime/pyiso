@@ -1,13 +1,11 @@
-import requests
 import copy
-from dateutil.parser import parse as dateutil_parse
-import pytz
 from pyiso.base import BaseClient
+import pytz
 
 
 class MISOClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'MISO'
+        self.NAME = 'MISO'
         
         self.base_url = 'https://www.misoenergy.org/ria/'
         
@@ -18,16 +16,20 @@ class MISOClient(BaseClient):
             'Other': 'other',
             'Wind': 'wind',
         }
+
+        self.TZ_NAME = 'America/New_York'
                 
-    def _utcify(self, naive_local_timestamp):
+    def utcify(self, local_ts, **kwargs):
         # MISO is always on Eastern Standard Time, even during DST
         # ie UTC offset = -5 always
-        aware_local_timestamp = pytz.timezone('America/New_York').localize(naive_local_timestamp, is_dst=False)
-        aware_utc_timestamp = aware_local_timestamp.astimezone(pytz.utc)
-        aware_utc_timestamp += aware_local_timestamp.dst() # adjust for EST
-        return aware_utc_timestamp
+        utc_ts = super(MISOClient, self).utcify(local_ts, is_dst=False)
+        utc_ts += utc_ts.astimezone(pytz.timezone(self.TZ_NAME)).dst() # adjust for EST
+        return utc_ts
 
     def get_generation(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', latest=latest, **kwargs)
+
         # process args
         request_urls = []
         if latest:
@@ -47,23 +49,25 @@ class MISOClient(BaseClient):
             url += request_url
             
             # carry out request
-            response = requests.get(url).text
+            response = self.request(url)
+            if not response:
+                return parsed_data
             
             # test for valid content
-            if 'The page cannot be displayed' in response:
-                self.logger.error('Error in source data for MISO generation')
+            if 'The page cannot be displayed' in response.text:
+                self.logger.error('MISO: Error in source data for generation')
                 return parsed_data
             
             # preliminary parsing
-            rows = response.split('\n')
-            header = rows[0].split(',')
+            rows = response.text.split('\n')
+            header = self.parse_row(rows[0])
             for row in rows[1:]:
-                raw_data.append(dict(zip(header, row.split(','))))
+                raw_data.append(dict(zip(header, self.parse_row(row))))
             
         # parse data
         for raw_dp in raw_data:
             # process timestamp
-            aware_utc_timestamp = self._utcify(dateutil_parse(raw_dp['INTERVALEST']))
+            aware_utc_timestamp = self.utcify(raw_dp['INTERVALEST'])
 
             # set up storage
             parsed_dp = {}
@@ -73,7 +77,7 @@ class MISOClient(BaseClient):
                 parsed_dp['timestamp'] = aware_utc_timestamp
                 parsed_dp['gen_MW'] = float(raw_dp['ACT'])
                 parsed_dp['fuel_name'] = self.fuels[raw_dp['CATEGORY']]
-                parsed_dp['ba_name'] = self.ba_name
+                parsed_dp['ba_name'] = self.NAME
                 parsed_dp['market'] = self.MARKET_CHOICES.fivemin
                 parsed_dp['freq'] = self.FREQUENCY_CHOICES.fivemin
             except KeyError: # blank last line
@@ -81,5 +85,7 @@ class MISOClient(BaseClient):
             
             # add to full storage
             parsed_data.append(parsed_dp)
+
+            print raw_dp, parsed_dp
             
         return parsed_data
