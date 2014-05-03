@@ -1,4 +1,3 @@
-import requests
 import copy
 import re
 from pyiso.base import BaseClient
@@ -109,6 +108,11 @@ class SPPClient(BaseClient):
         # print response.headers
         # print len(response.content)
 
+    def _preprocess(self, row):
+            vals = row.split(',')
+            vals[0] = self.utcify(vals[0])
+            return vals
+
     def get_generation(self, latest=False, market='RTHR',
                        start_at=None, end_at=None, yesterday=False, **kwargs):
         # set args
@@ -142,10 +146,12 @@ class SPPClient(BaseClient):
             url += request_url
             
             # carry out request
-            response = requests.get(url).content
+            response = self.request(url)
+            if not response:
+                return []
             
             # preliminary parsing
-            rows = response.split('\n')
+            rows = response.content.split('\n')
             header = rows[0].split(',')
             if latest:
                 raw_data.append(dict(zip(header, self._preprocess(rows[-2]))))

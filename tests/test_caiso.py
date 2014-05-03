@@ -1,10 +1,9 @@
 from pyiso import client_factory
 from unittest import TestCase
-import pytz
-from datetime import datetime, date
 import logging
 import StringIO
 import pandas as pd
+from datetime import date
 
 
 class TestCAISOBase(TestCase):

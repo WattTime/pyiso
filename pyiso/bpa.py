@@ -6,7 +6,7 @@ from pyiso.base import BaseClient
 
 class BPAClient(BaseClient):
     def __init__(self):
-        self.ba_name = 'BPA'
+        self.NAME = 'BPA'
         
         self.base_url = 'http://transmission.bpa.gov/business/operations/'
         
@@ -128,7 +128,7 @@ class BPAClient(BaseClient):
         # serialize and return
         return self.serialize(cleaned_df,
                               header=['timestamp', 'fuel_name', 'gen_MW'],
-                              extras={'ba_name': self.ba_name,
+                              extras={'ba_name': self.NAME,
                                       'market': self.MARKET_CHOICES.fivemin,
                                       'freq': self.FREQUENCY_CHOICES.fivemin})
 
@@ -146,6 +146,6 @@ class BPAClient(BaseClient):
         # serialize and return
         return self.serialize(cleaned_df,
                               header=['timestamp', 'load_MW'],
-                              extras={'ba_name': self.ba_name,
+                              extras={'ba_name': self.NAME,
                                       'market': self.MARKET_CHOICES.fivemin,
                                       'freq': self.FREQUENCY_CHOICES.fivemin})

@@ -1,7 +1,6 @@
 from unittest import TestCase
 from pyiso.base import BaseClient
 import logging
-import pytz
 
 
 class TestBaseClient(TestCase):

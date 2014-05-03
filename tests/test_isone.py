@@ -1,7 +1,5 @@
 from pyiso import client_factory
 from unittest import TestCase
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
 import pytz
 import logging
 

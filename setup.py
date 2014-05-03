@@ -3,6 +3,10 @@ import codecs
 import os
 import re
 
+# to release:
+# python setup.py register sdist bdist_egg upload
+
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 # Read the version number from a source file.

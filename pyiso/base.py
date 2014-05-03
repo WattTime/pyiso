@@ -169,9 +169,21 @@ class BaseClient(object):
         if mode not in allowed_modes:
             raise ValueError('Invalid request mode %s' % mode)
 
+        # check for session
+        try:
+            session = getattr(self, 'session')
+        except AttributeError:
+            self.session = requests.Session()
+            session = self.session
+
         # carry out request
         try:
-            response = getattr(requests, mode)(url, **kwargs)
+            response = getattr(session, mode)(url, **kwargs)
+        except requests.exceptions.ChunkedEncodingError as e:
+            # JSON incomplete or not found
+            msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+            self.logger.error(msg)
+            return None
         except requests.exceptions.ConnectionError as e:
             # eg max retries exceeded
             msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
