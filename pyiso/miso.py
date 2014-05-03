@@ -85,7 +85,5 @@ class MISOClient(BaseClient):
             
             # add to full storage
             parsed_data.append(parsed_dp)
-
-            print raw_dp, parsed_dp
             
         return parsed_data

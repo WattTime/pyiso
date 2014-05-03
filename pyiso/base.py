@@ -283,7 +283,7 @@ class BaseClient(object):
         try:
             aware_local_index = local_index.tz_localize(tz_name)
         except Exception as e:
-            print e  # already aware
+            self.logger.debug(e)  # already aware
             aware_local_index = local_index
 
         # convert to utc

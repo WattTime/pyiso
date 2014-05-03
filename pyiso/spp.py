@@ -91,7 +91,7 @@ class SPPClient(BaseClient):
             )
             link = div.find_element_by_css_selector('a')
             link.click()
-            print link.get_attribute('href')
+          #  print link.get_attribute('href')
             time.sleep(20)
 
         finally:

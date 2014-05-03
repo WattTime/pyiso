@@ -78,7 +78,6 @@ class ERCOTClient(BaseClient):
         # process wind data
         wind_gen = None
         for wind_dp in self._request_report('wind_hrly'):
-            print wind_dp
             wind_ts = self.utcify(wind_dp['HOUR_ENDING'],
                                   is_dst=self.is_dst(wind_dp['DSTFlag'], 'N'))
             if wind_ts == ts_hour_ending:
