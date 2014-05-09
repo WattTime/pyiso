@@ -16,7 +16,22 @@ def get_generation(ba_name, **kwargs):
     
     # log
     if len(data) == 0:
-        msg = 'No data in %s at %s with args %s' % (ba_name, datetime.utcnow().isoformat(),
+        msg = '%s: No generation data at %s with args %s' % (ba_name, datetime.utcnow().isoformat(),
+                                                    kwargs)
+        logger.warn(msg)
+    
+    # return
+    return data
+
+@shared_task
+def get_load(ba_name, **kwargs):
+    # get data
+    c = client_factory(ba_name)
+    data = c.get_load(**kwargs)
+    
+    # log
+    if len(data) == 0:
+        msg = '%s: No load data at %s with args %s' % (ba_name, datetime.utcnow().isoformat(),
                                                     kwargs)
         logger.warn(msg)
     

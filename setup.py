@@ -67,8 +67,6 @@ setup(
         'requests',
         'xlrd',
         'selenium',
+        'celery>=3.1',
     ],
-    extras_require={
-        'celery': ['celery>=3.1'],
-    }
 )
