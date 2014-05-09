@@ -54,6 +54,13 @@ class TestBaseLoad(TestCase):
         # return
         return data
 
+    def _run_notimplemented_test(self, ba_name, **kwargs):
+        # set up
+        c = self.create_client(ba_name)
+
+        # method not implemented yet
+        self.assertRaises(NotImplementedError, c.get_load)
+
 
 class TestBPALoad(TestBaseLoad):
     def test_latest(self):
@@ -90,6 +97,26 @@ class TestBPALoad(TestBaseLoad):
         self.assertGreater(len(set(timestamps)), 1)
 
 
+class TestCAISOLoad(TestBaseLoad):
+    def test_failing(self):
+        self._run_notimplemented_test('CAISO')
+
+
+class TestERCOTLoad(TestBaseLoad):
+    def test_failing(self):
+        self._run_notimplemented_test('ERCOT')
+
+
+class TestISONELoad(TestBaseLoad):
+    def test_failing(self):
+        self._run_notimplemented_test('ISONE')
+
+
+class TestMISOLoad(TestBaseLoad):
+    def test_failing(self):
+        self._run_notimplemented_test('MISO')
+
+
 class TestPJMLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
@@ -102,4 +129,9 @@ class TestPJMLoad(TestBaseLoad):
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+
+class TestSPPLoad(TestBaseLoad):
+    def test_failing(self):
+        self._run_notimplemented_test('SPP')
