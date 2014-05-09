@@ -3,7 +3,9 @@ from unittest import TestCase
 import logging
 import StringIO
 import pandas as pd
-from datetime import date
+import pytz
+from datetime import date, datetime, timedelta
+from bs4 import BeautifulSoup
 
 
 class TestCAISOBase(TestCase):
@@ -63,6 +65,62 @@ class TestCAISOBase(TestCase):
 \t23\t\t2119\t\t1085\t\t10712\t\t9871\t\t1250\t\t\t\t\n\
 \t24\t\t2118\t\t1082\t\t9800\t\t8904\t\t935\t\t\t\t\n\
 ")
+
+        self.sld_fcst_xml = StringIO.StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<OASISReport xmlns=\"http://www.caiso.com/soa/OASISReport_v1.xsd\">\n\
+<MessageHeader>\n\
+<TimeDate>2014-05-09T17:50:06-00:00</TimeDate>\n\
+<Source>OASIS</Source>\n\
+<Version>v20140401</Version>\n\
+</MessageHeader>\n\
+<MessagePayload>\n\
+<RTO>\n\
+<name>CAISO</name>\n\
+<REPORT_ITEM>\n\
+<REPORT_HEADER>\n\
+<SYSTEM>OASIS</SYSTEM>\n\
+<TZ>PPT</TZ>\n\
+<REPORT>SLD_FCST</REPORT>\n\
+<MKT_TYPE>RTM</MKT_TYPE>\n\
+<EXECUTION_TYPE>RTPD</EXECUTION_TYPE>\n\
+<UOM>MW</UOM>\n\
+<INTERVAL>ENDING</INTERVAL>\n\
+<SEC_PER_INTERVAL>900</SEC_PER_INTERVAL>\n\
+</REPORT_HEADER>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>SYS_FCST_15MIN_MW</DATA_ITEM>\n\
+<RESOURCE_NAME>CA ISO-TAC</RESOURCE_NAME>\n\
+<OPR_DATE>2014-05-08</OPR_DATE>\n\
+<INTERVAL_NUM>50</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2014-05-08T19:15:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2014-05-08T19:30:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>26723</VALUE>\n\
+</REPORT_DATA>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>SYS_FCST_5MIN_MW</DATA_ITEM>\n\
+<RESOURCE_NAME>CA ISO-TAC</RESOURCE_NAME>\n\
+<OPR_DATE>2014-05-08</OPR_DATE>\n\
+<INTERVAL_NUM>144</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2014-05-08T18:55:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2014-05-08T19:00:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>26755</VALUE>\n\
+</REPORT_DATA>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>SYS_FCST_5MIN_MW</DATA_ITEM>\n\
+<RESOURCE_NAME>PGE-TAC</RESOURCE_NAME>\n\
+<OPR_DATE>2014-05-08</OPR_DATE>\n\
+<INTERVAL_NUM>146</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2014-05-08T19:05:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2014-05-08T19:10:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>11530</VALUE>\n\
+</REPORT_DATA>\n\
+</REPORT_ITEM>\n\
+<DISCLAIMER_ITEM>\n\
+<DISCLAIMER>The contents of these pages are subject to change without notice.  Decisions based on information contained within the California ISO's web site are the visitor's sole responsibility.</DISCLAIMER>\n\
+</DISCLAIMER_ITEM>\n\
+</RTO>\n\
+</MessagePayload>\n\
+</OASISReport>")
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -128,3 +186,41 @@ class TestCAISOBase(TestCase):
 
         # number of rows is from number of columns
         self.assertEqual(len(pivoted), 24*len(indexed.columns))
+
+    def test_fetch_oasis_demand_forecast(self):
+        c = self.create_client('CAISO')
+        ts = c.utcify('2014-05-08 12:00')
+        payload = {'queryname': 'SLD_FCST',
+                   'market_run_id': 'RTM',
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                  }
+        payload.update(c.base_payload)
+        data = c.fetch_oasis(payload=payload)
+        self.assertEqual(len(data), 55)
+        self.assertEqual(str(data[0]), '<report_data>\n\
+<data_item>SYS_FCST_15MIN_MW</data_item>\n\
+<resource_name>CA ISO-TAC</resource_name>\n\
+<opr_date>2014-05-08</opr_date>\n\
+<interval_num>50</interval_num>\n\
+<interval_start_gmt>2014-05-08T19:15:00-00:00</interval_start_gmt>\n\
+<interval_end_gmt>2014-05-08T19:30:00-00:00</interval_end_gmt>\n\
+<value>26723</value>\n\
+</report_data>')
+
+    def test_parse_oasis_demand_forecast(self):
+        # set up list of data
+        c = self.create_client('CAISO')
+        soup = BeautifulSoup(self.sld_fcst_xml)
+        data = soup.find_all('report_data')
+
+        # parse
+        parsed_data = c.parse_oasis_demand_forecast(data)
+
+        # test
+        self.assertEqual(len(parsed_data), 1)
+        expected = {'ba_name': 'CAISO', 
+                    'timestamp': datetime(2014, 5, 8, 18, 55, tzinfo=pytz.utc),
+                    'freq': '5m', 'market': 'RT5M',
+                    'load_MW': 26755.0}
+        self.assertEqual(expected, parsed_data[0])

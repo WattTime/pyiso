@@ -42,6 +42,51 @@ class CAISOClient(BaseClient):
         else:
             return self._generation_historical()
 
+    def get_load(self, latest=False,
+                       start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # get start and end times
+        now = self.utcify(datetime.utcnow(), tz_name='utc')
+        if self.options['latest']:
+            startdatetime = now - timedelta(minutes=20)
+            enddatetime = now + timedelta(minutes=20)
+        else:
+            startdatetime = self.options['start_at']
+            enddatetime = self.options['end_at']
+ 
+        # fetch OASIS load data
+        payload = {'queryname': 'SLD_FCST',
+                   'market_run_id': 'RTM',
+                   'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
+                   'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
+                  }
+        payload.update(self.base_payload)
+        oasis_data = self.fetch_oasis(payload=payload)
+
+        # parse data
+        parsed_data = self.parse_oasis_demand_forecast(oasis_data)
+
+        if self.options['latest']:
+            # select latest
+            latest_dp = None
+            latest_ts = self.utcify('1900-01-01 12:00')
+            for dp in parsed_data:
+                if dp['timestamp'] < now and dp['timestamp'] > latest_ts:
+                    latest_dp = dp
+                    latest_ts = dp['timestamp']
+
+            # return latest
+            if latest_dp:
+                return [latest_dp]
+            else:
+                return []
+        else:
+            # return all data
+            return parsed_data
+
     def set_dt_index(self, df, date, hours, end_of_hour=True):
         if end_of_hour:
             offset = -1
@@ -110,7 +155,7 @@ class CAISOClient(BaseClient):
         # return
         return parsed_data
         
-    def _request_oasis(self, payload={}):
+    def fetch_oasis(self, payload={}):
         """Returns a list of report data elements, or an empty list if an error was encountered."""
         # set up storage
         raw_data = []
@@ -141,8 +186,8 @@ class CAISOClient(BaseClient):
             raw_data = soup.find_all('report_data')
             return raw_data
         
-    def _parse_oasis_renewable(self, raw_data):
-        """Parse raw data output of _request_oasis for renewables."""
+    def parse_oasis_renewable(self, raw_data):
+        """Parse raw data output of fetch_oasis for renewables."""
         # set up storage
         preparsed_data = {}
         parsed_data = []
@@ -181,8 +226,8 @@ class CAISOClient(BaseClient):
         # return
         return parsed_data
 
-    def _parse_oasis_slrs(self, raw_data):
-        """Parse raw data output of _request_oasis for System Load and Resource Schedules."""
+    def parse_oasis_slrs(self, raw_data):
+        """Parse raw data output of fetch_oasis for System Load and Resource Schedules."""
         # set up storage
         parsed_data = []
         
@@ -201,6 +246,32 @@ class CAISOClient(BaseClient):
                     
                 # store generation value
                 parsed_dp['gen_MW'] = float(raw_soup_dp.find('value').string)
+                parsed_data.append(parsed_dp)
+                
+        # return
+        return parsed_data
+
+    def parse_oasis_demand_forecast(self, raw_data):
+        """Parse raw data output of fetch_oasis for system-wide 5-min RTM demand forecast."""
+        # set up storage
+        parsed_data = []
+        
+        # extract values from xml
+        for raw_soup_dp in raw_data:
+            if raw_soup_dp.find('data_item').string == 'SYS_FCST_5MIN_MW' and \
+                    raw_soup_dp.find('resource_name').string == 'CA ISO-TAC':
+                
+                # parse timestamp
+                ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
+
+                # set up base
+                parsed_dp = {'timestamp': ts,
+                              'freq': self.FREQUENCY_CHOICES.fivemin,
+                              'market': self.MARKET_CHOICES.fivemin,
+                              'ba_name': self.NAME}
+                    
+                # store generation value
+                parsed_dp['load_MW'] = float(raw_soup_dp.find('value').string)
                 parsed_data.append(parsed_dp)
                 
         # return
@@ -276,9 +347,9 @@ class CAISOClient(BaseClient):
                    'enddatetime': (ts+timedelta(minutes=20)).strftime(self.oasis_request_time_format),
                   }
         gen_payload.update(self.base_payload)
-        gen_oasis_data = self._request_oasis(payload=gen_payload)
+        gen_oasis_data = self.fetch_oasis(payload=gen_payload)
         has_other = False
-        for dp in self._parse_oasis_slrs(gen_oasis_data):
+        for dp in self.parse_oasis_slrs(gen_oasis_data):
             if dp['timestamp'] == ts:
                 dp['gen_MW'] -= total_ren_MW
                 dp['freq'] = self.FREQUENCY_CHOICES.tenmin
