@@ -246,7 +246,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['solar', 'wind', 'renewable', 'other']
+        expected_fuels = ['renewable', 'other']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 

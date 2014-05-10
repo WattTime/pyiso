@@ -290,35 +290,30 @@ class CAISOClient(BaseClient):
                 ts_str = match.group(0)
                 return self.utcify(ts_str)
 
-    def _get_todays_outlook(self):
-        # set up storage
-        parsed_data = []
-        
-        # get timestamp from outlook page
-        ts = self.todays_outlook_time()
-        if not ts:
-            return []
-
+    def fetch_todays_outlook_renewables(self):
         # get renewables data
         response = self.request(self.base_url_outlook+'renewables.html')
-        if not response:
-            return []
-        ren_soup = BeautifulSoup(response.content)
+        return BeautifulSoup(response.content)
         
+    def parse_todays_outlook_renewables(self, soup, ts):
+        # set up storage
+        parsed_data = []
+
         # get all renewables values
         for (id_name, fuel_name) in [('totalrenewables', 'renewable'),
                                         ('currentsolar', 'solar'),
                                         ('currentwind', 'wind')]:
-            resource_soup = ren_soup.find(id=id_name)
-            match = re.search('(?P<val>\d+.?\d+) MW', resource_soup.string)
-            if match:
-                parsed_dp = {'timestamp': ts,
-                              'freq': self.FREQUENCY_CHOICES.tenmin,
-                              'market': self.MARKET_CHOICES.tenmin,
-                              'ba_name': self.NAME}
-                parsed_dp['gen_MW'] = float(match.group('val'))
-                parsed_dp['fuel_name'] = fuel_name
-                parsed_data.append(parsed_dp)
+            resource_soup = soup.find(id=id_name)
+            if resource_soup:
+                match = re.search('(?P<val>\d+.?\d+)\s+MW', resource_soup.string)
+                if match:
+                    parsed_dp = {'timestamp': ts,
+                                  'freq': self.FREQUENCY_CHOICES.tenmin,
+                                  'market': self.MARKET_CHOICES.tenmin,
+                                  'ba_name': self.NAME}
+                    parsed_dp['gen_MW'] = float(match.group('val'))
+                    parsed_dp['fuel_name'] = fuel_name
+                    parsed_data.append(parsed_dp)
                 
         # actual 'renewable' value should be only renewables that aren't accounted for in other categories
         accounted_for_ren = 0
@@ -336,7 +331,11 @@ class CAISOClient(BaseClient):
         parsed_data = []
         
         # get and parse "Today's Outlook" data
-        parsed_data += self._get_todays_outlook()
+        soup = self.fetch_todays_outlook_renewables()
+        ts = self.todays_outlook_time()
+        parsed_data += self.parse_todays_outlook_renewables(soup, ts)
+        if len(parsed_data) == 0:
+            return parsed_data
         total_ren_MW = sum([dp['gen_MW'] for dp in parsed_data])
         ts = parsed_data[0]['timestamp']
         

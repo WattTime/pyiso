@@ -122,6 +122,36 @@ class TestCAISOBase(TestCase):
 </MessagePayload>\n\
 </OASISReport>")
 
+        self.todays_outlook_renewables = StringIO.StringIO("<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
+\n\
+<HTML>\n\
+<HEAD>\n\
+<meta http-equiv=\"refresh\" content=\"600\">\n\
+<TITLE>System Conditions - The California ISO</TITLE>\n\
+<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"/styles01.css\">\n\
+<LINK REL=\"stylesheet\" TYPE=\"text/css\" HREF=\"http://www.caiso.com/Style%20Library/caiso/css/outlook.css\">\n\
+<meta http-equiv=\"refresh\" content=\"300\">\n\
+</HEAD>\n\
+\n\
+<BODY BGCOLOR=\"#ffffff\" TEXT=\"#000000\" LINK=\"#d96100\" VLINK=\"#666666\" TOPMARGIN=\"0\">\n\
+<table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n\
+<tr>\n\
+  <td valign=\"top\"><p><span class=\"to_callout1\">Current Renewables</span><br />\n\
+    <span class=\"to_readings\" id=\"totalrenewables\">\n\
+      6086 \n\
+      MW</span><br />\n\
+  </p>\n\
+    <p><br />\n\
+      <a href=\"http://www.caiso.com/market/Pages/ReportsBulletins/DailyRenewablesWatch.aspx\" target=\"_top\"><img src=\"http://www.caiso.com/PublishingImages/Today's%20Outlook%20Images/RenewablesWatchLogo.jpg\" width=\"150\" height=\"57\" alt=\"Renewables Watch\" border=\"0\"></a><br />\n\
+      <span class=\"to_callout2\">The Renewables Watch provides actual renewable energy production within the ISO Grid.</span><br />\n\
+    <a href=\"/green/renewrpt/DailyRenewablesWatch.pdf\" target=\"_blank\"><span class=\"to_about\">Click here to view yesterday's output.</span></a></p></td>\n\
+  <td class=\"docdate\" valign=\"top\" align=\"right\"><img src=\"/outlook/SP/ems_renewables.gif\"><br /> <br /><img src=\"http://www.caiso.com/PublishingImages/RenewablesGraphKey.gif\"></td>\n\
+</tr>  </table>\n\
+</BODY>\n\
+</HTML>\n\
+\n\
+")
+
     def create_client(self, ba_name):
         # set up client with logging
         c = client_factory(ba_name)
@@ -224,3 +254,21 @@ class TestCAISOBase(TestCase):
                     'freq': '5m', 'market': 'RT5M',
                     'load_MW': 26755.0}
         self.assertEqual(expected, parsed_data[0])
+
+    def test_parse_todays_outlook_renwables(self):
+        # set up soup and ts
+        c = self.create_client('CAISO')
+        soup = BeautifulSoup(self.todays_outlook_renewables)
+        ts = c.utcify('2014-05-08 12:00')
+
+        # parse
+        parsed_data = c.parse_todays_outlook_renewables(soup, ts)
+
+        # test
+        expected = [{'ba_name': 'CAISO',
+                      'freq': '10m',
+                      'fuel_name': 'renewable',
+                      'gen_MW': 6086.0,
+                      'market': 'RT5M',
+                      'timestamp': datetime(2014, 5, 8, 19, 0, tzinfo=pytz.utc)}]
+        self.assertEqual(parsed_data, expected)
