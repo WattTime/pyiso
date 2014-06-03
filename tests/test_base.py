@@ -26,6 +26,7 @@ class TestBaseClient(TestCase):
 
         self.assertEqual('RTHR', bc.MARKET_CHOICES.hourly)
         self.assertEqual('RT5M', bc.MARKET_CHOICES.fivemin)
+        self.assertEqual('DAHR', bc.MARKET_CHOICES.dam)
 
     def test_freq_choices(self):
         """Frequency choices have expected values."""
