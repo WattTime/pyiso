@@ -86,6 +86,7 @@ class TestMISOGenMix(TestBaseGenMix):
         self.assertEqual(len(set(timestamps)), 1)
                 
 
+@skip
 class TestSPPGenMix(TestBaseGenMix):
     @skip
     def test_spp_latest_hr(self):
