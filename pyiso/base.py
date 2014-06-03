@@ -28,7 +28,7 @@ class BaseClient(object):
     logger = logging.getLogger(__name__)
 
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAM')
     FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
 
     # timezone
@@ -91,6 +91,7 @@ class BaseClient(object):
             self.options['start_at'] = self.utcify(self.options['start_at'])
             self.options['end_at'] = self.utcify(self.options['end_at'])
             self.options['sliceable'] = True
+            self.options['latest'] = False
 
         # set start_at and end_at for yesterday in local time
         elif self.options.get('yesterday', None):
@@ -98,6 +99,7 @@ class BaseClient(object):
             self.options['end_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
             self.options['start_at'] = self.options['end_at'] - timedelta(days=1)
             self.options['sliceable'] = True
+            self.options['latest'] = False
 
         else:
             self.options['sliceable'] = False
