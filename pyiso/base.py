@@ -100,7 +100,15 @@ class BaseClient(object):
             self.options['sliceable'] = True
 
         else:
-            self.options['sliceable'] = False            
+            self.options['sliceable'] = False
+
+        # forecast is False by default
+        if 'forecast' not in self.options:
+            self.options['forecast'] = False
+        # but force forecast to be True if start_at is in the future
+        if self.options['sliceable']:
+            if self.options['start_at'] > pytz.utc.localize(datetime.utcnow()):
+                self.options['forecast'] = True
 
     def utcify(self, local_ts_str, tz_name=None, is_dst=None):
         """

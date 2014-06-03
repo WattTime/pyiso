@@ -1,6 +1,8 @@
 from unittest import TestCase
 from pyiso.base import BaseClient
 import logging
+from datetime import datetime
+import pytz
 
 
 class TestBaseClient(TestCase):
@@ -37,12 +39,44 @@ class TestBaseClient(TestCase):
         self.assertEqual('10m', bc.FREQUENCY_CHOICES.tenmin)
         self.assertEqual('n/a', bc.FREQUENCY_CHOICES.na)
 
-    def test_handle_options(self):
+    def test_handle_options_set(self):
+        """Can set options"""
         bc = BaseClient()
         bc.handle_options(test='a', another=20)
         self.assertEqual(bc.options['test'], 'a')
         self.assertEqual(bc.options['another'], 20)
         self.assertFalse(bc.options['sliceable'])
+
+    def test_handle_options_latest(self):
+        """Correct processing of time-related options for latest"""
+        bc = BaseClient()
+        bc.handle_options(latest=True)
+        self.assertTrue(bc.options['latest'])
+        self.assertFalse(bc.options['sliceable'])
+        self.assertFalse(bc.options['forecast'])
+
+    def test_handle_options_past(self):
+        """Correct processing of time-related options for historical start and end times"""
+        bc = BaseClient()
+        bc.handle_options(start_at='2014-01-01', end_at='2014-02-01')
+        self.assertTrue(bc.options['sliceable'])
+        self.assertEqual(bc.options['start_at'], datetime(2014, 1, 1, 0, tzinfo=pytz.utc))
+        self.assertEqual(bc.options['end_at'], datetime(2014, 2, 1, 0, tzinfo=pytz.utc))
+        self.assertFalse(bc.options['forecast'])
+
+    def test_handle_options_inverted_start_end(self):
+        """Raises error if end before start"""
+        bc = BaseClient()
+        self.assertRaises(AssertionError, bc.handle_options, start_at='2014-02-01', end_at='2014-01-01')
+
+    def test_handle_options_future(self):
+        """Correct processing of time-related options for future start and end times"""
+        bc = BaseClient()
+        bc.handle_options(start_at='2100-01-01', end_at='2100-02-01')
+        self.assertTrue(bc.options['sliceable'])
+        self.assertEqual(bc.options['start_at'], datetime(2100, 1, 1, 0, tzinfo=pytz.utc))
+        self.assertEqual(bc.options['end_at'], datetime(2100, 2, 1, 0, tzinfo=pytz.utc))
+        self.assertTrue(bc.options['forecast'])
 
     def test_bad_zipfile(self):
         bc = BaseClient()
