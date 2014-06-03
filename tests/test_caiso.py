@@ -217,6 +217,19 @@ class TestCAISOBase(TestCase):
         # number of rows is from number of columns
         self.assertEqual(len(pivoted), 24*len(indexed.columns))
 
+    def test_oasis_payload(self):
+        c = self.create_client('CAISO')
+        c.handle_options(start_at='2014-01-01', end_at='2014-02-01',
+                         market=c.MARKET_CHOICES.fivemin)
+        constructed = c.construct_oasis_payload('SLD_FCST')
+        expected = {'queryname': 'SLD_FCST',
+                   'market_run_id': 'RTM',
+                   'startdatetime': (datetime(2014, 1, 1, 8)).strftime(c.oasis_request_time_format),
+                   'enddatetime': (datetime(2014, 2, 1, 8)).strftime(c.oasis_request_time_format),
+                   'version': 1,
+                  }
+        self.assertEqual(constructed, expected)
+
     def test_fetch_oasis_demand_forecast(self):
         c = self.create_client('CAISO')
         ts = c.utcify('2014-05-08 12:00')
@@ -245,6 +258,7 @@ class TestCAISOBase(TestCase):
         data = soup.find_all('report_data')
 
         # parse
+        c.handle_options(market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
         parsed_data = c.parse_oasis_demand_forecast(data)
 
         # test

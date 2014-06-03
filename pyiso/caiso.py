@@ -6,6 +6,12 @@ from bs4 import BeautifulSoup
 
 
 class CAISOClient(BaseClient):
+    """
+    Interface to CAISO data sources.
+
+    For information about the data sources,
+    see http://www.caiso.com/Documents/InterfaceSpecifications-OASISv4_1_3.pdf
+    """
     def __init__(self):
         self.NAME = 'CAISO'
         
@@ -31,6 +37,12 @@ class CAISOClient(BaseClient):
             'HYDRO': 'hydro',            
         }
 
+        self.oasis_markets = {
+            self.MARKET_CHOICES.hourly: 'RTM',
+            self.MARKET_CHOICES.fivemin: 'RTM',
+            self.MARKET_CHOICES.dam: 'DAM',
+        }
+
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
         # set args
@@ -48,22 +60,20 @@ class CAISOClient(BaseClient):
         self.handle_options(data='gen', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
 
-        # get start and end times
-        now = self.utcify(datetime.utcnow(), tz_name='utc')
-        if self.options['latest']:
-            startdatetime = now - timedelta(minutes=20)
-            enddatetime = now + timedelta(minutes=20)
-        else:
-            startdatetime = self.options['start_at']
-            enddatetime = self.options['end_at']
- 
-        # fetch OASIS load data
-        payload = {'queryname': 'SLD_FCST',
-                   'market_run_id': 'RTM',
-                   'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
-                   'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
-                  }
-        payload.update(self.base_payload)
+        # ensure market and freq are set
+        if 'market' not in self.options:
+            if self.options['forecast']:
+                self.options['market'] = self.MARKET_CHOICES.dam
+            else:
+                self.options['market'] = self.MARKET_CHOICES.fivemin
+        if 'freq' not in self.options:
+            if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            else:
+                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+
+        # construct and execute OASIS request
+        payload = self.construct_oasis_payload('SLD_FCST')
         oasis_data = self.fetch_oasis(payload=payload)
 
         # parse data
@@ -73,6 +83,7 @@ class CAISOClient(BaseClient):
             # select latest
             latest_dp = None
             latest_ts = self.utcify('1900-01-01 12:00')
+            now = self.utcify(datetime.utcnow(), tz_name='utc')
             for dp in parsed_data:
                 if dp['timestamp'] < now and dp['timestamp'] > latest_ts:
                     latest_dp = dp
@@ -86,6 +97,31 @@ class CAISOClient(BaseClient):
         else:
             # return all data
             return parsed_data
+
+    def construct_oasis_payload(self, queryname, **kwargs):
+        # get start and end times
+        if self.options['latest']:
+            now = self.utcify(datetime.utcnow(), tz_name='utc')
+            startdatetime = now - timedelta(minutes=20)
+            enddatetime = now + timedelta(minutes=20)
+        else:
+            startdatetime = self.options['start_at']
+            enddatetime = self.options['end_at']
+
+        # get market id
+        market_run_id = self.oasis_markets[self.options['market']]
+ 
+        # construct payload
+        payload = {'queryname': queryname,
+                   'market_run_id': market_run_id,
+                   'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
+                   'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
+                  }
+        payload.update(self.base_payload)
+        payload.update(kwargs)
+
+        # return
+        return payload        
 
     def set_dt_index(self, df, date, hours, end_of_hour=True):
         if end_of_hour:
@@ -266,8 +302,8 @@ class CAISOClient(BaseClient):
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
-                              'freq': self.FREQUENCY_CHOICES.fivemin,
-                              'market': self.MARKET_CHOICES.fivemin,
+                              'freq': self.options['freq'],
+                              'market': self.options['market'],
                               'ba_name': self.NAME}
                     
                 # store generation value
@@ -329,6 +365,10 @@ class CAISOClient(BaseClient):
     def _generation_latest(self, **kwargs):
         # set up
         parsed_data = []
+
+        # override market and freq to 10 minute
+        self.options['market'] = self.MARKET_CHOICES.tenmin
+        self.options['freq'] = self.FREQUENCY_CHOICES.tenmin
         
         # get and parse "Today's Outlook" data
         soup = self.fetch_todays_outlook_renewables()
@@ -339,25 +379,17 @@ class CAISOClient(BaseClient):
         total_ren_MW = sum([dp['gen_MW'] for dp in parsed_data])
         ts = parsed_data[0]['timestamp']
         
-        # get and parse OASIS total gen data
-        gen_payload = {'queryname': 'ENE_SLRS',
-                   'market_run_id': 'RTM', 'schedule': 'ALL',
-                   'startdatetime': (ts-timedelta(minutes=20)).strftime(self.oasis_request_time_format),
-                   'enddatetime': (ts+timedelta(minutes=20)).strftime(self.oasis_request_time_format),
-                  }
-        gen_payload.update(self.base_payload)
-        gen_oasis_data = self.fetch_oasis(payload=gen_payload)
-        has_other = False
-        for dp in self.parse_oasis_slrs(gen_oasis_data):
+        # get OASIS total gen data
+        payload = self.construct_oasis_payload(queryname='ENE_SLRS', schedule='ALL')
+        oasis_data = self.fetch_oasis(payload=payload)
+
+        # parse OASIS data
+        for dp in self.parse_oasis_slrs(oasis_data):
             if dp['timestamp'] == ts:
                 dp['gen_MW'] -= total_ren_MW
-                dp['freq'] = self.FREQUENCY_CHOICES.tenmin
+                dp['freq'] = self.options['freq']
                 parsed_data.append(dp)
-                has_other = True
-                break
+                return parsed_data
 
-        # check and return
-        if has_other:
-            return parsed_data
-        else:
-            return []
+        # no matching OASIS data found, so return null
+        return []
