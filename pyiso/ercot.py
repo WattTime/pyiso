@@ -5,17 +5,16 @@ from pyiso.base import BaseClient
 
 
 class ERCOTClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'ERCOT'
-        self.base_report_url = 'http://mis.ercot.com'
-                
-        self.report_type_ids = {
-            'wind_5min': '13071',
-            'wind_hrly': '13028',
-            'gen_hrly': '12358',
-        }
+    NAME = 'ERCOT'
+    base_report_url = 'http://mis.ercot.com'
+            
+    report_type_ids = {
+        'wind_5min': '13071',
+        'wind_hrly': '13028',
+        'gen_hrly': '12358',
+    }
 
-        self.TZ_NAME = 'US/Central'
+    TZ_NAME = 'US/Central'
         
     def utcify(self, local_ts, **kwargs):
         # ERCOT is hour ending, want hour beginning

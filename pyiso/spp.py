@@ -11,11 +11,9 @@ from datetime import datetime
 
 
 class SPPClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'SPP'
-        self.TZ_NAME = 'America/Chicago'
-        
-        self.base_url = 'https://marketplace.spp.org/web/guest/'
+    NAME = 'SPP'
+    TZ_NAME = 'America/Chicago'
+    base_url = 'https://marketplace.spp.org/web/guest/'
         
     def get_fuels(self, year=2014):
         if year == 2014:

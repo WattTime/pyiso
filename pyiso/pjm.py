@@ -4,10 +4,9 @@ from pyiso.base import BaseClient
 
 
 class PJMClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'PJM'
-        self.TZ_NAME = 'America/New_York'
-        self.base_url = 'http://edatamobile.pjm.com/eDataWireless/SessionManager'
+    NAME = 'PJM'
+    TZ_NAME = 'America/New_York'
+    base_url = 'http://edatamobile.pjm.com/eDataWireless/SessionManager'
 
     def time_from_soup(self, soup):
         """

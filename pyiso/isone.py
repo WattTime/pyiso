@@ -4,25 +4,24 @@ from pyiso.base import BaseClient
 
 
 class ISONEClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'ISONE'
-        
-        self.base_url = 'http://isoexpress.iso-ne.com/ws/wsclient'
-        self.base_payload = {'_ns0_requestType':'url'}
-        self.TZ_NAME = 'America/New_York'
-        
-        self.fuels = {
-            'Coal': 'coal',
-            'Hydro': 'hydro',
-            'Natural Gas': 'natgas',
-            'Nuclear': 'nuclear',
-            'Oil': 'oil',
-            'Solar': 'solar',
-            'Wind': 'wind',
-            'Wood': 'biomass',
-            'Refuse': 'refuse',
-            'Landfill Gas': 'biogas',
-        }
+    NAME = 'ISONE'
+    
+    base_url = 'http://isoexpress.iso-ne.com/ws/wsclient'
+    base_payload = {'_ns0_requestType':'url'}
+    TZ_NAME = 'America/New_York'
+    
+    fuels = {
+        'Coal': 'coal',
+        'Hydro': 'hydro',
+        'Natural Gas': 'natgas',
+        'Nuclear': 'nuclear',
+        'Oil': 'oil',
+        'Solar': 'solar',
+        'Wind': 'wind',
+        'Wood': 'biomass',
+        'Refuse': 'refuse',
+        'Landfill Gas': 'biogas',
+    }
 
     def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
         # set args

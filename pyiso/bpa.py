@@ -5,18 +5,17 @@ from pyiso.base import BaseClient
 
 
 class BPAClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'BPA'
-        
-        self.base_url = 'http://transmission.bpa.gov/business/operations/'
-        
-        self.fuels = {
-            'Hydro': 'hydro',
-            'Wind': 'wind',
-            'Thermal': 'thermal',
-        }
+    NAME = 'BPA'
+    
+    base_url = 'http://transmission.bpa.gov/business/operations/'
+    
+    fuels = {
+        'Hydro': 'hydro',
+        'Wind': 'wind',
+        'Thermal': 'thermal',
+    }
 
-        self.TZ_NAME = 'America/Los_Angeles'
+    TZ_NAME = 'America/Los_Angeles'
        
     def fetch_historical(self):
         """Get BPA generation or load data from the far past"""

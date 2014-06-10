@@ -4,20 +4,19 @@ import pytz
 
 
 class MISOClient(BaseClient):
-    def __init__(self):
-        self.NAME = 'MISO'
-        
-        self.base_url = 'https://www.misoenergy.org/ria/'
-        
-        self.fuels = {
-            'Coal': 'coal',
-            'Natural Gas': 'natgas',
-            'Nuclear': 'nuclear',
-            'Other': 'other',
-            'Wind': 'wind',
-        }
+    NAME = 'MISO'
+    
+    base_url = 'https://www.misoenergy.org/ria/'
+    
+    fuels = {
+        'Coal': 'coal',
+        'Natural Gas': 'natgas',
+        'Nuclear': 'nuclear',
+        'Other': 'other',
+        'Wind': 'wind',
+    }
 
-        self.TZ_NAME = 'America/New_York'
+    TZ_NAME = 'America/New_York'
                 
     def utcify(self, local_ts, **kwargs):
         # MISO is always on Eastern Standard Time, even during DST
