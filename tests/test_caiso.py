@@ -275,6 +275,9 @@ class TestCAISOBase(TestCase):
         soup = BeautifulSoup(self.todays_outlook_renewables)
         ts = c.utcify('2014-05-08 12:00')
 
+        # set up options
+        c.handle_options()
+
         # parse
         parsed_data = c.parse_todays_outlook_renewables(soup, ts)
 

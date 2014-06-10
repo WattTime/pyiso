@@ -7,8 +7,10 @@ import pytz
 
 class TestBaseClient(TestCase):
     def test_init(self):
+        """init creates empty options dict"""
         bc = BaseClient()
         self.assertIsNotNone(bc)
+        self.assertEqual(len(bc.options.keys()), 0)
         
     def test_has_logger(self):
         """BaseClient has logger attribute that acts like logger"""
@@ -28,7 +30,7 @@ class TestBaseClient(TestCase):
 
         self.assertEqual('RTHR', bc.MARKET_CHOICES.hourly)
         self.assertEqual('RT5M', bc.MARKET_CHOICES.fivemin)
-        self.assertEqual('DAHR', bc.MARKET_CHOICES.dam)
+        self.assertEqual('DAM', bc.MARKET_CHOICES.dam)
 
     def test_freq_choices(self):
         """Frequency choices have expected values."""

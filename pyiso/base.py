@@ -37,6 +37,9 @@ class BaseClient(object):
     # name
     NAME = ''
 
+    def __init__(self):
+        self.options = {}
+
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse generation fuel mix data.

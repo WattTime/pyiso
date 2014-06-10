@@ -12,36 +12,35 @@ class CAISOClient(BaseClient):
     For information about the data sources,
     see http://www.caiso.com/Documents/InterfaceSpecifications-OASISv4_1_3.pdf
     """
-    def __init__(self):
-        self.NAME = 'CAISO'
-        
-        self.base_url_oasis = 'http://oasis.caiso.com/oasisapi/SingleZip'
-        self.base_url_gen = 'http://content.caiso.com/green/renewrpt/'
-        self.base_url_outlook = 'http://content.caiso.com/outlook/SP/'
-        self.base_payload = {'version': 1}
-        self.oasis_request_time_format = '%Y%m%dT%H:%M-0000'
-        
-        self.TZ_NAME = 'America/Los_Angeles'
-        
-        self.fuels = {
-            'GEOTHERMAL': 'geo',
-            'BIOMASS': 'biomass',
-            'BIOGAS': 'biogas',
-            'SMALL HYDRO': 'smhydro',
-            'WIND TOTAL': 'wind',
-            'SOLAR': 'solar',
-            'SOLAR PV': 'solarpv',
-            'SOLAR THERMAL': 'solarth',
-            'NUCLEAR': 'nuclear',
-            'THERMAL': 'thermal',
-            'HYDRO': 'hydro',            
-        }
+    NAME = 'CAISO'
+    
+    base_url_oasis = 'http://oasis.caiso.com/oasisapi/SingleZip'
+    base_url_gen = 'http://content.caiso.com/green/renewrpt/'
+    base_url_outlook = 'http://content.caiso.com/outlook/SP/'
+    base_payload = {'version': 1}
+    oasis_request_time_format = '%Y%m%dT%H:%M-0000'
+    
+    TZ_NAME = 'America/Los_Angeles'
+    
+    fuels = {
+        'GEOTHERMAL': 'geo',
+        'BIOMASS': 'biomass',
+        'BIOGAS': 'biogas',
+        'SMALL HYDRO': 'smhydro',
+        'WIND TOTAL': 'wind',
+        'SOLAR': 'solar',
+        'SOLAR PV': 'solarpv',
+        'SOLAR THERMAL': 'solarth',
+        'NUCLEAR': 'nuclear',
+        'THERMAL': 'thermal',
+        'HYDRO': 'hydro',            
+    }
 
-        self.oasis_markets = {
-            self.MARKET_CHOICES.hourly: 'RTM',
-            self.MARKET_CHOICES.fivemin: 'RTM',
-            self.MARKET_CHOICES.dam: 'DAM',
-        }
+    oasis_markets = {
+        BaseClient.MARKET_CHOICES.hourly: 'RTM',
+        BaseClient.MARKET_CHOICES.fivemin: 'RTM',
+        BaseClient.MARKET_CHOICES.dam: 'DAM',
+    }
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
@@ -302,8 +301,8 @@ class CAISOClient(BaseClient):
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
-                              'freq': self.options['freq'],
-                              'market': self.options['market'],
+                              'freq': self.options.get('freq', self.FREQUENCY_CHOICES.fivemin),
+                              'market': self.options.get('market', self.MARKET_CHOICES.fivemin),
                               'ba_name': self.NAME}
                     
                 # store generation value
@@ -335,6 +334,9 @@ class CAISOClient(BaseClient):
         # set up storage
         parsed_data = []
 
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.tenmin)
+        market = self.options.get('market', self.MARKET_CHOICES.tenmin)
+
         # get all renewables values
         for (id_name, fuel_name) in [('totalrenewables', 'renewable'),
                                         ('currentsolar', 'solar'),
@@ -344,8 +346,8 @@ class CAISOClient(BaseClient):
                 match = re.search('(?P<val>\d+.?\d+)\s+MW', resource_soup.string)
                 if match:
                     parsed_dp = {'timestamp': ts,
-                                  'freq': self.FREQUENCY_CHOICES.tenmin,
-                                  'market': self.MARKET_CHOICES.tenmin,
+                                  'freq': freq,
+                                  'market': market,
                                   'ba_name': self.NAME}
                     parsed_dp['gen_MW'] = float(match.group('val'))
                     parsed_dp['fuel_name'] = fuel_name
