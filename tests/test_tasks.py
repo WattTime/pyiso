@@ -1,5 +1,7 @@
 from pyiso import client_factory, tasks
 from unittest import TestCase
+from datetime import datetime, timedelta
+import pytz
 
 
 class TestGenerationTask(TestCase):
@@ -40,6 +42,8 @@ class TestGenerationTask(TestCase):
 class TestLoadTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
+        now = pytz.utc.localize(datetime.utcnow())
+        self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
 
     def test_bpa_latest(self):
         expected = client_factory('BPA').get_load(**self.latest_kwargs)
@@ -49,6 +53,11 @@ class TestLoadTask(TestCase):
     def test_caiso_latest(self):
         expected = client_factory('CAISO').get_load(**self.latest_kwargs)
         received = tasks.get_load('CAISO', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_caiso_forecast(self):
+        expected = client_factory('CAISO').get_load(**self.forecast_kwargs)
+        received = tasks.get_load('CAISO', **self.forecast_kwargs)
         self.assertEqual(expected, received)
 
     def test_pjm_latest(self):
