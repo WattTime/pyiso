@@ -48,8 +48,11 @@ class TestBaseLoad(TestCase):
             # test for numeric gen
             self.assertGreaterEqual(dp['load_MW']+1, dp['load_MW'])
 
-            # test earlier than now
-            self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
             
         # return
         return data
@@ -116,6 +119,16 @@ class TestCAISOLoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
+        
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=today+timedelta(days=1),
+                              end_at=today+timedelta(days=2))
         
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

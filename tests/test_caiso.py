@@ -230,7 +230,7 @@ class TestCAISOBase(TestCase):
                   }
         self.assertEqual(constructed, expected)
 
-    def test_fetch_oasis_demand_forecast(self):
+    def test_fetch_oasis_demand_rtm(self):
         c = self.create_client('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
@@ -251,7 +251,7 @@ class TestCAISOBase(TestCase):
 <value>26723</value>\n\
 </report_data>')
 
-    def test_parse_oasis_demand_forecast(self):
+    def test_parse_oasis_demand_rtm(self):
         # set up list of data
         c = self.create_client('CAISO')
         soup = BeautifulSoup(self.sld_fcst_xml)
@@ -289,3 +289,25 @@ class TestCAISOBase(TestCase):
                       'market': 'RT5M',
                       'timestamp': datetime(2014, 5, 8, 19, 0, tzinfo=pytz.utc)}]
         self.assertEqual(parsed_data, expected)
+
+    def test_fetch_oasis_demand_dam(self):
+        c = self.create_client('CAISO')
+        ts = c.utcify('2014-05-08 12:00')
+        payload = {'queryname': 'SLD_FCST',
+                   'market_run_id': 'DAM',
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=40)).strftime(c.oasis_request_time_format),
+                  }
+        payload.update(c.base_payload)
+        data = c.fetch_oasis(payload=payload)
+        self.assertEqual(len(data), 5)
+        self.assertEqual(str(data[0]), '<report_data>\n\
+<data_item>SYS_FCST_DA_MW</data_item>\n\
+<resource_name>CA ISO-TAC</resource_name>\n\
+<opr_date>2014-05-08</opr_date>\n\
+<interval_num>13</interval_num>\n\
+<interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
+<interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
+<value>26559.38</value>\n\
+</report_data>')
+

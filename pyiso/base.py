@@ -86,7 +86,7 @@ class BaseClient(object):
         """
         Process and store keyword argument options.
         """
-        self.options = kwargs
+        self.options.update(kwargs)
 
         # check start_at and end_at args
         if self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -112,7 +112,7 @@ class BaseClient(object):
             self.options['forecast'] = False
         # but force forecast to be True if start_at is in the future
         if self.options['sliceable']:
-            if self.options['start_at'] > pytz.utc.localize(datetime.utcnow()):
+            if self.options['end_at'] > pytz.utc.localize(datetime.utcnow()):
                 self.options['forecast'] = True
 
     def utcify(self, local_ts_str, tz_name=None, is_dst=None):

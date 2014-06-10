@@ -291,9 +291,17 @@ class CAISOClient(BaseClient):
         # set up storage
         parsed_data = []
         
+        # set up freq and market
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
+        market = self.options.get('market', self.MARKET_CHOICES.fivemin)
+        if market == self.MARKET_CHOICES.dam:
+            data_item_key = 'SYS_FCST_DA_MW'
+        else:
+            data_item_key = 'SYS_FCST_5MIN_MW'
+
         # extract values from xml
         for raw_soup_dp in raw_data:
-            if raw_soup_dp.find('data_item').string == 'SYS_FCST_5MIN_MW' and \
+            if raw_soup_dp.find('data_item').string == data_item_key and \
                     raw_soup_dp.find('resource_name').string == 'CA ISO-TAC':
                 
                 # parse timestamp
@@ -301,8 +309,8 @@ class CAISOClient(BaseClient):
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
-                              'freq': self.options.get('freq', self.FREQUENCY_CHOICES.fivemin),
-                              'market': self.options.get('market', self.MARKET_CHOICES.fivemin),
+                              'freq': freq,
+                              'market': market,
                               'ba_name': self.NAME}
                     
                 # store generation value
