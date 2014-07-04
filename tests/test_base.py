@@ -80,6 +80,26 @@ class TestBaseClient(TestCase):
         self.assertEqual(bc.options['end_at'], datetime(2100, 2, 1, 0, tzinfo=pytz.utc))
         self.assertTrue(bc.options['forecast'])
 
+    def test_handle_options_yesterday(self):
+        """Correct auto-setup of time-related options for yesterday"""
+        bc = BaseClient()
+        bc.handle_options(yesterday=True)
+        self.assertTrue(bc.options['sliceable'])
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc)
+        self.assertEqual(bc.options['start_at'], datetime(local_now.year, local_now.month, local_now.day-1, 0, tzinfo=pytz.utc))
+        self.assertEqual(bc.options['end_at'], datetime(local_now.year, local_now.month, local_now.day, 0, tzinfo=pytz.utc))
+        self.assertFalse(bc.options['forecast'])
+
+    def test_handle_options_forecast(self):
+        """Correct auto-setup of time-related options for forecast"""
+        bc = BaseClient()
+        bc.handle_options(forecast=True)
+        self.assertTrue(bc.options['sliceable'])
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc)
+        self.assertEqual(bc.options['start_at'], datetime(local_now.year, local_now.month, local_now.day, 0, tzinfo=pytz.utc))
+        self.assertEqual(bc.options['end_at'], datetime(local_now.year, local_now.month, local_now.day+2, 0, tzinfo=pytz.utc))
+        self.assertTrue(bc.options['forecast'])
+
     def test_bad_zipfile(self):
         bc = BaseClient()
         badzip = 'I am not a zipfile'

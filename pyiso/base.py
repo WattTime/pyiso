@@ -96,6 +96,12 @@ class BaseClient(object):
             self.options['sliceable'] = True
             self.options['latest'] = False
 
+            # force forecast to be True if end_at is in the future
+            if self.options['end_at'] > pytz.utc.localize(datetime.utcnow()):
+                self.options['forecast'] = True
+            else:
+                self.options['forecast'] = False
+
         # set start_at and end_at for yesterday in local time
         elif self.options.get('yesterday', None):
             local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
@@ -103,17 +109,21 @@ class BaseClient(object):
             self.options['start_at'] = self.options['end_at'] - timedelta(days=1)
             self.options['sliceable'] = True
             self.options['latest'] = False
+            self.options['forecast'] = False
+
+        # set start_at and end_at for today+tomorrow in local time
+        elif self.options.get('forecast', None):
+            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+            self.options['start_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.options['end_at'] = self.options['start_at'] + timedelta(days=2)
+            self.options['sliceable'] = True
+            self.options['latest'] = False
+            self.options['forecast'] = True
 
         else:
             self.options['sliceable'] = False
-
-        # forecast is False by default
-        if 'forecast' not in self.options:
             self.options['forecast'] = False
-        # but force forecast to be True if start_at is in the future
-        if self.options['sliceable']:
-            if self.options['end_at'] > pytz.utc.localize(datetime.utcnow()):
-                self.options['forecast'] = True
+
 
     def utcify(self, local_ts_str, tz_name=None, is_dst=None):
         """

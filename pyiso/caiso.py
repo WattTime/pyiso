@@ -56,7 +56,7 @@ class CAISOClient(BaseClient):
     def get_load(self, latest=False,
                        start_at=False, end_at=False, **kwargs):
         # set args
-        self.handle_options(data='gen', latest=latest,
+        self.handle_options(data='load', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
 
         # ensure market and freq are set
