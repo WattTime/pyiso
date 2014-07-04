@@ -28,7 +28,7 @@ class BaseClient(object):
     logger = logging.getLogger(__name__)
 
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAM')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
     FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
 
     # timezone
