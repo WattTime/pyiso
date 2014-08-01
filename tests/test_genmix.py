@@ -51,7 +51,10 @@ class TestBaseGenMix(TestCase):
             self.assertGreaterEqual(dp['gen_MW']+1, dp['gen_MW'])
 
             # test earlier than now
-            self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            if c.options.get('forecast', False):
+                self.assertGreater(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
             
         # return
         return data
@@ -248,6 +251,27 @@ class TestCAISOGenMix(TestBaseGenMix):
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
         expected_fuels = ['renewable', 'other']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+
+    def test_caiso_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=today+timedelta(days=1),
+                              end_at=today+timedelta(days=2))
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['wind', 'solar', 'other']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 

@@ -48,6 +48,18 @@ class CAISOClient(BaseClient):
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
 
+        # ensure market and freq are set
+        if 'market' not in self.options:
+            if self.options['forecast']:
+                self.options['market'] = self.MARKET_CHOICES.dam
+            else:
+                self.options['market'] = self.MARKET_CHOICES.fivemin
+        if 'freq' not in self.options:
+            if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            else:
+                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+
         if latest:
             return self._generation_latest()
         elif self.options['forecast']:
@@ -487,7 +499,11 @@ class CAISOClient(BaseClient):
         for dp in ren_dps:
             if dp['timestamp'] in times:
                 # assemble renewable totals for each time
-                total_ren_MW[dp['timestamp']] += dp['gen_MW']
+                try:
+                    total_ren_MW[dp['timestamp']] += dp['gen_MW']
+                except KeyError:
+                    total_ren_MW[dp['timestamp']] = dp['gen_MW']
+
                 # add to storage
                 parsed_data.append(dp)
 
