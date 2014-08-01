@@ -265,22 +265,34 @@ class CAISOClient(BaseClient):
         """Parse raw data output of fetch_oasis for System Load and Resource Schedules."""
         # set up storage
         parsed_data = []
+
+        # set strings to search on
+        if self.options['data'] == 'gen':
+            data_item_map = {'ISO_TOT_GEN_MW': 'gen_MW'}
+        elif self.options['data'] == 'trade':
+            data_item_map = {'ISO_TOT_EXP_MW': 'exp_MW',
+                            'ISO_TOT_IMP_MW': 'imp_MW'}
+        else:
+            data_item_map = {}
+
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
+        market = self.options.get('market', self.MARKET_CHOICES.fivemin)
         
         # extract values from xml
         for raw_soup_dp in raw_data:
-            if raw_soup_dp.find('data_item').string == 'ISO_TOT_GEN_MW':
+            data_item = raw_soup_dp.find('data_item').string
+            if data_item in data_item_map.keys():
                 
                 # parse timestamp
                 ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
 
-                # set up base
-                parsed_dp = {'timestamp': ts, 'fuel_name': 'other',
-                              'freq': self.FREQUENCY_CHOICES.fivemin,
-                              'market': self.MARKET_CHOICES.fivemin,
-                              'ba_name': self.NAME}
-                    
-                # store generation value
-                parsed_dp['gen_MW'] = float(raw_soup_dp.find('value').string)
+                # assemble data
+                parsed_dp = {data_item_map[data_item]: float(raw_soup_dp.find('value').string)}
+                parsed_dp.update({'timestamp': ts, 'freq': freq, 'market': market, 'ba_name': self.NAME})
+                if self.options['data'] == 'gen':
+                    parsed_dp.update({'fuel_name': 'other'})
+
+                # add to storage
                 parsed_data.append(parsed_dp)
                 
         # return
