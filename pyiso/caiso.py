@@ -50,6 +50,8 @@ class CAISOClient(BaseClient):
 
         if latest:
             return self._generation_latest()
+        elif self.options['forecast']:
+            return self._generation_forecast()
         else:
             return self._generation_historical()
 
@@ -288,11 +290,14 @@ class CAISOClient(BaseClient):
                 continue
             
         # collect values into dps
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.hourly)
+        market = self.options.get('market', self.MARKET_CHOICES.hourly)
+
         for ts, preparsed_dp in preparsed_data.iteritems():
             # set up base
             base_parsed_dp = {'timestamp': ts,
-                              'freq': self.FREQUENCY_CHOICES.hourly,
-                              'market': self.MARKET_CHOICES.hourly,
+                              'freq': freq,
+                              'market': market,
                               'gen_MW': 0, 'ba_name': self.NAME}
                           
             # collect data
@@ -459,3 +464,40 @@ class CAISOClient(BaseClient):
 
         # no matching OASIS data found, so return null
         return []
+
+    def _generation_forecast(self, **kwargs):
+        # set up
+        parsed_data = []
+
+        # get OASIS total gen data
+        gen_payload = self.construct_oasis_payload(queryname='ENE_SLRS', schedule='ALL')
+        gen_oasis_data = self.fetch_oasis(payload=gen_payload)
+        gen_dps = self.parse_oasis_slrs(gen_oasis_data)
+
+        # get OASIS renewable gen data
+        ren_payload = self.construct_oasis_payload(queryname='SLD_REN_FCST')
+        ren_oasis_data = self.fetch_oasis(payload=ren_payload)
+        ren_dps = self.parse_oasis_renewable(ren_oasis_data)
+
+        # set of times with both gen and renewable data
+        times = set([dp['timestamp'] for dp in ren_dps]) & set([dp['timestamp'] for dp in gen_dps])
+
+        # handle renewables
+        total_ren_MW = {}
+        for dp in ren_dps:
+            if dp['timestamp'] in times:
+                # assemble renewable totals for each time
+                total_ren_MW[dp['timestamp']] += dp['gen_MW']
+                # add to storage
+                parsed_data.append(dp)
+
+        # handle generation
+        for dp in gen_dps:
+            if dp['timestamp'] in times:
+                # subtract off renewable totals
+                dp['gen_MW'] -= total_ren_MW[dp['timestamp']]
+                # add to storage
+                parsed_data.append(dp)
+        
+        # return
+        return parsed_data

@@ -204,6 +204,86 @@ class TestCAISOBase(TestCase):
 </OASISReport>\n\
 ")
 
+        self.sld_ren_fcst_xml = StringIO.StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<OASISReport xmlns=\"http://www.caiso.com/soa/OASISReport_v1.xsd\">\n\
+<MessageHeader>\n\
+<TimeDate>2014-02-24T18:51:45-00:00</TimeDate>\n\
+<Source>OASIS</Source>\n\
+<Version>v20131201</Version>\n\
+</MessageHeader>\n\
+<MessagePayload>\n\
+<RTO>\n\
+<name>CAISO</name>\n\
+<REPORT_ITEM>\n\
+<REPORT_HEADER>\n\
+<SYSTEM>OASIS</SYSTEM>\n\
+<TZ>PPT</TZ>\n\
+<REPORT>SLD_REN_FCST</REPORT>\n\
+<MKT_TYPE>DAM</MKT_TYPE>\n\
+<UOM>MW</UOM>\n\
+<INTERVAL>ENDING</INTERVAL>\n\
+<SEC_PER_INTERVAL>3600</SEC_PER_INTERVAL>\n\
+</REPORT_HEADER>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>RENEW_FCST_DA_MW</DATA_ITEM>\n\
+<OPR_DATE>2013-09-19</OPR_DATE>\n\
+<INTERVAL_NUM>1</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2013-09-19T07:00:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2013-09-19T08:00:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>0.01</VALUE>\n\
+<TRADING_HUB>NP15</TRADING_HUB>\n\
+<RENEWABLE_TYPE>Solar</RENEWABLE_TYPE>\n\
+</REPORT_DATA>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>RENEW_FCST_DA_MW</DATA_ITEM>\n\
+<OPR_DATE>2013-09-19</OPR_DATE>\n\
+<INTERVAL_NUM>2</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2013-09-19T08:00:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2013-09-19T09:00:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>0</VALUE>\n\
+<TRADING_HUB>NP15</TRADING_HUB>\n\
+<RENEWABLE_TYPE>Solar</RENEWABLE_TYPE>\n\
+</REPORT_DATA>\n\
+</REPORT_ITEM>\n\
+<REPORT_ITEM>\n\
+<REPORT_HEADER>\n\
+<SYSTEM>OASIS</SYSTEM>\n\
+<TZ>PPT</TZ>\n\
+<REPORT>SLD_REN_FCST</REPORT>\n\
+<MKT_TYPE>DAM</MKT_TYPE>\n\
+<UOM>MW</UOM>\n\
+<INTERVAL>ENDING</INTERVAL>\n\
+<SEC_PER_INTERVAL>3600</SEC_PER_INTERVAL>\n\
+</REPORT_HEADER>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>RENEW_FCST_DA_MW</DATA_ITEM>\n\
+<OPR_DATE>2013-09-19</OPR_DATE>\n\
+<INTERVAL_NUM>1</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2013-09-19T07:00:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2013-09-19T08:00:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>478.86</VALUE>\n\
+<TRADING_HUB>NP15</TRADING_HUB>\n\
+<RENEWABLE_TYPE>Wind</RENEWABLE_TYPE>\n\
+</REPORT_DATA>\n\
+<REPORT_DATA>\n\
+<DATA_ITEM>RENEW_FCST_DA_MW</DATA_ITEM>\n\
+<OPR_DATE>2013-09-19</OPR_DATE>\n\
+<INTERVAL_NUM>24</INTERVAL_NUM>\n\
+<INTERVAL_START_GMT>2013-09-20T06:00:00-00:00</INTERVAL_START_GMT>\n\
+<INTERVAL_END_GMT>2013-09-20T07:00:00-00:00</INTERVAL_END_GMT>\n\
+<VALUE>580.83</VALUE>\n\
+<TRADING_HUB>NP15</TRADING_HUB>\n\
+<RENEWABLE_TYPE>Wind</RENEWABLE_TYPE>\n\
+</REPORT_DATA>\n\
+</REPORT_ITEM>\n\
+<DISCLAIMER_ITEM>\n\
+<DISCLAIMER>The contents of these pages are subject to change without notice.  Decisions based on information contained within the California ISO's web site are the visitor's sole responsibility.</DISCLAIMER>\n\
+</DISCLAIMER_ITEM>\n\
+</RTO>\n\
+</MessagePayload>\n\
+</OASISReport>\n\
+")
+
         self.todays_outlook_renewables = StringIO.StringIO("<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
 \n\
 <HTML>\n\
@@ -413,7 +493,28 @@ class TestCAISOBase(TestCase):
 <interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
 <value>1044</value>\n\
 </report_data>')
-        print data
+
+    def test_fetch_oasis_ren_dam(self):
+        c = self.create_client('CAISO')
+        ts = c.utcify('2014-05-08 12:00')
+        payload = {'queryname': 'SLD_REN_FCST',
+                   'market_run_id': 'DAM',
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=40)).strftime(c.oasis_request_time_format),
+                  }
+        payload.update(c.base_payload)
+        data = c.fetch_oasis(payload=payload)
+        self.assertEqual(len(data), 4)
+        self.assertEqual(str(data[0]), '<report_data>\n\
+<data_item>RENEW_FCST_DA_MW</data_item>\n\
+<opr_date>2014-05-08</opr_date>\n\
+<interval_num>13</interval_num>\n\
+<interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
+<interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
+<value>813.7</value>\n\
+<trading_hub>NP15</trading_hub>\n\
+<renewable_type>Solar</renewable_type>\n\
+</report_data>')
 
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
@@ -451,3 +552,20 @@ class TestCAISOBase(TestCase):
                     'exp_MW': 704.0}
         self.assertEqual(expected, parsed_data[0])
 
+    def test_parse_oasis_renewables_dam(self):
+        # set up list of data
+        c = self.create_client('CAISO')
+        soup = BeautifulSoup(self.sld_ren_fcst_xml)
+        data = soup.find_all('report_data')
+
+        # parse
+        c.handle_options(data='gen', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
+        parsed_data = c.parse_oasis_renewable(data)
+
+        # test
+        self.assertEqual(len(parsed_data), 6)
+        expected = {'ba_name': 'CAISO', 
+                    'timestamp': datetime(2013, 9, 20, 6, 0, tzinfo=pytz.utc),
+                    'freq': '1hr', 'market': 'DAHR', 'fuel_name': 'wind',
+                    'gen_MW': 580.83}
+        self.assertEqual(expected, parsed_data[0])
