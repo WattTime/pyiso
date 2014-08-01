@@ -97,6 +97,50 @@ class CAISOClient(BaseClient):
             # return all data
             return parsed_data
 
+    def get_trade(self, latest=False,
+                       start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='trade', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # ensure market and freq are set
+        if 'market' not in self.options:
+            if self.options['forecast']:
+                self.options['market'] = self.MARKET_CHOICES.dam
+            else:
+                self.options['market'] = self.MARKET_CHOICES.fivemin
+        if 'freq' not in self.options:
+            if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            else:
+                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+
+        # construct and execute OASIS request
+        payload = self.construct_oasis_payload('ENE_SLRS')
+        oasis_data = self.fetch_oasis(payload=payload)
+
+        # parse data
+        parsed_data = self.parse_oasis_slrs(oasis_data)
+
+        if self.options['latest']:
+            # select latest
+            latest_dp = None
+            latest_ts = self.utcify('1900-01-01 12:00')
+            now = self.utcify(datetime.utcnow(), tz_name='utc')
+            for dp in parsed_data:
+                if dp['timestamp'] < now and dp['timestamp'] > latest_ts:
+                    latest_dp = dp
+                    latest_ts = dp['timestamp']
+
+            # return latest
+            if latest_dp:
+                return [latest_dp]
+            else:
+                return []
+        else:
+            # return all data
+            return parsed_data
+
     def construct_oasis_payload(self, queryname, **kwargs):
         # get start and end times
         if self.options['latest']:

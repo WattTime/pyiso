@@ -82,6 +82,27 @@ class BaseClient(object):
         """
         raise NotImplementedError('Derived classes must implement the get_load method.')
 
+    def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+        """
+        Scrape and parse import/export data.
+
+        :param bool latest: If True, only get the trade at the one most recent available time point.
+           Available for all regions.
+        :param bool yesterday: If True, get the trade for every time point yesterday.
+           Not available for all regions.
+        :param datetime start_at: A timezone-aware datetime. The timestamp of all returned data points will be greater than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, exp_MW] or [ba_name, timestamp, freq, market, imp_MW]``.
+           Timestamps are in UTC.
+        :rtype: list 
+
+        """
+        raise NotImplementedError('Derived classes must implement the get_trade method.')
+
     def handle_options(self, **kwargs):
         """
         Process and store keyword argument options.
