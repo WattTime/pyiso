@@ -85,6 +85,7 @@ class BaseClient(object):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse import/export data.
+        Import and export values are both nonnegative.
 
         :param bool latest: If True, only get the trade at the one most recent available time point.
            Available for all regions.
@@ -96,7 +97,8 @@ class BaseClient(object):
         :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, exp_MW] or [ba_name, timestamp, freq, market, imp_MW]``.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, exp_MW]``
+            or ``[ba_name, timestamp, freq, market, imp_MW]``.
            Timestamps are in UTC.
         :rtype: list 
 

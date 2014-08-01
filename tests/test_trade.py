@@ -45,11 +45,13 @@ class TestBaseTrade(TestCase):
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
             self.assertIn(dp['ba_name'], self.BA_CHOICES)
             
-            # test for numeric value
+            # test for nonnegative numeric value
             try:
                 self.assertGreaterEqual(dp['exp_MW']+1, dp['exp_MW'])
+                self.assertGreaterEqual(dp['exp_MW'], 0)
             except KeyError:
                 self.assertGreaterEqual(dp['imp_MW']+1, dp['imp_MW'])                
+                self.assertGreaterEqual(dp['imp_MW'], 0)
 
             # test correct temporal relationship to now
             if c.options['forecast']:
