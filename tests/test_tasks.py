@@ -7,6 +7,8 @@ import pytz
 class TestGenerationTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
+        now = pytz.utc.localize(datetime.utcnow())
+        self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
 
     def test_bpa_latest(self):
         expected = client_factory('BPA').get_generation(**self.latest_kwargs)
@@ -16,6 +18,11 @@ class TestGenerationTask(TestCase):
     def test_caiso_latest(self):
         expected = client_factory('CAISO').get_generation(**self.latest_kwargs)
         received = tasks.get_generation('CAISO', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_caiso_forecast(self):
+        expected = client_factory('CAISO').get_generation(**self.forecast_kwargs)
+        received = tasks.get_generation('CAISO', **self.forecast_kwargs)
         self.assertEqual(expected, received)
 
     def test_ercot_latest(self):
@@ -63,4 +70,21 @@ class TestLoadTask(TestCase):
     def test_pjm_latest(self):
         expected = client_factory('PJM').get_load(**self.latest_kwargs)
         received = tasks.get_load('PJM', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+
+class TestTradeTask(TestCase):
+    def setUp(self):
+        self.latest_kwargs = {'latest': True}
+        now = pytz.utc.localize(datetime.utcnow())
+        self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
+
+    def test_caiso_latest(self):
+        expected = client_factory('CAISO').get_trade(**self.latest_kwargs)
+        received = tasks.get_trade('CAISO', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_caiso_forecast(self):
+        expected = client_factory('CAISO').get_trade(**self.forecast_kwargs)
+        received = tasks.get_trade('CAISO', **self.forecast_kwargs)
         self.assertEqual(expected, received)
