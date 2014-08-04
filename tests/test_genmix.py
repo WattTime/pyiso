@@ -256,9 +256,9 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_caiso_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(days=1),
-                              end_at=today+timedelta(days=2))
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
+                              end_at=now+timedelta(hours=12))
         
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
