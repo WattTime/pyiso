@@ -1,12 +1,14 @@
 language: python
 python:
 - '2.7'
+env: 
+  - "ISONE_USERNAME=dev@watttime.org"
+    "ISONE_PASSWORD=caiso6pm"
 install:
 - python setup.py install
 - pip install -r requirements.txt
 - pip install coveralls
-script:
-  coverage run --source=pyiso setup.py test
+script: nosetests
 deploy:
   provider: pypi
   user: Anna.Schneider

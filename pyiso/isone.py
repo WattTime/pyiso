@@ -1,13 +1,12 @@
-import copy
 from datetime import timedelta
 from pyiso.base import BaseClient
+from os import environ
 
 
 class ISONEClient(BaseClient):
     NAME = 'ISONE'
     
-    base_url = 'http://isoexpress.iso-ne.com/ws/wsclient'
-    base_payload = {'_ns0_requestType':'url'}
+    base_url = 'https://webservices.iso-ne.com/api/v1.1'
     TZ_NAME = 'America/New_York'
     
     fuels = {
@@ -22,6 +21,18 @@ class ISONEClient(BaseClient):
         'Refuse': 'refuse',
         'Landfill Gas': 'biogas',
     }
+
+    def __init__(self, *args, **kwargs):
+        super(ISONEClient, self).__init__(*args, **kwargs)
+        try:
+            self.auth = (environ['ISONE_USERNAME'], environ['ISONE_PASSWORD'])
+        except KeyError:
+            self.auth = ()
+
+    def fetch_data(self, endpoint, auth):
+        url = self.base_url + endpoint
+        response = self.request(url, auth=auth)
+        return response.json()
 
     def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
         # set args
@@ -48,12 +59,11 @@ class ISONEClient(BaseClient):
         # collect raw data
         for request_url in request_urls:
             # set up request
-            payload = copy.deepcopy(self.base_payload)
-            payload.update({'_ns0_requestUrl':'/genfuelmix/%s' % request_url})
+            endpoint = '/genfuelmix/%s.json' % (request_url)
             
             # carry out request
-            response = self.request(self.base_url, mode='post', data=payload)
-            raw_data += response.json()[0]['data']['GenFuelMixes']['GenFuelMix']
+            data = self.fetch_data(endpoint, self.auth)
+            raw_data += data['GenFuelMixes']['GenFuelMix']
 
         # parse data
         for raw_dp in raw_data:
