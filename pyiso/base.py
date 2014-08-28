@@ -223,22 +223,22 @@ class BaseClient(object):
             session = self.session
 
         # carry out request
-        try:
-            response = getattr(session, mode)(url, **kwargs)
-        except requests.exceptions.ChunkedEncodingError as e:
-            # JSON incomplete or not found
-            msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-            self.logger.error(msg)
-            return None
-        except requests.exceptions.ConnectionError as e:
-            # eg max retries exceeded
-            msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-            self.logger.error(msg)
-            return None
-        except requests.exceptions.RequestException:
-            msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-            self.logger.error(msg)
-            return None
+       # try:
+        response = getattr(session, mode)(url, verify=False, **kwargs)
+        # except requests.exceptions.ChunkedEncodingError as e:
+        #     # JSON incomplete or not found
+        #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+        #     self.logger.error(msg)
+        #     return None
+        # except requests.exceptions.ConnectionError as e:
+        #     # eg max retries exceeded
+        #     msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+        #     self.logger.error(msg)
+        #     return None
+        # except requests.exceptions.RequestException:
+        #     msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+        #     self.logger.error(msg)
+        #     return None
 
         if response.status_code == 200:
             self.logger.debug('%s: request success for %s, %s' % (self.NAME, url, kwargs))
