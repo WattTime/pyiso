@@ -43,7 +43,10 @@ class TestGenerationTask(TestCase):
     def test_pjm_latest(self):
         expected = client_factory('PJM').get_generation(**self.latest_kwargs)
         received = tasks.get_generation('PJM', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        for i in range(len(expected)):
+            if expected[i]['timestamp'] == received[i]['timestamp']:
+                self.assertEqual(expected[i]['gen_MW'], received[i]['gen_MW'])
+                self.assertEqual(expected[i]['fuel_name'], received[i]['fuel_name'])
 
 
 class TestLoadTask(TestCase):
