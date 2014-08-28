@@ -224,7 +224,7 @@ class BaseClient(object):
 
         # carry out request
        # try:
-        response = getattr(session, mode)(url, **kwargs)
+        response = getattr(session, mode)(url, verify=False, **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
