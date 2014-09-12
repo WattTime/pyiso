@@ -366,3 +366,26 @@ class BaseClient(object):
             data.append(dp)
 
         return data
+
+    def dates(self):
+        # set up storage
+        dates = []
+
+        # if latest, use date in local time
+        if self.options['latest']:
+            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+            dates.append(local_now.date())
+
+        # if start and end, use all dates in range
+        elif self.options['start_at'] and self.options['end_at']:
+            this_date = self.options['start_at'].date()
+            while this_date <= self.options['end_at'].date():
+                dates.append(this_date)
+                this_date += timedelta(days=1)
+
+        # have to have some sort of dates
+        else:
+            raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
+
+        # return
+        return dates
