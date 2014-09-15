@@ -136,8 +136,18 @@ class TestCAISOLoad(TestBaseLoad):
 
 
 class TestERCOTLoad(TestBaseLoad):
-    def test_failing(self):
-        self._run_notimplemented_test('ERCOT')
+    def test_latest(self):
+        # basic test
+        data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
 
 
 class TestISONELoad(TestBaseLoad):

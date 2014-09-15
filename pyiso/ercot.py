@@ -2,6 +2,7 @@ from datetime import timedelta
 import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+import re
 
 
 class ERCOTClient(BaseClient):
@@ -104,3 +105,48 @@ class ERCOTClient(BaseClient):
                 
         # return
         return parsed_data
+
+    def get_load(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='load', latest=latest, **kwargs)
+
+        # only can get latest load
+        if not self.options['latest']:
+            raise ValueError('Load only available for latest in ERCOT')
+
+        # get load site
+        response = self.request('http://www.ercot.com/content/cdr/html/real_time_system_conditions.html')
+
+        # parse load from response
+        data = self.parse_load(response.text)
+
+        # return
+        return data
+
+    def parse_load(self, content):
+        # make soup
+        soup = BeautifulSoup(content)
+
+        # load is after 'Actual System Demand' text
+        load_label_elt = soup.find(text='Actual System Demand')
+        load_parent_elt = load_label_elt.parent.parent.parent
+        load_elt = load_parent_elt.find(class_='labelValueClassBold')
+        load_val = float(load_elt.text)
+
+        # timestamp text starts with 'Last Updated'
+        timestamp_elt = soup.find(text=re.compile('Last Updated'))
+        timestamp_str = timestamp_elt.strip('Last Updated ')
+        timestamp = self.utcify(timestamp_str)
+
+        # assemble dp
+        dp = {
+            'timestamp': timestamp,
+            'ba_name': self.NAME,
+            'market': self.options.get('market', self.MARKET_CHOICES.fivemin),
+            'freq': self.options.get('freq', self.FREQUENCY_CHOICES.fivemin),
+            'load_MW': load_val,
+        }
+
+        # return
+        return [dp]
+
