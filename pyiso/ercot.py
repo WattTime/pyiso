@@ -106,6 +106,23 @@ class ERCOTClient(BaseClient):
         # return
         return parsed_data
 
+    def get_load(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='load', latest=latest, **kwargs)
+
+        # only can get latest load
+        if not self.options['latest']:
+            raise ValueError('Load only available for latest in ERCOT')
+
+        # get load site
+        response = self.request('http://www.ercot.com/content/cdr/html/real_time_system_conditions.html')
+
+        # parse load from response
+        data = self.parse_load(response.text)
+
+        # return
+        return data
+
     def parse_load(self, content):
         # make soup
         soup = BeautifulSoup(content)
@@ -132,3 +149,4 @@ class ERCOTClient(BaseClient):
 
         # return
         return [dp]
+
