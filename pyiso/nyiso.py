@@ -1,5 +1,6 @@
 import numpy as np
 from pyiso.base import BaseClient
+from datetime import timedelta
 
 
 class NYISOClient(BaseClient):
@@ -36,13 +37,15 @@ class NYISOClient(BaseClient):
 
         # handle latest
         if self.options.get('latest', False):
-            return [data[-1]]
+            latest_ts = max([d['timestamp'] for d in data])
+            latest_data = [d for d in data if d['timestamp']==latest_ts]
+            return latest_data
 
         # handle sliceable
         else:
             data_to_return = []
             for dp in data:
-                if dp <= self.options['end_at'] and dp >= self.options['end_at']:
+                if (dp['timestamp'] <= self.options['end_at']) and (dp['timestamp'] >= self.options['start_at']):
                     data_to_return.append(dp)
             return data_to_return
 
@@ -76,7 +79,10 @@ class NYISOClient(BaseClient):
         # serialize
         data = []
         for idx, row in total_loads.iterrows():
-            dp = {'timestamp': self.utcify(idx), 'load': row[1]}
+            dp = {
+                'timestamp': self.utcify(idx),
+                'load_MW': row[1]
+            }
             dp.update(base_dp)
             data.append(dp)
 
@@ -86,6 +92,7 @@ class NYISOClient(BaseClient):
     def parse_trade(self, content):
         # parse csv to df
         df = self.parse_to_df(content)
+        df.drop_duplicates(['Timestamp', 'Interface Name'], inplace=True)
 
         # pivot
         pivoted = df.pivot(index='Timestamp', columns='Interface Name', values='Flow (MWH)')
@@ -107,13 +114,17 @@ class NYISOClient(BaseClient):
                 'market': market,
                 'ba_name': self.NAME,
         }
+        if freq == self.FREQUENCY_CHOICES.fivemin:
+            interval_offset = timedelta(minutes=5)
+        else:
+            raise ValueError('Not sure whether this freq is allowed for')
 
         # serialize
         data = []
         for idx, row in subsetted.iterrows():
             # imports are positive
             imp_dp = {
-                'timestamp': self.utcify(idx),
+                'timestamp': self.utcify(idx) - interval_offset,
                 'imp_MW': np.sum(row[row > 0]),
             }
             imp_dp.update(base_dp)
@@ -121,7 +132,7 @@ class NYISOClient(BaseClient):
 
             # exports are negative
             exp_dp = {
-                'timestamp': self.utcify(idx),
+                'timestamp': self.utcify(idx) - interval_offset,
                 'exp_MW': np.abs(np.sum(row[row < 0])),
             }
             exp_dp.update(base_dp)

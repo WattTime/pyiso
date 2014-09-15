@@ -148,12 +148,12 @@ class TestNYISOBase(TestCase):
     def test_parse_load(self):
         c = self.create_client('NYISO')
         data = c.parse_load(self.load_csv)
-        expected_keys = ['timestamp', 'ba_name', 'load', 'freq', 'market']
+        expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
         for dp in data:
             self.assertItemsEqual(dp.keys(), expected_keys)
             self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
-            self.assertGreater(dp['load'], 15700)
-            self.assertLess(dp['load'], 16100)
+            self.assertGreater(dp['load_MW'], 15700)
+            self.assertLess(dp['load_MW'], 16100)
 
         # should have 4 dps, even though file has 5 (last one has no data)
         self.assertEqual(len(data), 4)
