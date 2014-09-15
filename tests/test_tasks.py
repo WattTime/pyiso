@@ -75,6 +75,16 @@ class TestLoadTask(TestCase):
         received = tasks.get_load('PJM', **self.latest_kwargs)
         self.assertEqual(expected, received)
 
+    def test_ercot_latest(self):
+        expected = client_factory('ERCOT').get_load(**self.latest_kwargs)
+        received = tasks.get_load('ERCOT', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_nyiso_latest(self):
+        expected = client_factory('NYISO').get_load(**self.latest_kwargs)
+        received = tasks.get_load('NYISO', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
 
 class TestTradeTask(TestCase):
     def setUp(self):
@@ -90,4 +100,9 @@ class TestTradeTask(TestCase):
     def test_caiso_forecast(self):
         expected = client_factory('CAISO').get_trade(**self.forecast_kwargs)
         received = tasks.get_trade('CAISO', **self.forecast_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_nyiso_latest(self):
+        expected = client_factory('NYISO').get_trade(**self.latest_kwargs)
+        received = tasks.get_trade('NYISO', **self.latest_kwargs)
         self.assertEqual(expected, received)
