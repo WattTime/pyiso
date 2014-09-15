@@ -15,7 +15,7 @@ class TestBaseGenMix(TestCase):
 
         # set up other expected values
         self.FUEL_CHOICES = FUEL_CHOICES
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'ERCOT', 'PJM']
+        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'NYISO', 'ERCOT', 'PJM']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -58,6 +58,13 @@ class TestBaseGenMix(TestCase):
             
         # return
         return data
+
+    def _run_notimplemented_test(self, ba_name, **kwargs):
+        # set up
+        c = self.create_client(ba_name)
+
+        # method not implemented yet
+        self.assertRaises(NotImplementedError, c.get_generation)
 
 
 class TestISONEGenMix(TestBaseGenMix):
@@ -332,3 +339,8 @@ class TestPJMGenMix(TestBaseGenMix):
         expected_fuels = ['wind', 'nonwind']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
+
+
+class TestNYISOGenMix(TestBaseGenMix):
+    def test_failing(self):
+        self._run_notimplemented_test('NYISO')

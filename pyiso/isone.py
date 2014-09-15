@@ -45,10 +45,8 @@ class ISONEClient(BaseClient):
             request_urls.append('current')
 
         elif start_at and end_at:
-            this_date = start_at.date()
-            while this_date <= end_at.date():
-                request_urls.append(this_date.strftime('day/%Y%m%d'))
-                this_date += timedelta(days=1)
+            for date in self.dates():
+                request_urls.append(date.strftime('day/%Y%m%d'))
         else:
             raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
             
