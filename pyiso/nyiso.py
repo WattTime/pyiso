@@ -10,6 +10,20 @@ class NYISOClient(BaseClient):
 
     TZ_NAME = 'America/New_York'
 
+    def utcify(self, *args, **kwargs):
+        # regular utcify
+        ts = super(NYISOClient, self).utcify(*args, **kwargs)
+
+        # timestamp is end of interval
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
+        if freq == self.FREQUENCY_CHOICES.fivemin:
+            ts -= timedelta(minutes=5)
+        else:
+            raise ValueError('Not sure whether this freq is allowed for')
+
+        # return
+        return ts
+
     def get_load(self, latest=False, start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='load', latest=latest,
@@ -114,17 +128,13 @@ class NYISOClient(BaseClient):
                 'market': market,
                 'ba_name': self.NAME,
         }
-        if freq == self.FREQUENCY_CHOICES.fivemin:
-            interval_offset = timedelta(minutes=5)
-        else:
-            raise ValueError('Not sure whether this freq is allowed for')
 
         # serialize
         data = []
         for idx, row in subsetted.iterrows():
             # imports are positive
             imp_dp = {
-                'timestamp': self.utcify(idx) - interval_offset,
+                'timestamp': self.utcify(idx),
                 'imp_MW': np.sum(row[row > 0]),
             }
             imp_dp.update(base_dp)
@@ -132,7 +142,7 @@ class NYISOClient(BaseClient):
 
             # exports are negative
             exp_dp = {
-                'timestamp': self.utcify(idx) - interval_offset,
+                'timestamp': self.utcify(idx),
                 'exp_MW': np.abs(np.sum(row[row < 0])),
             }
             exp_dp.update(base_dp)
