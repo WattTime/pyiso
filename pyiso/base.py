@@ -375,6 +375,8 @@ class BaseClient(object):
         # if latest, use date in local time
         if self.options['latest']:
             local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+            if local_now.date() != (local_now - timedelta(minutes=30)).date():
+                dates.append((local_now - timedelta(minutes=30)).date())
             dates.append(local_now.date())
 
         # if start and end, use all dates in range
