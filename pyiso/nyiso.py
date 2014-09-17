@@ -79,7 +79,10 @@ class NYISOClient(BaseClient):
         df = self.parse_to_df(content)
 
         # total load grouped by timestamp
-        total_loads = df.groupby('Time Stamp').aggregate(np.sum)
+        try:
+            total_loads = df.groupby('Time Stamp').aggregate(np.sum)
+        except KeyError:
+            raise ValueError('Could not parse content:\n%s' % content)
 
         # collect options
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
@@ -106,7 +109,10 @@ class NYISOClient(BaseClient):
     def parse_trade(self, content):
         # parse csv to df
         df = self.parse_to_df(content)
-        df.drop_duplicates(['Timestamp', 'Interface Name'], inplace=True)
+        try:
+            df.drop_duplicates(['Timestamp', 'Interface Name'], inplace=True)
+        except KeyError:
+            raise ValueError('Could not parse content:\n%s' % content)
 
         # pivot
         pivoted = df.pivot(index='Timestamp', columns='Interface Name', values='Flow (MWH)')

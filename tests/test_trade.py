@@ -69,6 +69,13 @@ class TestBaseTrade(TestCase):
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_trade)
 
+    def _run_failing_test(self, ba_name, **kwargs):
+        # set up
+        c = self.create_client(ba_name)
+
+        # method not implemented yet
+        self.assertRaises(ValueError, c.get_trade)
+
 
 class TestBPATrade(TestBaseTrade):
     def test_failing(self):
@@ -147,8 +154,28 @@ class TestNYISOTrade(TestBaseTrade):
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
+    def test_date_range_short(self):
+        # basic test
+        data = self._run_test('NYISO', start_at=datetime.now()-timedelta(minutes=10),
+                              end_at=datetime.now()-timedelta(minutes=5))
+        
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_date_range_future(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_failing_test('NYISO', start_at=today+timedelta(days=1),
+                              end_at=today+timedelta(days=2))
+        
 
 class TestERCOTTrade(TestBaseTrade):
     def test_failing(self):
