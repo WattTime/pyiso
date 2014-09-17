@@ -368,6 +368,7 @@ class BaseClient(object):
         return data
 
     def dates(self):
+        """Returns a list of dates in local time"""
         # set up storage
         dates = []
 
@@ -378,8 +379,10 @@ class BaseClient(object):
 
         # if start and end, use all dates in range
         elif self.options['start_at'] and self.options['end_at']:
-            this_date = self.options['start_at'].date()
-            while this_date <= self.options['end_at'].date():
+            local_start = self.options['start_at'].astimezone(pytz.timezone(self.TZ_NAME))
+            local_end = self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME))
+            this_date = local_start.date()
+            while this_date <= local_end.date():
                 dates.append(this_date)
                 this_date += timedelta(days=1)
 
