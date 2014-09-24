@@ -324,38 +324,53 @@ class CAISOClient(BaseClient):
 
     def parse_oasis_slrs(self, raw_data):
         """Parse raw data output of fetch_oasis for System Load and Resource Schedules."""
-        # set up storage
-        parsed_data = []
-
         # set strings to search on
         if self.options['data'] == 'gen':
-            data_item_map = {'ISO_TOT_GEN_MW': 'gen_MW'}
+            data_items = ['ISO_TOT_GEN_MW']
+            data_label = 'gen_MW'
         elif self.options['data'] == 'trade':
-            data_item_map = {'ISO_TOT_EXP_MW': 'exp_MW',
-                            'ISO_TOT_IMP_MW': 'imp_MW'}
+            data_items = ['ISO_TOT_EXP_MW', 'ISO_TOT_IMP_MW']
+            data_label = 'net_exp_MW'
         else:
-            data_item_map = {}
+            data_items = []
+            data_label = None
 
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
         market = self.options.get('market', self.MARKET_CHOICES.fivemin)
         
+        # set up storage
+        extracted_data = {}
+        parsed_data = []
+
         # extract values from xml
         for raw_soup_dp in raw_data:
             data_item = raw_soup_dp.find('data_item').string
-            if data_item in data_item_map.keys():
-                
+            if data_item in data_items:
                 # parse timestamp
                 ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
 
-                # assemble data
-                parsed_dp = {data_item_map[data_item]: float(raw_soup_dp.find('value').string)}
-                parsed_dp.update({'timestamp': ts, 'freq': freq, 'market': market, 'ba_name': self.NAME})
-                if self.options['data'] == 'gen':
-                    parsed_dp.update({'fuel_name': 'other'})
+                # parse val
+                if data_item == 'ISO_TOT_IMP_MW':
+                    val = -float(raw_soup_dp.find('value').string)
+                else:
+                    val = float(raw_soup_dp.find('value').string)
 
                 # add to storage
-                parsed_data.append(parsed_dp)
-                
+                try:
+                    extracted_data[ts] += val
+                except KeyError:
+                    extracted_data[ts] = val                    
+
+        # assemble data
+        for ts in sorted(extracted_data.keys()):
+            parsed_dp = {data_label: extracted_data[ts]}
+            parsed_dp.update({'timestamp': ts, 'freq': freq, 'market': market, 'ba_name': self.NAME})
+            if self.options['data'] == 'gen':
+                parsed_dp.update({'fuel_name': 'other'})
+
+            # add to storage
+            parsed_data.append(parsed_dp)
+
         # return
         return parsed_data
 

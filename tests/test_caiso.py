@@ -529,9 +529,9 @@ class TestCAISOBase(TestCase):
         # test
         self.assertEqual(len(parsed_data), 2)
         expected = {'ba_name': 'CAISO', 
-                    'timestamp': datetime(2013, 9, 20, 0, 0, tzinfo=pytz.utc),
+                    'timestamp': datetime(2013, 9, 19, 17, 0, tzinfo=pytz.utc),
                     'freq': '5m', 'market': 'RT5M', 'fuel_name': 'other',
-                    'gen_MW': 27521.96}
+                    'gen_MW': 23900.79}
         self.assertEqual(expected, parsed_data[0])
 
     def test_parse_oasis_slrs_trade_dam(self):
@@ -545,11 +545,11 @@ class TestCAISOBase(TestCase):
         parsed_data = c.parse_oasis_slrs(data)
 
         # test
-        self.assertEqual(len(parsed_data), 4)
+        self.assertEqual(len(parsed_data), 3)
         expected = {'ba_name': 'CAISO', 
-                    'timestamp': datetime(2013, 9, 19, 15, 0, tzinfo=pytz.utc),
+                    'timestamp': datetime(2013, 9, 19, 7, 0, tzinfo=pytz.utc),
                     'freq': '1hr', 'market': 'DAHR',
-                    'exp_MW': 704.0}
+                    'net_exp_MW': -5014.0}
         self.assertEqual(expected, parsed_data[0])
 
     def test_parse_oasis_renewables_dam(self):
