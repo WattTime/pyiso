@@ -138,21 +138,15 @@ class NYISOClient(BaseClient):
         # serialize
         data = []
         for idx, row in subsetted.iterrows():
-            # imports are positive
-            imp_dp = {
-                'timestamp': self.utcify(idx),
-                'imp_MW': np.sum(row[row > 0]),
-            }
-            imp_dp.update(base_dp)
-            data.append(imp_dp)
+            # imports are positive, exports are negative
+            net_imp = row.sum()
 
-            # exports are negative
-            exp_dp = {
+            dp = {
                 'timestamp': self.utcify(idx),
-                'exp_MW': np.abs(np.sum(row[row < 0])),
+                'net_exp_MW': -net_imp,
             }
-            exp_dp.update(base_dp)
-            data.append(exp_dp)
+            dp.update(base_dp)
+            data.append(dp)
 
         # return
         return data

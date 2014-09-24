@@ -2,10 +2,7 @@ from pyiso import client_factory
 from unittest import TestCase
 import logging
 import StringIO
-import pandas as pd
-import pytz
-from datetime import date, datetime, timedelta
-from bs4 import BeautifulSoup
+from datetime import date
 
 
 class TestNYISOBase(TestCase):
@@ -161,30 +158,23 @@ class TestNYISOBase(TestCase):
     def test_parse_trade(self):
         c = self.create_client('NYISO')
         data = c.parse_trade(self.trade_csv)
-        expected_keys = ['timestamp', 'ba_name', 'freq', 'market']
+        expected_keys = ['timestamp', 'ba_name', 'freq', 'market', 'net_exp_MW']
         for dp in data:
             self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
-            for k in expected_keys:
-                self.assertIn(k, dp.keys())
+            self.assertItemsEqual(expected_keys, dp.keys())
 
-            if 'imp_MW' in dp.keys():
-                self.assertItemsEqual(dp.keys(), expected_keys + ['imp_MW'])
-                self.assertGreater(dp['imp_MW'], 2300)
-                self.assertLess(dp['imp_MW'], 4700)
-            else:
-                self.assertItemsEqual(dp.keys(), expected_keys + ['exp_MW'])
-                self.assertGreater(dp['exp_MW'], 140)
-                self.assertLess(dp['exp_MW'], 630)
+            self.assertLess(dp['net_exp_MW'], -1400)
+            self.assertGreater(dp['net_exp_MW'], -6300)
 
-        # should have 8 dps, 2 for each of 4 timestamps
-        self.assertEqual(len(data), 4*2)
+        # should have 4 timestamps
+        self.assertEqual(len(data), 4)
 
     def test_fetch_csv_load(self):
         c = self.create_client('NYISO')
-        content = c.fetch_csv(date(2014, 9, 10), 'pal')
+        content = c.fetch_csv(date.today(), 'pal')
         self.assertEqual(content.split('\r\n')[0], '"Time Stamp","Time Zone","Name","PTID","Load"')
 
     def test_fetch_csv_trade(self):
         c = self.create_client('NYISO')
-        content = c.fetch_csv(date(2014, 9, 10), 'ExternalLimitsFlows')
+        content = c.fetch_csv(date.today(), 'ExternalLimitsFlows')
         self.assertEqual(content.split('\r\n')[0], 'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)')
