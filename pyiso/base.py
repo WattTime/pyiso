@@ -351,7 +351,12 @@ class BaseClient(object):
             except KeyError:
                 raise ValueError('Slicing by time requires start_at and end_at')
 
-        return df.truncate(before=start_at, after=end_at)
+        # sort before truncate eliminates DST KeyError
+        sorteddf = df.sort()
+        sliced = sorteddf.truncate(before=start_at, after=end_at)
+
+        # return
+        return sliced
 
     def unpivot(self, df):
         return df.stack().reset_index(level=1)
