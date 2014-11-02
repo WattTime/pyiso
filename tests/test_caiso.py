@@ -332,15 +332,15 @@ class TestCAISOBase(TestCase):
 
         # top half
         top_df = c.parse_to_df(self.ren_report_tsv,
-                            skiprows=1, nrows=24, header=1,
-                            delimiter='\t+')
+                            skiprows=1, nrows=24, header=0,
+                            delimiter='\t+', engine='python')
         self.assertEqual(list(top_df.columns), ['Hour', 'GEOTHERMAL', 'BIOMASS', 'BIOGAS', 'SMALL HYDRO', 'WIND TOTAL', 'SOLAR PV', 'SOLAR THERMAL'])
         self.assertEqual(len(top_df), 24)
 
         # bottom half
         bot_df = c.parse_to_df(self.ren_report_tsv,
-                            skiprows=3, nrows=24, header=3,
-                            delimiter='\t+')
+                            skiprows=3, nrows=24, header=0,
+                            delimiter='\t+', engine='python')
         self.assertEqual(list(bot_df.columns), ['Hour', 'RENEWABLES', 'NUCLEAR', 'THERMAL', 'IMPORTS', 'HYDRO'])
         self.assertEqual(len(bot_df), 24)
 
@@ -349,16 +349,16 @@ class TestCAISOBase(TestCase):
 
         # bottom half
         bot_df = c.parse_to_df(self.ren_report_tsv,
-                            skiprows=29, nrows=24, header=29,
-                            delimiter='\t+')
+                            skiprows=29, nrows=24, header=0,
+                            delimiter='\t+', engine='python')
         self.assertEqual(list(bot_df.columns), ['Hour', 'RENEWABLES', 'NUCLEAR', 'THERMAL', 'IMPORTS', 'HYDRO'])
         self.assertEqual(len(bot_df), 24)
 
     def test_dt_index(self):
         c = self.create_client('CAISO')
         df = c.parse_to_df(self.ren_report_tsv,
-                            skiprows=1, nrows=24, header=1,
-                            delimiter='\t+')
+                            skiprows=1, nrows=24, header=0,
+                            delimiter='\t+', engine='python')
         indexed = c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
         self.assertEqual(type(indexed.index), pd.tseries.index.DatetimeIndex)
         self.assertEqual(indexed.index[0].hour, 7)
@@ -366,8 +366,8 @@ class TestCAISOBase(TestCase):
     def test_pivot(self):
         c = self.create_client('CAISO')
         df = c.parse_to_df(self.ren_report_tsv,
-                            skiprows=1, nrows=24, header=1,
-                            delimiter='\t+')
+                            skiprows=1, nrows=24, header=0,
+                            delimiter='\t+', engine='python')
         indexed = c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
         indexed.pop('Hour')
         pivoted = c.unpivot(indexed)

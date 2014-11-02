@@ -216,10 +216,10 @@ class CAISOClient(BaseClient):
                 continue
 
             # process both halves of page
-            for header in [1, 29]:
+            for header in [0, 0]:
                 df = self.parse_to_df(response.text,
                                     skiprows=header, nrows=24, header=header,
-                                    delimiter='\t+')
+                                    delimiter='\t+', engine='python')
 
                 # combine date with hours to index
                 indexed = self.set_dt_index(df, this_date, df['Hour'])
