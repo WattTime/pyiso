@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import pytz
+from dateutil.parser import parse as dateutil_parse
 import pandas as pd
 from pyiso.base import BaseClient
 
@@ -70,9 +71,18 @@ class BPAClient(BaseClient):
 
         # parse like tsv
         df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True, usecols=cols)
+                            index_col=0, parse_dates=True, usecols=cols,
+                            date_parser=self.date_parser)
 
         return df
+
+    def date_parser(self, ts_str):
+        TZINFOS = {
+            'PDT': pytz.timezone('America/Los_Angeles'),
+            'PST': pytz.timezone('America/Los_Angeles'),
+        }
+
+        return dateutil_parse(ts_str, tzinfos=TZINFOS)
 
     def fetcher(self):
         """Choose the correct fetcher method for this request"""
