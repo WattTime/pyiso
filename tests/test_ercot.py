@@ -4,6 +4,7 @@ import pytz
 import logging
 import StringIO
 from datetime import datetime
+import time
 
 
 class TestERCOT(TestCase):
@@ -92,3 +93,21 @@ class TestERCOT(TestCase):
         self.assertItemsEqual(data[0].keys(), expected_keys)
         self.assertEqual(data[0]['timestamp'], pytz.utc.localize(datetime(2014, 9, 15, 17, 50, 20)))
         self.assertEqual(data[0]['load_MW'], 48681.0)
+
+    def test_request_report_gen_hrly(self):
+        # get data as list of dicts
+        data = self.c._request_report('gen_hrly')
+        
+        # test for expected data
+        self.assertEqual(len(data), 1)
+        for key in ['SE_EXE_TIME_DST', 'SE_EXE_TIME', 'SE_MW']:
+            self.assertIn(key, data[0].keys())
+
+    def test_request_report_wind_hrly(self):
+        # get data as list of dicts
+        data = self.c._request_report('wind_hrly')
+
+        # test for expected data
+        self.assertEqual(len(data), 96)
+        for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_BEGINNING']:
+            self.assertIn(key, data[0].keys())

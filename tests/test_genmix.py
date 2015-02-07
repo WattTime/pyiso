@@ -285,30 +285,22 @@ class TestCAISOGenMix(TestBaseGenMix):
 
 class TestERCOTGenMix(TestBaseGenMix):
     def test_ercot_latest(self):
-        # before min 32, will not have wind data
-        if datetime.now().minute >= 32:
-            # basic test
-            data = self._run_test('ERCOT', latest=True)
-            
-            # test all timestamps are equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertEqual(len(set(timestamps)), 1)
-            
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
-    
-            # test fuel names
-            fuels = set([d['fuel_name'] for d in data])
-            expected_fuels = ['wind', 'nonwind']
-            for expfuel in expected_fuels:
-                self.assertIn(expfuel, fuels)
-                
-        else:
-            c = client_factory('ERCOT')
-            data = c.get_generation(latest=True)
-            self.assertEqual(len(data), 0)
+        data = self._run_test('ERCOT', latest=True)
+        
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+        
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['wind', 'nonwind']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
 
     def test_request_report(self):
         # get data

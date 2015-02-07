@@ -68,29 +68,31 @@ class ERCOTClient(BaseClient):
         total_gen = float(total_dp['SE_MW'])
         
         # get timestamp on hour
+        # TODO is this what this timestamp means??
         raw_ts = self.utcify(total_dp['SE_EXE_TIME'],
                              is_dst=self.is_dst(total_dp['SE_EXE_TIME_DST'], 's'))
-        ts_hour_ending = raw_ts.replace(minute=0, second=0, microsecond=0)
-        if raw_ts.minute > 30:
-            ts_hour_ending += timedelta(hours=1)
-        ts_hour_starting = ts_hour_ending - timedelta(hours=1)
+        ts_hour_rounded_down = raw_ts.replace(minute=0, second=0, microsecond=0)
+      #  if raw_ts.minute > 30:
+      #      ts_hour_rounded = ts_hour_rounded_down + timedelta(hours=1)
+      #  else:
+      #      ts_hour_rounded = ts_hour_rounded_down
 
         # process wind data
         wind_gen = None
         for wind_dp in self._request_report('wind_hrly'):
-            wind_ts = self.utcify(wind_dp['HOUR_ENDING'],
+            wind_ts = self.utcify(wind_dp['HOUR_BEGINNING'],
                                   is_dst=self.is_dst(wind_dp['DSTFlag'], 'N'))
-            if wind_ts == ts_hour_ending:
+            if wind_ts == ts_hour_rounded_down:
                 try:
                     wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
                 except ValueError: # empty string
                     wind_gen = None
-                    self.logger.error('No wind data available at %s in ERCOT for hour ending %s' % (raw_ts, ts_hour_ending))
+                    self.logger.error('No wind data available at %s in ERCOT' % (raw_ts))
                 break
             
         # set up storage
         parsed_data = []
-        base_dp = {'timestamp': ts_hour_starting,
+        base_dp = {'timestamp': ts_hour_rounded_down,
                    'freq': self.FREQUENCY_CHOICES.hourly, 'market': self.MARKET_CHOICES.hourly,
                    'gen_MW': 0, 'ba_name': self.NAME}
 
