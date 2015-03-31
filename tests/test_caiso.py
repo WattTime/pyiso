@@ -585,10 +585,10 @@ class TestCAISOBase(TestCase):
                     'gen_MW': 580.83}
         self.assertEqual(expected, parsed_data[0])
 
-    def test_get_lmp_latest(self):
+    def test_get_lmp_dataframe_latest(self):
         c = self.create_client('CAISO')
         ts = datetime.utcnow()
-        lmp = c.get_lmp('SLAP_PGP2-APND')
+        lmp = c.get_lmp_as_dataframe('SLAP_PGP2-APND')
         self.assertEqual(len(lmp), 1)
 
         self.assertGreaterEqual(lmp.iloc[0]['LMP_PRC'], 0)
@@ -598,16 +598,43 @@ class TestCAISOBase(TestCase):
         self.assertGreater(lmp.iloc[0].name, ts - timedelta(minutes=5))
         self.assertLess(lmp.iloc[0].name, ts + timedelta(minutes=5))
 
-    def test_get_lmp_hist(self):
+    def test_get_lmp_dataframe_hist(self):
         c = self.create_client('CAISO')
-        ts = datetime.utcnow()
+        ts = datetime(2015, 3, 1, 11, 0, 0)
         start = ts - timedelta(hours=2)
-        lmps = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
+        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
         self.assertEqual(len(lmps), 24)
 
-        self.assertGreaterEqual(lmps['MW'].max(), 0)
-        self.assertLess(lmps['MW'].max(), 1500)
-        self.assertGreaterEqual(lmps['MW'].min(), -300)
+        self.assertGreaterEqual(lmps['LMP_PRC'].max(), 0)
+        self.assertLess(lmps['LMP_PRC'].max(), 1500)
+        self.assertGreaterEqual(lmps['LMP_PRC'].min(), -300)
 
         self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
+
+    def test_get_lmp_latest(self):
+        c = self.create_client('CAISO')
+        ts = datetime.utcnow()
+        lmp = c.get_lmp('SLAP_PGP2-APND')
+        self.assertEqual(len(lmp), 1)
+
+        self.assertGreaterEqual(min(lmp.keys()), ts - timedelta(minutes=5))
+        self.assertLessEqual(max(lmp.keys()), ts + timedelta(minutes=5))
+
+        self.assertGreaterEqual(min(lmp.values()), -300)
+        self.assertLess(max(lmp.values()), 1500)
+
+    def test_get_lmp_hist(self):
+        c = self.create_client('CAISO')
+        ts = datetime(2015, 3, 1, 11, 0, 0)
+        start = ts - timedelta(hours=2)
+        lmp = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
+        self.assertEqual(len(lmp), 24)
+
+        self.assertGreaterEqual(min(lmp.keys()), start)
+        self.assertLessEqual(max(lmp.keys()), ts)
+
+        self.assertGreaterEqual(min(lmp.values()), -300)
+        self.assertLess(max(lmp.values()), 1500)
+
+

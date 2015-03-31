@@ -284,7 +284,7 @@ class CAISOClient(BaseClient):
                 raw_data = soup.find_all('report_data')
                 return raw_data
 
-    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False,
+    def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
         market_run_id='RTM', **kwargs):
 
         if latest:
@@ -324,8 +324,15 @@ class CAISOClient(BaseClient):
             df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
             df.index.name = 'INTERVALSTARTTIME_GMT'
         df.index = pandas.to_datetime(df.index)
-
+        df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
         return df
+
+    def get_lmp(self, node_id, **kwargs):
+        df = self.get_lmp_as_dataframe(node_id, **kwargs)
+        lmp_dict = {}
+        for i, row in df.iterrows():
+            lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
+        return lmp_dict
 
 
     def parse_oasis_renewable(self, raw_data):
