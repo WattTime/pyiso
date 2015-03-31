@@ -6,6 +6,7 @@ import pandas as pd
 import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
+import pandas
 
 
 class TestCAISOBase(TestCase):
@@ -413,6 +414,20 @@ class TestCAISOBase(TestCase):
 <value>26723</value>\n\
 </report_data>')
 
+    def test_fetch_oasis_csv(self):
+        c = self.create_client('CAISO')
+        ts = c.utcify('2014-05-08 12:00')
+        payload = {'queryname': 'SLD_FCST',
+                   'market_run_id': 'RTM',
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'resultformat': 6,
+                  }
+        payload.update(c.base_payload)
+        data = c.fetch_oasis(payload=payload)
+        self.assertEqual(len(data), 7828)
+        self.assertIn('INTERVALSTARTTIME_GMT', data)
+
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
         c = self.create_client('CAISO')
@@ -425,7 +440,7 @@ class TestCAISOBase(TestCase):
 
         # test
         self.assertEqual(len(parsed_data), 1)
-        expected = {'ba_name': 'CAISO', 
+        expected = {'ba_name': 'CAISO',
                     'timestamp': datetime(2014, 5, 8, 18, 55, tzinfo=pytz.utc),
                     'freq': '5m', 'market': 'RT5M',
                     'load_MW': 26755.0}
@@ -528,7 +543,7 @@ class TestCAISOBase(TestCase):
 
         # test
         self.assertEqual(len(parsed_data), 2)
-        expected = {'ba_name': 'CAISO', 
+        expected = {'ba_name': 'CAISO',
                     'timestamp': datetime(2013, 9, 19, 17, 0, tzinfo=pytz.utc),
                     'freq': '5m', 'market': 'RT5M', 'fuel_name': 'other',
                     'gen_MW': 23900.79}
@@ -546,7 +561,7 @@ class TestCAISOBase(TestCase):
 
         # test
         self.assertEqual(len(parsed_data), 3)
-        expected = {'ba_name': 'CAISO', 
+        expected = {'ba_name': 'CAISO',
                     'timestamp': datetime(2013, 9, 19, 7, 0, tzinfo=pytz.utc),
                     'freq': '1hr', 'market': 'DAHR',
                     'net_exp_MW': -5014.0}
@@ -564,8 +579,35 @@ class TestCAISOBase(TestCase):
 
         # test
         self.assertEqual(len(parsed_data), 6)
-        expected = {'ba_name': 'CAISO', 
+        expected = {'ba_name': 'CAISO',
                     'timestamp': datetime(2013, 9, 20, 6, 0, tzinfo=pytz.utc),
                     'freq': '1hr', 'market': 'DAHR', 'fuel_name': 'wind',
                     'gen_MW': 580.83}
         self.assertEqual(expected, parsed_data[0])
+
+    def test_get_lmp_latest(self):
+        c = self.create_client('CAISO')
+        ts = datetime.utcnow()
+        lmp = c.get_lmp('SLAP_PGP2-APND')
+        self.assertEqual(len(lmp), 1)
+
+        self.assertGreaterEqual(lmp.iloc[0]['LMP_PRC'], 0)
+        self.assertLessEqual(lmp.iloc[0]['LMP_PRC'], 1500)
+
+        # lmp is a dataframe, lmp.iloc[0] is a Series, Series.name is the index of that entry
+        self.assertGreater(lmp.iloc[0].name, ts - timedelta(minutes=5))
+        self.assertLess(lmp.iloc[0].name, ts + timedelta(minutes=5))
+
+    def test_get_lmp_hist(self):
+        c = self.create_client('CAISO')
+        ts = datetime.utcnow()
+        start = ts - timedelta(hours=2)
+        lmps = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
+        self.assertEqual(len(lmps), 24)
+
+        self.assertGreaterEqual(lmps['MW'].max(), 0)
+        self.assertLess(lmps['MW'].max(), 1500)
+        self.assertGreaterEqual(lmps['MW'].min(), -300)
+
+        self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
+        self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
