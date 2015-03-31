@@ -162,7 +162,14 @@ class CAISOClient(BaseClient):
             # return all data
             return parsed_data
 
-    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False,
+    def get_lmp(self, node_id, **kwargs):
+        df = self.get_lmp_as_dataframe(node_id, **kwargs)
+        lmp_dict = {}
+        for i, row in df.iterrows():
+            lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
+        return lmp_dict
+
+    def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
         market_run_id='RTM', **kwargs):
         """Returns a pandas DataFrame, not a list of dicts"""
         # set args
@@ -188,6 +195,7 @@ class CAISOClient(BaseClient):
 
         # strip congestion and loss prices
         df = df.query('LMP_TYPE == "LMP"')
+        df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':
