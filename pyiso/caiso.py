@@ -43,6 +43,11 @@ class CAISOClient(BaseClient):
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
+    LMP_MARKETS = {
+        'RTM': 'PRC_INTVL_LMP',
+        'DAM': 'PRC_LMP',
+        'HASP': 'PRC_HASP_LMP',
+    }
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
@@ -157,6 +162,44 @@ class CAISOClient(BaseClient):
             # return all data
             return parsed_data
 
+    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False,
+        market_run_id='RTM', **kwargs):
+        """Returns a pandas DataFrame, not a list of dicts"""
+        # set args
+        self.handle_options(data='lmp', latest=latest,
+                            start_at=start_at, end_at=end_at,
+                            market_run_id=market_run_id,
+                            **kwargs)
+
+        if latest:
+            queryname = 'PRC_CURR_LMP'
+        else:
+            queryname = self.LMP_MARKETS[market_run_id]
+        payload = self.construct_oasis_payload(queryname,
+                                               resultformat=6, # csv
+                                               node=node_id)
+
+        # Fetch data
+        data = self.fetch_oasis(payload=payload)
+
+        # Turn into pandas Dataframe
+        str_data = StringIO.StringIO(data)
+        df = pandas.DataFrame.from_csv(str_data, sep=",")
+
+        # strip congestion and loss prices
+        df = df.query('LMP_TYPE == "LMP"')
+
+        # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
+        if df.index.name != 'INTERVALSTARTTIME_GMT':
+            df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
+            df.index.name = 'INTERVALSTARTTIME_GMT'
+        df.index = pandas.to_datetime(df.index)
+
+        # utcify
+        df.index = self.utcify_index(df.index, tz_name='UTC')
+
+        return df
+
     def construct_oasis_payload(self, queryname, **kwargs):
         # get start and end times
         if self.options['latest']:
@@ -168,7 +211,10 @@ class CAISOClient(BaseClient):
             enddatetime = self.options['end_at']
 
         # get market id
-        market_run_id = self.oasis_markets[self.options['market']]
+        try:
+            market_run_id = self.options['market_run_id']
+        except KeyError:
+            market_run_id = self.oasis_markets[self.options['market']]
 
         # construct payload
         payload = {'queryname': queryname,
@@ -283,50 +329,6 @@ class CAISOClient(BaseClient):
             else:
                 raw_data = soup.find_all('report_data')
                 return raw_data
-
-    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False,
-        market_run_id='RTM', **kwargs):
-
-        if latest:
-            queryname = 'PRC_CURR_LMP'
-
-            # these are ignored, but must be present
-            start_at = datetime.now()
-            end_at = datetime.now()
-        else:
-            LMP_MARKETS = {
-                'RTM': 'PRC_INTVL_LMP',
-                'DAM': 'PRC_LMP',
-                'HASP': 'PRC_HASP_LMP',}
-            queryname = LMP_MARKETS[market_run_id]
-
-        payload = {'queryname': queryname,
-               'startdatetime': start_at.strftime(self.oasis_request_time_format),
-               'enddatetime': end_at.strftime(self.oasis_request_time_format),
-               'node': node_id,
-              }
-        payload.update(self.base_payload)
-        payload.update({'resultformat' : 6})  # CSV
-        payload.update(kwargs)
-
-        # Fetch data
-        data = self.fetch_oasis(payload=payload)
-
-        # Turn into pandas Dataframe
-        str_data = StringIO.StringIO(data)
-        df = pandas.DataFrame.from_csv(str_data, sep=",")
-
-        # strip congestion and loss prices
-        df = df.query('LMP_TYPE == "LMP"')
-
-        # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
-        if df.index.name != 'INTERVALSTARTTIME_GMT':
-            df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
-            df.index.name = 'INTERVALSTARTTIME_GMT'
-        df.index = pandas.to_datetime(df.index)
-
-        return df
-
 
     def parse_oasis_renewable(self, raw_data):
         """Parse raw data output of fetch_oasis for renewables."""

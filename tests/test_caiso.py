@@ -587,11 +587,11 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_latest(self):
         c = self.create_client('CAISO')
-        ts = datetime.utcnow()
+        ts = pytz.utc.localize(datetime.utcnow())
         lmp = c.get_lmp('SLAP_PGP2-APND')
         self.assertEqual(len(lmp), 1)
 
-        self.assertGreaterEqual(lmp.iloc[0]['LMP_PRC'], 0)
+        self.assertGreaterEqual(lmp.iloc[0]['LMP_PRC'], -300)
         self.assertLessEqual(lmp.iloc[0]['LMP_PRC'], 1500)
 
         # lmp is a dataframe, lmp.iloc[0] is a Series, Series.name is the index of that entry
@@ -600,14 +600,14 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_hist(self):
         c = self.create_client('CAISO')
-        ts = datetime.utcnow()
+        ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
         self.assertEqual(len(lmps), 24)
 
         self.assertGreaterEqual(lmps['MW'].max(), 0)
-        self.assertLess(lmps['MW'].max(), 1500)
-        self.assertGreaterEqual(lmps['MW'].min(), -300)
+        self.assertLess(lmps['MW'].max(), 30)
+        self.assertGreaterEqual(lmps['MW'].min(), 20)
 
         self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
