@@ -7,3 +7,4 @@ pytz
 requests==2.2.1
 xlrd==0.9.2
 celery>=3.1
+numexpr==2.4
