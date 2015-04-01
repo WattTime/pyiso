@@ -68,5 +68,6 @@ setup(
         'xlrd',
         'selenium',
         'celery>=3.1',
+        'numexpr',
     ],
 )
