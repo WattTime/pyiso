@@ -5,6 +5,7 @@ import re
 from bs4 import BeautifulSoup
 import StringIO
 import pandas
+from pandas.computation.ops import UndefinedVariableError
 
 
 class CAISOClient(BaseClient):
@@ -194,7 +195,10 @@ class CAISOClient(BaseClient):
         df = pandas.DataFrame.from_csv(str_data, sep=",")
 
         # strip congestion and loss prices
-        df = df.query('LMP_TYPE == "LMP"')
+        try:
+            df = df.query('LMP_TYPE == "LMP"')
+        except UndefinedVariableError: # no good data
+            raise ValueError('No LMP data found for node %s' % node_id)
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime

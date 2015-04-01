@@ -612,6 +612,10 @@ class TestCAISOBase(TestCase):
         self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
 
+    def test_get_lmp_dataframe_badnode(self):
+        c = self.create_client('CAISO')
+        self.assertRaises(ValueError, c.get_lmp_as_dataframe, 'badnode')
+
     def test_get_lmp_latest(self):
         c = self.create_client('CAISO')
         ts = pytz.utc.localize(datetime.utcnow())
@@ -637,4 +641,6 @@ class TestCAISOBase(TestCase):
         self.assertGreaterEqual(min(lmp.values()), -300)
         self.assertLess(max(lmp.values()), 1500)
 
-
+    def test_get_lmp_badnode(self):
+        c = self.create_client('CAISO')
+        self.assertRaises(ValueError, c.get_lmp, 'badnode', latest=True)
