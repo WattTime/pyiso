@@ -7,6 +7,7 @@ import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 import pandas
+import numpy
 
 
 class TestCAISOBase(TestCase):
@@ -644,3 +645,88 @@ class TestCAISOBase(TestCase):
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')
         self.assertRaises(ValueError, c.get_lmp, 'badnode', latest=True)
+
+    def test_get_AS_dataframe(self):
+        c = self.create_client('CAISO')
+        ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
+        start = ts - timedelta(days=2)
+
+        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=start, end_at=ts, market_run_id='DAM')
+
+        self.assertEqual(len(as_prc), 288)
+        self.assertEqual(as_prc['MW'].mean(), 1.528506944444443)
+
+        grouped = as_prc.groupby('XML_DATA_ITEM')
+        self.assertEqual(len(grouped), 6)
+        means = {
+            'SP_CLR_PRC': 1.685417,
+            'RU_CLR_PRC': 3.074583,
+            'RMU_CLR_PRC': 5.729167e-02,
+            'RMD_CLR_PRC': 3.620833e-01,
+            'RD_CLR_PRC': 3.901667,
+            'NS_CLR_PRC': 9.000000e-02,
+        }
+
+        for group in means:
+            self.assertAlmostEqual(grouped.get_group(group)['MW'].mean(), means[group], places=6)
+            self.assertEqual(len(grouped.get_group(group)), 48)
+
+
+    def test_get_ancillary_services(self):
+        c = self.create_client('CAISO')
+        ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
+        start = ts - timedelta(days=2)
+
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+                                          market_run_id='DAM')
+
+        self.assertEqual(len(as_prc), 48)
+        self.assertGreaterEqual(min(as_prc.keys()), start - timedelta(minutes=5))
+        self.assertLessEqual(max(as_prc.keys()), ts + timedelta(minutes=5))
+
+        means = {
+            'SR': 1.685417,
+            'RU': 3.074583,
+            'RMU': 5.729167e-02,
+            'RMD': 3.620833e-01,
+            'RD': 3.901667,
+            'NR': 9.000000e-02,
+        }
+        actual_values = {
+            'SR': [],
+            'RU': [],
+            'RMU': [],
+            'RMD': [],
+            'RD': [],
+            'NR': [],
+        }
+
+        for time in as_prc:
+            for column in as_prc[time]:
+                actual_values[column].append(as_prc[time][column])
+
+        for anc_type in means:
+            self.assertAlmostEqual(numpy.mean(actual_values[anc_type]), means[anc_type], places=6)
+
+    def test_get_ancillary_services_RU(self):
+        c = self.create_client('CAISO')
+        ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
+        start = ts - timedelta(days=2)
+
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+                                          market_run_id='DAM', anc_type='RU')
+
+        self.assertEqual(len(as_prc), 48)
+        print as_prc[max(as_prc)]
+        self.assertEqual(len(as_prc[max(as_prc)].keys()), 1)
+        self.assertGreaterEqual(min(as_prc.keys()), start - timedelta(minutes=5))
+        self.assertLessEqual(max(as_prc.keys()), ts + timedelta(minutes=5))
+
+        values = []
+        for time in as_prc:
+            values.append(as_prc[time]['RU'])
+
+        self.assertAlmostEqual(numpy.mean(values), 3.074583, places=6)
+
+
+
