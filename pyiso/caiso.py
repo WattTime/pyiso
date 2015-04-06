@@ -49,6 +49,11 @@ class CAISOClient(BaseClient):
         'DAM': 'PRC_LMP',
         'HASP': 'PRC_HASP_LMP',
     }
+    AS_MARKETS = {
+        'RTM': 'PRC_INTVL_AS',
+        'DAM': 'PRC_AS',
+        'HASP': 'PRC_AS',
+    }
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
@@ -171,7 +176,7 @@ class CAISOClient(BaseClient):
         return lmp_dict
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
-        market_run_id='RTM', **kwargs):
+                             market_run_id='RTM', **kwargs):
         """Returns a pandas DataFrame, not a list of dicts"""
         # set args
         self.handle_options(data='lmp', latest=latest,
@@ -184,7 +189,7 @@ class CAISOClient(BaseClient):
         else:
             queryname = self.LMP_MARKETS[market_run_id]
         payload = self.construct_oasis_payload(queryname,
-                                               resultformat=6, # csv
+                                               resultformat=6,  # csv
                                                node=node_id)
 
         # Fetch data
@@ -197,7 +202,7 @@ class CAISOClient(BaseClient):
         # strip congestion and loss prices
         try:
             df = df.query('LMP_TYPE == "LMP"')
-        except UndefinedVariableError: # no good data
+        except UndefinedVariableError:  # no good data
             raise ValueError('No LMP data found for node %s' % node_id)
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
@@ -211,6 +216,70 @@ class CAISOClient(BaseClient):
         df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
+
+    def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
+                         market_run_id='DAM', **kwargs):
+        """Returns a pandas DataFrame, not a list of dicts"""
+        # set args
+        self.handle_options(data='lmp', latest=latest,
+                            start_at=start_at, end_at=end_at,
+                            market_run_id=market_run_id,
+                            **kwargs)
+
+        queryname = self.AS_MARKETS[market_run_id]
+
+        payload = self.construct_oasis_payload(queryname,
+                                               resultformat=6, # csv
+                                               anc_region=anc_region)
+        payload.update(kwargs)
+
+        # Fetch data
+        data = self.fetch_oasis(payload=payload)
+
+        # Turn into pandas Dataframe
+        str_data = StringIO.StringIO(data)
+        df = pandas.DataFrame.from_csv(str_data, sep=",")
+
+        # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
+        if df.index.name != 'INTERVALSTARTTIME_GMT':
+            df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
+            df.index.name = 'INTERVALSTARTTIME_GMT'
+        df.index = pandas.to_datetime(df.index)
+
+        # utcify
+        df.index = self.utcify_index(df.index, tz_name='UTC')
+
+        return df
+
+    def get_ancillary_services(self, node_id, **kwargs):
+        df = self.get_AS_dataframe(node_id, **kwargs)
+
+        # parse
+        grouped = df.groupby('ANC_TYPE')
+        re = lambda s: {'MW': s}
+        i = ['MW']
+        a = pandas.DataFrame
+
+        # merge dataframes
+        firsttime = True
+        for name, group in grouped:
+            if firsttime:
+                a = group[i].rename(columns=re(name))
+                firsttime = False
+            else:
+                a = pandas.merge(a, group[i].rename(columns=re(name)),
+                                left_index=True, right_index=True, how='outer')
+
+        pandas.set_option('display.width', 200)
+
+        lmp_dict = {}
+
+        # loop through start_times
+        for i, row in a.iterrows():
+            lmp_dict[i.to_pydatetime()] = {}
+            for column in row.keys():
+                lmp_dict[i.to_pydatetime()][column] = row[column]
+        return lmp_dict
 
     def construct_oasis_payload(self, queryname, **kwargs):
         # get start and end times
