@@ -654,7 +654,7 @@ class TestCAISOBase(TestCase):
         as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=start, end_at=ts, market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 288)
-        self.assertEqual(as_prc['MW'].mean(), 1.528506944444443)
+        self.assertAlmostEqual(as_prc['MW'].mean(), 1.528506944444443)
 
         grouped = as_prc.groupby('XML_DATA_ITEM')
         self.assertEqual(len(grouped), 6)
