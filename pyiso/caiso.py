@@ -169,7 +169,15 @@ class CAISOClient(BaseClient):
             return parsed_data
 
     def get_lmp(self, node_id, **kwargs):
+        """ 
+        Returns a dictionary with keys of datetime.datetime objects
+        Values holds $/MW float
+        for final LMP price (i.e., LMP_TYPE Energy)
+        """
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
+        if df.empty:
+            return {}
+            
         lmp_dict = {}
         for i, row in df.iterrows():
             lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
@@ -177,7 +185,13 @@ class CAISOClient(BaseClient):
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
                              market_run_id='RTM', **kwargs):
-        """Returns a pandas DataFrame, not a list of dicts"""
+        """
+        Returns a pandas DataFrame with columns
+        INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others.
+        Seperate rows for each LMP_TYPE (Congestion, Loss, Energy)
+        MW columns holds $/MW float.
+        If no data, returns an empty dataframe.
+        """
         # set args
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
@@ -194,7 +208,7 @@ class CAISOClient(BaseClient):
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
-
+        
         # Turn into pandas Dataframe
         str_data = StringIO.StringIO(data)
         df = pandas.DataFrame.from_csv(str_data, sep=",")
@@ -203,7 +217,7 @@ class CAISOClient(BaseClient):
         try:
             df = df.query('LMP_TYPE == "LMP"')
         except UndefinedVariableError:  # no good data
-            raise ValueError('No LMP data found for node %s' % node_id)
+            return pandas.DataFrame
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime

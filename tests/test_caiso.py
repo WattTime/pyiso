@@ -615,7 +615,8 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_dataframe_badnode(self):
         c = self.create_client('CAISO')
-        self.assertRaises(ValueError, c.get_lmp_as_dataframe, 'badnode')
+        df = c.get_lmp_as_dataframe('badnode')
+        self.assertTrue(df.empty)
 
     def test_get_lmp_latest(self):
         c = self.create_client('CAISO')
@@ -644,7 +645,8 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')
-        self.assertRaises(ValueError, c.get_lmp, 'badnode', latest=True)
+        d = c.get_lmp('badnode', latest=True)
+        self.assertEqual(d, {})
 
     def test_get_AS_dataframe(self):
         c = self.create_client('CAISO')
