@@ -219,7 +219,13 @@ class CAISOClient(BaseClient):
 
     def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
-        """Returns a pandas DataFrame, not a list of dicts"""
+        """
+        Returns a pandas DataFrame with columns
+        INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, ANC_TYPE and others.
+        Seperate rows for each ANC_TYPE.
+        MW columns holds $/MW float.
+        If no data, returns an empty dataframe.
+        """
         # set args
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
@@ -240,6 +246,9 @@ class CAISOClient(BaseClient):
         str_data = StringIO.StringIO(data)
         df = pandas.DataFrame.from_csv(str_data, sep=",")
 
+        if df.empty:
+            return df
+
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':
             df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
@@ -252,7 +261,16 @@ class CAISOClient(BaseClient):
         return df
 
     def get_ancillary_services(self, node_id, **kwargs):
+        """
+        Returns dict of dicts
+        Top-level key is period start time as datetime.datetime object, tzinfo=pytz.utc
+        Top-level value is a dictionary with keys ['RU', 'RD', 'NR', 'SR', 'RMU', 'RMD']
+        Second-level value is $/MW float
+        If no data, returns an empty dict
+        """
         df = self.get_AS_dataframe(node_id, **kwargs)
+        if df.empty:
+            return {}
 
         # parse
         grouped = df.groupby('ANC_TYPE')

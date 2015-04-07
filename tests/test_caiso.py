@@ -671,6 +671,14 @@ class TestCAISOBase(TestCase):
             self.assertAlmostEqual(grouped.get_group(group)['MW'].mean(), means[group], places=6)
             self.assertEqual(len(grouped.get_group(group)), 48)
 
+    def test_get_AS_dataframe_empty(self):
+        c = self.create_client('CAISO')
+        st = pytz.utc.localize(datetime.now() + timedelta(days=2))
+        et = st + timedelta(days=1)
+        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
+                                          market_run_id='DAM', anc_type='RU')
+        self.assertTrue(as_prc.empty)
+
 
     def test_get_ancillary_services(self):
         c = self.create_client('CAISO')
@@ -724,9 +732,16 @@ class TestCAISOBase(TestCase):
 
         values = []
         for time in as_prc:
+            self.assertEqual(type(time), type(ts))
             values.append(as_prc[time]['RU'])
 
         self.assertAlmostEqual(numpy.mean(values), 3.074583, places=6)
 
-
-
+    def test_get_AS_empty(self):
+        """No AS data available 2 days in future"""
+        c = self.create_client('CAISO')
+        st = pytz.utc.localize(datetime.now() + timedelta(days=2))
+        et = st + timedelta(days=1)
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=st, end_at=et,
+                                          market_run_id='DAM', anc_type='RU')
+        self.assertEqual(as_prc, {})
