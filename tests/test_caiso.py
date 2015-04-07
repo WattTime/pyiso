@@ -615,7 +615,8 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_dataframe_badnode(self):
         c = self.create_client('CAISO')
-        self.assertRaises(ValueError, c.get_lmp_as_dataframe, 'badnode')
+        df = c.get_lmp_as_dataframe('badnode')
+        self.assertTrue(df.empty)
 
     def test_get_lmp_latest(self):
         c = self.create_client('CAISO')
@@ -644,7 +645,8 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')
-        self.assertRaises(ValueError, c.get_lmp, 'badnode', latest=True)
+        d = c.get_lmp('badnode', latest=True)
+        self.assertEqual(d, {})
 
     def test_get_AS_dataframe(self):
         c = self.create_client('CAISO')
@@ -670,6 +672,14 @@ class TestCAISOBase(TestCase):
         for group in means:
             self.assertAlmostEqual(grouped.get_group(group)['MW'].mean(), means[group], places=6)
             self.assertEqual(len(grouped.get_group(group)), 48)
+
+    def test_get_AS_dataframe_empty(self):
+        c = self.create_client('CAISO')
+        st = pytz.utc.localize(datetime.now() + timedelta(days=2))
+        et = st + timedelta(days=1)
+        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
+                                          market_run_id='DAM', anc_type='RU')
+        self.assertTrue(as_prc.empty)
 
 
     def test_get_ancillary_services(self):
@@ -724,9 +734,16 @@ class TestCAISOBase(TestCase):
 
         values = []
         for time in as_prc:
+            self.assertEqual(type(time), type(ts))
             values.append(as_prc[time]['RU'])
 
         self.assertAlmostEqual(numpy.mean(values), 3.074583, places=6)
 
-
-
+    def test_get_AS_empty(self):
+        """No AS data available 2 days in future"""
+        c = self.create_client('CAISO')
+        st = pytz.utc.localize(datetime.now() + timedelta(days=2))
+        et = st + timedelta(days=1)
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=st, end_at=et,
+                                          market_run_id='DAM', anc_type='RU')
+        self.assertEqual(as_prc, {})

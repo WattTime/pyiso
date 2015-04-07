@@ -2,7 +2,7 @@ import imp
 import os.path
 
 
-__version__ = '0.1.16'
+__version__ = '0.1.17'
 
 
 def client_factory(client_name, **kwargs):
@@ -12,7 +12,7 @@ def client_factory(client_name, **kwargs):
     class_name = '%sClient' % client_name.upper()
     dir_name = os.path.dirname(os.path.abspath(__file__))
     error_msg = 'No client found for name %s' % client_name
-    
+
     # find module
     try:
         fp, pathname, description = imp.find_module(module_name, [dir_name])
@@ -26,11 +26,11 @@ def client_factory(client_name, **kwargs):
         # Since we may exit via an exception, close fp explicitly.
         if fp:
             fp.close()
-            
+
     # instantiate class
     try:
         client_inst = getattr(mod, class_name)(**kwargs)
     except AttributeError:
         raise ValueError(error_msg)
-        
+
     return client_inst
