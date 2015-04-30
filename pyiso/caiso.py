@@ -169,7 +169,7 @@ class CAISOClient(BaseClient):
             return parsed_data
 
     def get_lmp(self, node_id, **kwargs):
-        """ 
+        """
         Returns a dictionary with keys of datetime.datetime objects
         Values holds $/MW float
         for final LMP price (i.e., LMP_TYPE Energy)
@@ -177,7 +177,7 @@ class CAISOClient(BaseClient):
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
         if df.empty:
             return {}
-            
+
         lmp_dict = {}
         for i, row in df.iterrows():
             lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
@@ -208,15 +208,15 @@ class CAISOClient(BaseClient):
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
-        
+
         # Turn into pandas Dataframe
         str_data = StringIO.StringIO(data)
         df = pandas.DataFrame.from_csv(str_data, sep=",")
 
         # strip congestion and loss prices
         try:
-            df = df.query('LMP_TYPE == "LMP"')
-        except UndefinedVariableError:  # no good data
+            df = df.ix[df['LMP_TYPE'] == 'LMP']
+        except KeyError:  # no good data
             return pandas.DataFrame
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
