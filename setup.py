@@ -9,6 +9,7 @@ import re
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 # Read the version number from a source file.
 # Why read it, and not import?
 # see https://groups.google.com/d/topic/pypa-dev/0PkjVpcxTzQ/discussion
@@ -58,7 +59,7 @@ setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    test_suite = 'nose.collector',
+    test_suite='nose.collector',
     install_requires=[
         'beautifulsoup4',
         'pandas>=0.14',
@@ -68,6 +69,5 @@ setup(
         'xlrd',
         'selenium',
         'celery>=3.1',
-        'numexpr',
     ],
 )
