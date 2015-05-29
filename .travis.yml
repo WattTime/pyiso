@@ -1,0 +1,22 @@
+language: python
+python:
+- '2.7'
+env: 
+  global:
+    - secure: "lmQwPQ1dNFpe1FuV3qm8HGb6HqM+Ygh5tFECOCyKicM/kiBmFvExYYq//3xeKbKdDP9UAnAVQJZFC35cKjJd4qldatvsRLuEkWNrDtZbrKPb2XsRGZNEZB0cQC8TDQ+KUliIvdYn0Vxk8OUnBA2YTKE6JsRdpCU4laPamnaw6r4="
+    - secure: "DXAME8FP8ZM82EMUBwEWNlzDf8i4u8RJ5K1T1/BygOJcwfrB46lll8RR2q2ZOl7YB7zIjXmP+6kWEWd+hNZ4iYkbbIQfmf7bOzwh42fKhbXC4hV52g7w/LuVLx/K+6M0ccG8/7uA55bi6mnCkhVK4hP6+Y7YoQ9x1tA92iBeF4M="
+install:
+- python setup.py install
+- pip install -r requirements.txt
+- pip install coveralls
+script: nosetests
+deploy:
+  provider: pypi
+  user: Anna.Schneider
+  password:
+    secure: SHHMXoR9TEeWyarMLSoPEP1MFCOawTAgFTaBuLAMu7nGVk0+HbwD78MiAd6k7LaSYj+huL8/B6JKWgY36b2liS33EzJUkaMtS9vt/RzTZUJix/rJepZ4d+6e+rAr+DL/ulCUGot8ILK6vO0S1BzlcQYyXJsc01LzngFDcVWY6sA=
+  on:
+    tags: true
+    repo: WattTime/pyiso
+after_success:
+  - coveralls
