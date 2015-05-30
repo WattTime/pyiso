@@ -19,4 +19,5 @@ Pyiso depends on pandas so be prepared for a large install.
 To uninstall::
 
    pip uninstall pyiso
-   
+
+Windows Users: If you are unable to setup pyiso due to issues with installing or using numpy, a dependent package of pyiso, try installing a precompiled version of numpy found here: http://www.lfd.uci.edu/~gohlke/pythonlibs/
