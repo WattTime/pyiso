@@ -7,9 +7,9 @@ from pyiso.base import BaseClient
 
 class BPAClient(BaseClient):
     NAME = 'BPA'
-    
+
     base_url = 'http://transmission.bpa.gov/business/operations/'
-    
+
     fuels = {
         'Hydro': 'hydro',
         'Wind': 'wind',
@@ -17,7 +17,7 @@ class BPAClient(BaseClient):
     }
 
     TZ_NAME = 'America/Los_Angeles'
-       
+
     def fetch_historical(self):
         """Get BPA generation or load data from the far past"""
         # set up requests
@@ -46,11 +46,11 @@ class BPAClient(BaseClient):
         for url in request_urls:
             xd = self.fetch_xls(url)
             piece = self.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names,
-                                    skiprows=18, parse_cols=cols,
-                                    parse_dates=True, index_col=0,
-                                    header_names=header_names)
+                                     skiprows=18, parse_cols=cols,
+                                     parse_dates=True, index_col=0,
+                                     header_names=header_names)
             pieces.append(piece)
-            
+
         # return
         df = pd.concat(pieces)
         return df
@@ -71,8 +71,8 @@ class BPAClient(BaseClient):
 
         # parse like tsv
         df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True, usecols=cols,
-                            date_parser=self.date_parser)
+                              index_col=0, parse_dates=True, usecols=cols,
+                              date_parser=self.date_parser)
 
         return df
 

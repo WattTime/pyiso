@@ -8,7 +8,7 @@ import re
 class ERCOTClient(BaseClient):
     NAME = 'ERCOT'
     base_report_url = 'http://mis.ercot.com'
-            
+
     report_type_ids = {
         'wind_5min': '13071',
         'wind_hrly': '13028',
@@ -16,7 +16,7 @@ class ERCOTClient(BaseClient):
     }
 
     TZ_NAME = 'US/Central'
-        
+
     def utcify(self, local_ts, **kwargs):
         # ERCOT is hour ending, want hour beginning
         utc_ts = super(ERCOTClient, self).utcify(local_ts, **kwargs)
@@ -28,7 +28,7 @@ class ERCOTClient(BaseClient):
         report_list_contents = self.request(self.base_report_url+'/misapp/GetReports.do',
                                             params=params).content
         report_list_soup = BeautifulSoup(report_list_contents)
-        
+
         # find the endpoint to download
         report_endpoint = None
         for elt in report_list_soup.find_all('tr'):
@@ -41,32 +41,32 @@ class ERCOTClient(BaseClient):
         # test endpoint found
         if not report_endpoint:
             raise ValueError('ERCOT: No report available for %s, soup:\n%s' % (report_type, report_list_soup))
-                
+
         # read report from zip
         r = self.request(report_endpoint)
         if r:
             content = self.unzip(r.content)
         else:
             return []
-        
+
         # parse csv
         rows = content.split('\n')
         header = rows[0].split(',')
         raw_data = [dict(zip(header, self.parse_row(row))) for row in rows[1:-1]]
-        
+
         # return
         return raw_data
 
     def is_dst(self, val, standard):
         return val != standard
-        
+
     def get_generation(self, latest=False, **kwargs):
         # get nonwind gen data
         raw_gen_data = self._request_report('gen_hrly')
         assert len(raw_gen_data) == 1
         total_dp = raw_gen_data[0]
         total_gen = float(total_dp['SE_MW'])
-        
+
         # get timestamp on hour
         # TODO is this what this timestamp means??
         raw_ts = self.utcify(total_dp['SE_EXE_TIME'],
@@ -85,11 +85,11 @@ class ERCOTClient(BaseClient):
             if wind_ts == ts_hour_rounded_down:
                 try:
                     wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
-                except ValueError: # empty string
+                except ValueError:  # empty string
                     wind_gen = None
                     self.logger.error('No wind data available at %s in ERCOT' % (raw_ts))
                 break
-            
+
         # set up storage
         parsed_data = []
         base_dp = {'timestamp': ts_hour_rounded_down,
@@ -104,7 +104,7 @@ class ERCOTClient(BaseClient):
                 parsed_dp['fuel_name'] = fuel_name
                 parsed_dp['gen_MW'] = gen_MW
                 parsed_data.append(parsed_dp)
-                
+
         # return
         return parsed_data
 
@@ -151,4 +151,3 @@ class ERCOTClient(BaseClient):
 
         # return
         return [dp]
-

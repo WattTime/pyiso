@@ -56,7 +56,7 @@ class BaseClient(object):
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
            Timestamps are in UTC.
-        :rtype: list 
+        :rtype: list
 
         """
         raise NotImplementedError('Derived classes must implement the get_generation method.')
@@ -77,7 +77,7 @@ class BaseClient(object):
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
            Timestamps are in UTC.
-        :rtype: list 
+        :rtype: list
 
         """
         raise NotImplementedError('Derived classes must implement the get_load method.')
@@ -99,7 +99,7 @@ class BaseClient(object):
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, net_exp_MW]``.
            Timestamps are in UTC.
-        :rtype: list 
+        :rtype: list
 
         """
         raise NotImplementedError('Derived classes must implement the get_trade method.')
@@ -146,7 +146,6 @@ class BaseClient(object):
             self.options['sliceable'] = False
             self.options['forecast'] = False
 
-
     def utcify(self, local_ts_str, tz_name=None, is_dst=None):
         """
         Convert a datetime or datetime string to UTC.
@@ -168,16 +167,16 @@ class BaseClient(object):
         # parse
         try:
             local_ts = dateutil_parse(local_ts_str)
-        except AttributeError: # already parsed
+        except AttributeError:  # already parsed
             local_ts = local_ts_str
 
         # localize
-        if local_ts.tzinfo is None: # unaware
+        if local_ts.tzinfo is None:  # unaware
             if is_dst is None:
                 aware_local_ts = tz.localize(local_ts)
             else:
                 aware_local_ts = tz.localize(local_ts, is_dst=is_dst)
-        else: # already aware
+        else:  # already aware
             aware_local_ts = local_ts
 
         # convert to utc
@@ -253,12 +252,12 @@ class BaseClient(object):
         """
         # create zip file
         try:
-            z = zipfile.ZipFile(StringIO(content)) # have zipfile
+            z = zipfile.ZipFile(StringIO(content))  # have zipfile
         except zipfile.BadZipfile:
             self.logger.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
             return None
 
-        unzipped = z.read(z.namelist()[0]) # have unzipped content
+        unzipped = z.read(z.namelist()[0])  # have unzipped content
         z.close()
         return unzipped
 
@@ -288,8 +287,8 @@ class BaseClient(object):
         if mode == 'csv':
             # convert string to filelike if needed
             try:
-                is_closed = filelike.closed
-            except AttributeError: # string, unicode, etc
+                filelike.closed
+            except AttributeError:  # string, unicode, etc
                 filelike = StringIO(filelike)
 
             # read csv
@@ -308,7 +307,7 @@ class BaseClient(object):
 
         # drop na
         df = df.dropna()
-                
+
         return df
 
     def utcify_index(self, local_index, tz_name=None):

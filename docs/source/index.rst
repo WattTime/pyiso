@@ -14,6 +14,7 @@ Contents:
    intro
    install
    usage
+   options
    contributing
 
 
