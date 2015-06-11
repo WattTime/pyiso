@@ -171,8 +171,12 @@ class CAISOClient(BaseClient):
     def get_lmp(self, node_id, **kwargs):
         """
         Returns a dictionary with keys of datetime.datetime objects
-        Values holds $/MW float
-        for final LMP price (i.e., LMP_TYPE Energy)
+        Values holds $/MW float,
+        for final LMP price (i.e., LMP_TYPE Energy), but does *not* hold any other information.
+        If requesting 'ALL' nodes, this will only return the value for the last node-
+        prior data will be overwritten.  Accordingly, this should not be used
+        if 'ALL' nodes are desired; in that case use get_lmp_as_dataframe() instead.
+        Note that this will only return the LMP, not the MCC, MCE, or MCL.
         """
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
         if df.empty:
@@ -187,10 +191,16 @@ class CAISOClient(BaseClient):
                              market_run_id='RTM', **kwargs):
         """
         Returns a pandas DataFrame with columns
-        INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others.
-        Seperate rows for each LMP_TYPE (Congestion, Loss, Energy)
-        MW columns holds $/MW float.
+        INTERVALENDTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others, indexed by INTERVALSTARTTIME_GMT
+        This is the full .csv dataset returned by the CAISO API call.
+        LMP_PRC column holds $/MW as a float. Other LMP prices (MCC, MCL, MCE) are not currently returned.
         If no data, returns an empty dataframe.
+        If the requested time period is greater than the period allowed by CAISO, the system may return an error.
+        Limits are as follows:
+         - Single node: 31 days (all markets), will error if a longer period is requested
+         - 'ALL' nodes: will only return the following period of data if the request is a larger timespan
+          - DAM: 1 day
+          - HASP, RTM: 1 hour
         """
         # set args
         self.handle_options(data='lmp', latest=latest,
