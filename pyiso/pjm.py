@@ -30,9 +30,9 @@ class PJMClient(BaseClient):
                     # numbers may have commas in the thousands
                     val_str = elt.next_sibling.string.replace(',', '')
                     return float(val_str)
-            except AttributeError: # no 'a' child
+            except AttributeError:  # no 'a' child
                 continue
-            
+
         # no value found
         self.logger.error('PJM: Value for %s not found in soup:\n%s' % (key, soup))
         return None
@@ -45,14 +45,14 @@ class PJMClient(BaseClient):
 
         # soup it up
         soup = BeautifulSoup(response.content)
-        
+
         # get time and value
         ts = self.time_from_soup(soup)
         val = self.val_from_soup(soup, key)
 
         # return
         return ts, val
-                
+
     def get_generation(self, latest=False, **kwargs):
         # set args
         self.handle_options(data='gen', **kwargs)
@@ -61,12 +61,12 @@ class PJMClient(BaseClient):
         load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
         imports_ts, imports_val = self.fetch_edata('tieFlow', 'PJM RTO')
         wind_ts, wind_gen = self.fetch_edata('wind', 'RTO Wind Power')
-        
+
         # compute nonwind gen
         try:
             total_gen = load_val - imports_val
             nonwind_gen = total_gen - wind_gen
-        except TypeError: # value was None
+        except TypeError:  # value was None
             self.logger.error('PJM: No timestamps found for options %s' % str(self.options))
             return []
 
@@ -105,11 +105,12 @@ class PJMClient(BaseClient):
         load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
 
         if load_ts and load_val:
-            return [{'timestamp': load_ts,
-                        'freq': self.FREQUENCY_CHOICES.fivemin,
-                        'market': self.MARKET_CHOICES.fivemin,
-                        'load_MW': load_val,
-                        'ba_name': self.NAME,
+            return [{
+                    'timestamp': load_ts,
+                    'freq': self.FREQUENCY_CHOICES.fivemin,
+                    'market': self.MARKET_CHOICES.fivemin,
+                    'load_MW': load_val,
+                    'ba_name': self.NAME,
                     }]
         else:
             return []

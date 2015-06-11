@@ -5,7 +5,7 @@ from datetime import timedelta
 
 class NYISOClient(BaseClient):
     NAME = 'NYISO'
-    
+
     base_url = 'http://mis.nyiso.com/public/csv'
 
     TZ_NAME = 'America/New_York'
@@ -52,7 +52,7 @@ class NYISOClient(BaseClient):
         # handle latest
         if self.options.get('latest', False):
             latest_ts = max([d['timestamp'] for d in data])
-            latest_data = [d for d in data if d['timestamp']==latest_ts]
+            latest_data = [d for d in data if d['timestamp'] == latest_ts]
             return latest_data
 
         # handle sliceable
@@ -88,9 +88,9 @@ class NYISOClient(BaseClient):
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
         market = self.options.get('market', self.MARKET_CHOICES.fivemin)
         base_dp = {
-                'freq': freq,
-                'market': market,
-                'ba_name': self.NAME,
+            'freq': freq,
+            'market': market,
+            'ba_name': self.NAME,
         }
 
         # serialize
@@ -119,10 +119,10 @@ class NYISOClient(BaseClient):
 
         # only keep flows across external interfaces
         interfaces = [
-            'SCH - HQ - NY', 'SCH - HQ_CEDARS', 'SCH - HQ_IMPORT_EXPORT', # HQ
-            'SCH - NE - NY', 'SCH - NPX_1385', 'SCH - NPX_CSC', # ISONE
-            'SCH - OH - NY', # Ontario
-            'SCH - PJ - NY', 'SCH - PJM_HTP', 'SCH - PJM_NEPTUNE', 'SCH - PJM_VFT', # PJM
+            'SCH - HQ - NY', 'SCH - HQ_CEDARS', 'SCH - HQ_IMPORT_EXPORT',  # HQ
+            'SCH - NE - NY', 'SCH - NPX_1385', 'SCH - NPX_CSC',  # ISONE
+            'SCH - OH - NY',  # Ontario
+            'SCH - PJ - NY', 'SCH - PJM_HTP', 'SCH - PJM_NEPTUNE', 'SCH - PJM_VFT',  # PJM
         ]
         subsetted = pivoted[interfaces]
 
@@ -130,9 +130,9 @@ class NYISOClient(BaseClient):
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
         market = self.options.get('market', self.MARKET_CHOICES.fivemin)
         base_dp = {
-                'freq': freq,
-                'market': market,
-                'ba_name': self.NAME,
+            'freq': freq,
+            'market': market,
+            'ba_name': self.NAME,
         }
 
         # serialize

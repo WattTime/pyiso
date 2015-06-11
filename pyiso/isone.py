@@ -1,14 +1,13 @@
-from datetime import timedelta
 from pyiso.base import BaseClient
 from os import environ
 
 
 class ISONEClient(BaseClient):
     NAME = 'ISONE'
-    
+
     base_url = 'https://webservices.iso-ne.com/api/v1.1'
     TZ_NAME = 'America/New_York'
-    
+
     fuels = {
         'Coal': 'coal',
         'Hydro': 'hydro',
@@ -49,7 +48,7 @@ class ISONEClient(BaseClient):
                 request_urls.append(date.strftime('day/%Y%m%d'))
         else:
             raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
-            
+
         # set up storage
         raw_data = []
         parsed_data = []
@@ -58,7 +57,7 @@ class ISONEClient(BaseClient):
         for request_url in request_urls:
             # set up request
             endpoint = '/genfuelmix/%s.json' % (request_url)
-            
+
             # carry out request
             data = self.fetch_data(endpoint, self.auth)
             raw_data += data['GenFuelMixes']['GenFuelMix']
@@ -67,7 +66,7 @@ class ISONEClient(BaseClient):
         for raw_dp in raw_data:
             # set up storage
             parsed_dp = {}
-            
+
             # add values
             parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
             parsed_dp['gen_MW'] = raw_dp['GenMw']
@@ -75,8 +74,8 @@ class ISONEClient(BaseClient):
             parsed_dp['ba_name'] = self.NAME
             parsed_dp['market'] = self.MARKET_CHOICES.na
             parsed_dp['freq'] = self.FREQUENCY_CHOICES.na
-            
+
             # add to full storage
             parsed_data.append(parsed_dp)
- 
+
         return parsed_data
