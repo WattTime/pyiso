@@ -39,9 +39,9 @@ class CAISOClient(BaseClient):
         'HYDRO': 'hydro',
     }
 
-    oasis_markets = {
-        BaseClient.MARKET_CHOICES.hourly: 'RTM',
-        BaseClient.MARKET_CHOICES.fivemin: 'RTM',
+    oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
+        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
+        BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
     LMP_MARKETS = {
@@ -420,10 +420,10 @@ class CAISOClient(BaseClient):
                 continue
 
             # process both halves of page
-            for header in [0, 0]:
+            for header in [1, 27]:
                 df = self.parse_to_df(response.text,
-                                    skiprows=header, nrows=24, header=header,
-                                    delimiter='\t+', engine='python')
+                                    nrows=24, header=header,
+                                    delimiter='\t+')
 
                 # combine date with hours to index
                 indexed = self.set_dt_index(df, this_date, df['Hour'])
