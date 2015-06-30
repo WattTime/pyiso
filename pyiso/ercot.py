@@ -50,7 +50,7 @@ class ERCOTClient(BaseClient):
             return []
         
         # parse csv
-        rows = content.split('\n')
+        rows = content[0].decode('unicode_escape').split('\n')
         header = rows[0].split(',')
         raw_data = [dict(zip(header, self.parse_row(row))) for row in rows[1:-1]]
         
@@ -89,7 +89,7 @@ class ERCOTClient(BaseClient):
                     wind_gen = None
                     self.logger.error('No wind data available at %s in ERCOT' % (raw_ts))
                 break
-            
+
         # set up storage
         parsed_data = []
         base_dp = {'timestamp': ts_hour_rounded_down,
