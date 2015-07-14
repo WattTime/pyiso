@@ -3,12 +3,12 @@ from unittest import TestCase
 import pytz
 from datetime import datetime
 import logging
-import StringIO
+from io import StringIO
 
 
 class TestBPABase(TestCase):
     def setUp(self):
-        self.wind_tsv = StringIO.StringIO("BPA Balancing Authority Load & Total Wind Generation\n\
+        self.wind_tsv = StringIO("BPA Balancing Authority Load & Total Wind Generation\n\
 at 5-minute intervals, last 7 days\n\
 Dates: 09Apr2014 - 16Apr2014 (last updated 15Apr2014 11:07:06) Pacific Time\n\
 Based on 5-min MW readings from the BPA SCADA system for points 45583, 79687, 79682, 79685\n\
@@ -34,7 +34,7 @@ Date/Time       \tLoad\tWind\tHydro\tThermal\n\
 04/15/2014 11:30\t\n\
 ")
 
-        self.wind_xls = StringIO.StringIO("TOTAL LOAD & WIND GENERATION IN THE BPA CONTROL AREA (Balancing Authority Area)                      \n\
+        self.wind_xls = StringIO("TOTAL LOAD & WIND GENERATION IN THE BPA CONTROL AREA (Balancing Authority Area)                      \n\
 Beginning 1/1/2014, at 5-min increments, updated daily                      \n\
 This data pertains to the Total Load & Total Wind, Hydro, and Thermal Generation in the BPA Balancing Authority area (control area).                        \n\
 It is based upon 5-minute interpolated snapshots.                       \n\

@@ -1,7 +1,7 @@
 from pyiso import client_factory
 from unittest import TestCase
 import logging
-import StringIO
+from io import StringIO
 import pandas as pd
 import pytz
 from datetime import date, datetime, timedelta
@@ -12,7 +12,7 @@ import numpy
 
 class TestCAISOBase(TestCase):
     def setUp(self):
-        self.ren_report_tsv = StringIO.StringIO("03/12/14\t\t\tHourly Breakdown of Renewable Resources (MW)\t\t\t\t\t\t\t\t\t\t\t\t\n\
+        self.ren_report_tsv = StringIO("03/12/14\t\t\tHourly Breakdown of Renewable Resources (MW)\t\t\t\t\t\t\t\t\t\t\t\t\n\
 \tHour\t\tGEOTHERMAL\tBIOMASS\t\tBIOGAS\t\tSMALL HYDRO\tWIND TOTAL\tSOLAR PV\tSOLAR THERMAL\t\t\t\t\n\
 \t1\t\t900\t\t313\t\t190\t\t170\t\t1596\t\t0\t\t0\n\
 \t2\t\t900\t\t314\t\t189\t\t169\t\t1814\t\t0\t\t0\n\
@@ -68,7 +68,7 @@ class TestCAISOBase(TestCase):
 \t24\t\t2118\t\t1082\t\t9800\t\t8904\t\t935\t\t\t\t\n\
 ")
 
-        self.sld_fcst_xml = StringIO.StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+        self.sld_fcst_xml = StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
 <OASISReport xmlns=\"http://www.caiso.com/soa/OASISReport_v1.xsd\">\n\
 <MessageHeader>\n\
 <TimeDate>2014-05-09T17:50:06-00:00</TimeDate>\n\
@@ -124,7 +124,7 @@ class TestCAISOBase(TestCase):
 </MessagePayload>\n\
 </OASISReport>")
 
-        self.ene_slrs_xml = StringIO.StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+        self.ene_slrs_xml = StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
 <OASISReport xmlns=\"http://www.caiso.com/soa/OASISReport_v1.xsd\">\n\
 <MessageHeader>\n\
 <TimeDate>2014-02-24T20:25:40-00:00</TimeDate>\n\
@@ -206,7 +206,7 @@ class TestCAISOBase(TestCase):
 </OASISReport>\n\
 ")
 
-        self.sld_ren_fcst_xml = StringIO.StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+        self.sld_ren_fcst_xml = StringIO("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
 <OASISReport xmlns=\"http://www.caiso.com/soa/OASISReport_v1.xsd\">\n\
 <MessageHeader>\n\
 <TimeDate>2014-02-24T18:51:45-00:00</TimeDate>\n\
@@ -286,7 +286,7 @@ class TestCAISOBase(TestCase):
 </OASISReport>\n\
 ")
 
-        self.todays_outlook_renewables = StringIO.StringIO("<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
+        self.todays_outlook_renewables = StringIO("<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
 \n\
 <HTML>\n\
 <HEAD>\n\
@@ -427,7 +427,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 7828)
-        self.assertIn('INTERVALSTARTTIME_GMT', data)
+        self.assertIn(b'INTERVALSTARTTIME_GMT', data)
 
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
@@ -727,7 +727,6 @@ class TestCAISOBase(TestCase):
                                           market_run_id='DAM', anc_type='RU')
 
         self.assertEqual(len(as_prc), 48)
-        print as_prc[max(as_prc)]
         self.assertEqual(len(as_prc[max(as_prc)].keys()), 1)
         self.assertGreaterEqual(min(as_prc.keys()), start - timedelta(minutes=5))
         self.assertLessEqual(max(as_prc.keys()), ts + timedelta(minutes=5))
