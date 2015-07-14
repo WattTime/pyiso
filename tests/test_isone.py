@@ -32,4 +32,4 @@ class TestISONE(TestCase):
         self.assertEqual(data['GenFuelMixes'].keys(), ['GenFuelMix'])
         self.assertGreater(len(data['GenFuelMixes']['GenFuelMix']), 1)
         self.assertEqual(sorted(data['GenFuelMixes']['GenFuelMix'][0].keys()),
-                         ['FuelCategory', 'BeginDate', 'MarginalFlag', 'FuelCategoryRollup', 'GenMw'])
+                         sorted(['FuelCategory', 'BeginDate', 'MarginalFlag', 'FuelCategoryRollup', 'GenMw']))
