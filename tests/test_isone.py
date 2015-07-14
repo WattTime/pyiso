@@ -28,8 +28,16 @@ class TestISONE(TestCase):
 
     def test_json_format(self):
         data = self.c.fetch_data('/genfuelmix/current.json', self.c.auth)
-        self.assertItemsEqual(data.keys(), ['GenFuelMixes'])
-        self.assertItemsEqual(data['GenFuelMixes'].keys(), ['GenFuelMix'])
+
+        # one item, GenFuelMixes
+        self.assertIn('GenFuelMixes', data.keys())
+        self.assertEqual(len(data.keys()), 1)
+
+        # one item, GenFuelMix
+        self.assertIn('GenFuelMix', data['GenFuelMixes'].keys())
+        self.assertEqual(len(data['GenFuelMixes'].keys()), 1)
+
+        # multiple items
         self.assertGreater(len(data['GenFuelMixes']['GenFuelMix']), 1)
-        self.assertItemsEqual(data['GenFuelMixes']['GenFuelMix'][0].keys(),
-                              ['FuelCategory', 'BeginDate', 'MarginalFlag', 'FuelCategoryRollup', 'GenMw'])
+        self.assertEqual(sorted(data['GenFuelMixes']['GenFuelMix'][0].keys()),
+                         sorted(['FuelCategory', 'BeginDate', 'MarginalFlag', 'FuelCategoryRollup', 'GenMw']))

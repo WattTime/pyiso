@@ -3,12 +3,15 @@ from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
 import pytz
-import urllib2
 import requests
 import pandas as pd
 import zipfile
-from StringIO import StringIO
+from io import StringIO, BytesIO
 
+try:
+    from urllib2 import urlopen
+except ImportError:
+    from urllib.request import urlopen  # Changed from urllib2 for python3.x
 
 # named tuple for time period interval labels
 IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
@@ -198,7 +201,7 @@ class BaseClient(object):
         return cleaned_vals
 
     def fetch_xls(self, url):
-        socket = urllib2.urlopen(url)
+        socket = urlopen(url)
         xd = pd.ExcelFile(socket)
         return xd
 
@@ -248,17 +251,28 @@ class BaseClient(object):
     def unzip(self, content):
         """
         Unzip encoded data.
-        Returns the unzipped content, or None if an error was encountered.
+        Returns the unzipped content as an array of strings, each representing one file's content
+        or returns None if an error was encountered.
+        ***Previous behavior: Only returned the content from the first file***
         """
         # create zip file
         try:
-            z = zipfile.ZipFile(StringIO(content))  # have zipfile
+            filecontent = BytesIO(content)
+        except TypeError:
+            filecontent = StringIO(content)
+
+        try:
+            # have zipfile
+            z = zipfile.ZipFile(filecontent)
         except zipfile.BadZipfile:
             self.logger.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
             return None
 
-        unzipped = z.read(z.namelist()[0])  # have unzipped content
+        # have unzipped content
+        unzipped = [z.read(thisfile) for thisfile in z.namelist()]
         z.close()
+
+        # return
         return unzipped
 
     def parse_to_df(self, filelike, mode='csv', header_names=None, sheet_names=None, **kwargs):
@@ -287,9 +301,12 @@ class BaseClient(object):
         if mode == 'csv':
             # convert string to filelike if needed
             try:
-                filelike.closed
-            except AttributeError:  # string, unicode, etc
-                filelike = StringIO(filelike)
+                is_closed = filelike.closed
+            except AttributeError: # string, unicode, etc
+                try:
+                    filelike = BytesIO(filelike)    ## This was changed from StringIO to work in Python 3.x
+                except TypeError:
+                    filelike = StringIO(filelike)
 
             # read csv
             df = pd.read_csv(filelike, **kwargs)

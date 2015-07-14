@@ -3,7 +3,7 @@ from pyiso.base import BaseClient
 import copy
 import re
 from bs4 import BeautifulSoup
-import StringIO
+from io import BytesIO, StringIO
 import pandas
 from pandas.computation.ops import UndefinedVariableError
 
@@ -39,9 +39,9 @@ class CAISOClient(BaseClient):
         'HYDRO': 'hydro',
     }
 
-    oasis_markets = {
-        BaseClient.MARKET_CHOICES.hourly: 'RTM',
-        BaseClient.MARKET_CHOICES.fivemin: 'RTM',
+    oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
+        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
+        BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
     LMP_MARKETS = {
@@ -184,7 +184,7 @@ class CAISOClient(BaseClient):
         return lmp_dict
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
-                             market_run_id='RTM', **kwargs):
+                             market_run_id='RTM', lmp_only=True, **kwargs):
         """
         Returns a pandas DataFrame with columns
         INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others.
@@ -197,27 +197,59 @@ class CAISOClient(BaseClient):
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
                             **kwargs)
-
+        
         if latest:
             queryname = 'PRC_CURR_LMP'
         else:
             queryname = self.LMP_MARKETS[market_run_id]
+
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
                                                node=node_id)
-
+        
         # Fetch data
-        data = self.fetch_oasis(payload=payload)
-
-        # Turn into pandas Dataframe
-        str_data = StringIO.StringIO(data)
-        df = pandas.DataFrame.from_csv(str_data, sep=",")
-
-        # strip congestion and loss prices
-        try:
-            df = df.ix[df['LMP_TYPE'] == 'LMP']
-        except KeyError:  # no good data
-            return pandas.DataFrame
+        data = self.fetch_oasis(payload=payload, return_all_files = not(lmp_only))
+        # data will be a single csv-derived string if lmp_only==True
+        # data will be an array of csv-derived strings if lmp_only==False
+        
+        if lmp_only==True:    
+            # Turn into pandas Dataframe
+            print(data)
+            
+            if len(data)==0:
+                return pandas.DataFrame()
+            
+            try:
+                str_data = BytesIO(data)    # Changed from StringIO for Python 3.4
+            except TypeError:
+                str_data = StringIO(data)
+                
+            df = pandas.DataFrame.from_csv(str_data, sep=",")
+    
+            # strip congestion and loss prices
+            try:
+                df = df.ix[df['LMP_TYPE'] == 'LMP']
+            except KeyError:  # no good data
+                return pandas.DataFrame
+        else:
+            # data is an array of csv-derived strings            
+            df = pandas.DataFrame()
+            for thisFile in data:
+                # Turn into pandas Dataframe
+                try:
+                    str_data = BytesIO(thisFile) # Changed from StringIO for Python 3.4
+                except TypeError:
+                    str_data = StringIO(thisFile)
+                    
+                tempDf = pandas.DataFrame.from_csv(str_data, sep=",")
+                
+                df = pandas.concat([df, tempDf])
+            # Check to ensure good data
+            try:
+                foo = df['LMP_TYPE'][0]
+            except KeyError:  # no good data
+                return pandas.DataFrame
+            
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
@@ -230,7 +262,13 @@ class CAISOClient(BaseClient):
         df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
-
+    
+    
+            # We want to get multiple files, we pass a parameter to fetch_oasis
+            # Modify base.py unzip() to return all files in an array
+            # modify fetch_oasis to return just the first element in this array by default
+            # Have fetch_oasis return the full set if the parameter is set to that.
+            
     def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
         """
@@ -255,13 +293,18 @@ class CAISOClient(BaseClient):
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
+    
+        if len(data)==0:
+            return pandas.DataFrame()
 
         # Turn into pandas Dataframe
-        str_data = StringIO.StringIO(data)
+        #str_data = StringIO.StringIO(data)
+        try:
+            str_data = BytesIO(data)    # Changed from StringIO.StringIO() for Python 3.4
+        except TypeError:
+            str_data = StringIO(data)
+            
         df = pandas.DataFrame.from_csv(str_data, sep=",")
-
-        if df.empty:
-            return df
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':
@@ -380,7 +423,7 @@ class CAISOClient(BaseClient):
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
                                     nrows=24, header=header,
-                                    delimiter='\t+', engine='python')
+                                    delimiter='\t+')
 
                 # combine date with hours to index
                 indexed = self.set_dt_index(df, this_date, df['Hour'])
@@ -409,23 +452,36 @@ class CAISOClient(BaseClient):
         # return
         return parsed_data
 
-    def fetch_oasis(self, payload={}):
-        """Returns a list of report data elements, or an empty list if an error was encountered."""
+    def fetch_oasis(self, payload={}, return_all_files=False):
+        """
+        Returns a list of report data elements, or an empty list if an error was encountered.
+        
+        If return_all_files=False, returns only the content from the first file in the .zip -
+        this is the default behavior and was used in earlier versions of this function.
+        
+        If return_all_files=True, will return an array representing the content from each file.
+        This is useful for processing LMP data or other fields where multiple price components are returned in a zip.
+        """
         # set up storage
         raw_data = []
+        
+        if return_all_files is True:
+            default_return_val = []
+        else:
+            default_return_val = ''
 
         # try get
         response = self.request(self.base_url_oasis, params=payload) # have request
         if not response:
-            return []
+            return default_return_val
 
         # read data from zip
-        content = self.unzip(response.content)
+        content = self.unzip(response.content) # This will be an array of content if successful, and None if unsuccessful
         if not content:
-            return []
+            return default_return_val
 
         # load xml into soup
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content[0])  # Check the first file for errors
 
         # check xml content
         error = soup.find('m:error')
@@ -434,14 +490,20 @@ class CAISOClient(BaseClient):
             desc = error.find('m:err_desc')
             msg = 'XML error for CAISO OASIS with payload %s: %s %s' % (payload, code, desc)
             self.logger.error(msg)
-            return []
-
+            return default_return_val
         else:
-            if payload.get('resultformat', False) == 6:
-                return content
-            else:
-                raw_data = soup.find_all('report_data')
-                return raw_data
+            if payload.get('resultformat', False) == 6:  # If we requested CSV files
+                if return_all_files==True:
+                    return content
+                else:
+                    return content[0]
+            else:                                       # Return XML content
+                if return_all_files == True:
+                    raw_data = [BeautifulSoup(thisfile).find_all('report_data') for thisfile in content]
+                    return raw_data
+                else:
+                    raw_data = soup.find_all('report_data')
+                    return raw_data
 
     def parse_oasis_renewable(self, raw_data):
         """Parse raw data output of fetch_oasis for renewables."""
@@ -469,7 +531,7 @@ class CAISOClient(BaseClient):
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.hourly)
         market = self.options.get('market', self.MARKET_CHOICES.hourly)
 
-        for ts, preparsed_dp in preparsed_data.iteritems():
+        for ts, preparsed_dp in preparsed_data.items():
             # set up base
             base_parsed_dp = {'timestamp': ts,
                               'freq': freq,

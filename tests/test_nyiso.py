@@ -1,13 +1,13 @@
 from pyiso import client_factory
 from unittest import TestCase
 import logging
-import StringIO
+from io import StringIO
 from datetime import date
 
 
 class TestNYISOBase(TestCase):
     def setUp(self):
-        self.load_csv = StringIO.StringIO('"Time Stamp","Time Zone","Name","PTID","Load"\n\
+        self.load_csv = StringIO(u'"Time Stamp","Time Zone","Name","PTID","Load"\n\
 "09/10/2014 00:00:00","EDT","CAPITL",61757,1173.2\n\
 "09/10/2014 00:00:00","EDT","CENTRL",61754,1591.2\n\
 "09/10/2014 00:00:00","EDT","DUNWOD",61760,609.4\n\
@@ -65,7 +65,7 @@ class TestNYISOBase(TestCase):
 "09/10/2014 19:35:00","EDT","WEST",61752,\n\
 ')
 
-        self.trade_csv = StringIO.StringIO('Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)\n\
+        self.trade_csv = StringIO(u'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)\n\
 09/10/2014 00:00,WEST CENTRAL,23312,-106.15,2250,-9999\n\
 09/10/2014 00:00,SCH - PJM_HTP,325905,0,660,-660\n\
 09/10/2014 00:00,UPNY CONED,23315,1102.21,4850,-9999\n\
@@ -147,7 +147,7 @@ class TestNYISOBase(TestCase):
         data = c.parse_load(self.load_csv)
         expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
         for dp in data:
-            self.assertItemsEqual(dp.keys(), expected_keys)
+            self.assertEqual(sorted(dp.keys()), sorted(expected_keys))
             self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
             self.assertGreater(dp['load_MW'], 15700)
             self.assertLess(dp['load_MW'], 16100)
@@ -161,7 +161,7 @@ class TestNYISOBase(TestCase):
         expected_keys = ['timestamp', 'ba_name', 'freq', 'market', 'net_exp_MW']
         for dp in data:
             self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
-            self.assertItemsEqual(expected_keys, dp.keys())
+            self.assertEqual(sorted(dp.keys()), sorted(expected_keys))
 
             self.assertLess(dp['net_exp_MW'], -1400)
             self.assertGreater(dp['net_exp_MW'], -6300)
