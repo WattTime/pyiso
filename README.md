@@ -12,3 +12,8 @@ Documentation: http://pyiso.readthedocs.org/
 
 PyPI: https://pypi.python.org/pypi/pyiso/
 
+
+Changelog
+---------
+
+* 0.2.0: Maintains Python 2.7 support and adds Python 3.4! Thanks @emunsing

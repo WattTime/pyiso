@@ -2,7 +2,7 @@ import imp
 import os.path
 
 
-__version__ = '0.1.19'
+__version__ = '0.2.0'
 
 
 def client_factory(client_name, **kwargs):
