@@ -7,7 +7,7 @@ from datetime import date
 
 class TestNYISOBase(TestCase):
     def setUp(self):
-        self.load_csv = StringIO('"Time Stamp","Time Zone","Name","PTID","Load"\n\
+        self.load_csv = StringIO(u'"Time Stamp","Time Zone","Name","PTID","Load"\n\
 "09/10/2014 00:00:00","EDT","CAPITL",61757,1173.2\n\
 "09/10/2014 00:00:00","EDT","CENTRL",61754,1591.2\n\
 "09/10/2014 00:00:00","EDT","DUNWOD",61760,609.4\n\
@@ -65,7 +65,7 @@ class TestNYISOBase(TestCase):
 "09/10/2014 19:35:00","EDT","WEST",61752,\n\
 ')
 
-        self.trade_csv = StringIO('Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)\n\
+        self.trade_csv = StringIO(u'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)\n\
 09/10/2014 00:00,WEST CENTRAL,23312,-106.15,2250,-9999\n\
 09/10/2014 00:00,SCH - PJM_HTP,325905,0,660,-660\n\
 09/10/2014 00:00,UPNY CONED,23315,1102.21,4850,-9999\n\

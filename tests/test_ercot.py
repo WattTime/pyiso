@@ -14,7 +14,7 @@ class TestERCOT(TestCase):
         self.c.logger.addHandler(handler)
         self.c.logger.setLevel(logging.DEBUG)
 
-        self.load_html = StringIO('<html>\n\
+        self.load_html = StringIO(u'<html>\n\
 <body class="bodyStyle">\n\
 <table class="tableStyle" cellpadding="0" cellspacing="0" border="0" bgcolor="#ECECE2">\n\
     <tr>\n\
@@ -97,7 +97,7 @@ class TestERCOT(TestCase):
     def test_request_report_gen_hrly(self):
         # get data as list of dicts
         data = self.c._request_report('gen_hrly')
-        
+
         # test for expected data
         self.assertEqual(len(data), 1)
         for key in ['SE_EXE_TIME_DST', 'SE_EXE_TIME', 'SE_MW']:
@@ -108,6 +108,6 @@ class TestERCOT(TestCase):
         data = self.c._request_report('wind_hrly')
 
         # test for expected data
-        self.assertEqual(len(data), 96)
+        self.assertEqual(len(data), 95)
         for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_BEGINNING']:
             self.assertIn(key, data[0].keys())
