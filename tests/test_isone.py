@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import pytz
 import logging
 import dateutil.parser
-import mock
 
 
 class TestISONE(TestCase):
@@ -12,7 +11,7 @@ class TestISONE(TestCase):
         self.c = client_factory('ISONE')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.DEBUG)
+        self.c.logger.setLevel(logging.INFO)
 
     def test_auth(self):
         """Auth info should be set up from env during init"""

@@ -9,7 +9,7 @@ class TestMISO(TestCase):
         self.c = client_factory('MISO')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.DEBUG)
+        self.c.logger.setLevel(logging.INFO)
 
     def test_utcify(self):
         ts_str = '2014-05-03T01:45:00'

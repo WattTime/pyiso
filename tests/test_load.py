@@ -21,7 +21,7 @@ class TestBaseLoad(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.DEBUG)
+        c.logger.setLevel(logging.INFO)
         return c
 
     def _run_test(self, ba_name, **kwargs):

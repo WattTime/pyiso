@@ -139,7 +139,7 @@ class TestNYISOBase(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.DEBUG)
+        c.logger.setLevel(logging.INFO)
         return c
 
     def test_parse_load(self):

@@ -4,7 +4,6 @@ import pytz
 import logging
 from io import StringIO
 from datetime import datetime
-import time
 
 
 class TestERCOT(TestCase):

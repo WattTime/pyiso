@@ -70,6 +70,16 @@ class TestLoadTask(TestCase):
         received = tasks.get_load('CAISO', **self.forecast_kwargs)
         self.assertEqual(expected, received)
 
+    def test_isone_latest(self):
+        expected = client_factory('ISONE').get_load(**self.latest_kwargs)
+        received = tasks.get_load('ISONE', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_isone_forecast(self):
+        expected = client_factory('ISONE').get_load(**self.forecast_kwargs)
+        received = tasks.get_load('ISONE', **self.forecast_kwargs)
+        self.assertEqual(expected, received)
+
     def test_pjm_latest(self):
         expected = client_factory('PJM').get_load(**self.latest_kwargs)
         received = tasks.get_load('PJM', **self.latest_kwargs)

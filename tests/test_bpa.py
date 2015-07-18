@@ -78,7 +78,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.DEBUG)
+        c.logger.setLevel(logging.INFO)
         return c
 
     def test_request_latest(self):
@@ -106,7 +106,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_utcify_index(self):
         c = self.create_client('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True)
+                           index_col=0, parse_dates=True)
         utc_index = c.utcify_index(df.index)
         self.assertEqual(utc_index[0].to_pydatetime(), datetime(2014, 4, 15, 10+7, 10, tzinfo=pytz.utc))
         self.assertEqual(len(df), len(utc_index))
@@ -114,9 +114,9 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_slice_latest(self):
         c = self.create_client('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True)
+                           index_col=0, parse_dates=True)
         df.index = c.utcify_index(df.index)
-        sliced = c.slice_times(df, {'latest':True})
+        sliced = c.slice_times(df, {'latest': True})
 
         # values in last non-empty row
         self.assertEqual(list(sliced.values[0]), [6464, 3688, 10662, 1601])
@@ -124,10 +124,10 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_slice_startend(self):
         c = self.create_client('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True)
+                           index_col=0, parse_dates=True)
         df.index = c.utcify_index(df.index)
-        sliced = c.slice_times(df, {'start_at':datetime(2014, 4, 15, 10+7, 25, tzinfo=pytz.utc),
-                                    'end_at':datetime(2014, 4, 15, 11+7, 30, tzinfo=pytz.utc)})
+        sliced = c.slice_times(df, {'start_at': datetime(2014, 4, 15, 10+7, 25, tzinfo=pytz.utc),
+                                    'end_at': datetime(2014, 4, 15, 11+7, 30, tzinfo=pytz.utc)})
 
         self.assertEqual(len(sliced), 9)
         self.assertEqual(list(sliced.iloc[0].values), [6537, 3684, 11281, 1601])
@@ -135,7 +135,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_serialize_gen(self):
         c = self.create_client('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True, usecols=[0, 2, 3, 4])
+                           index_col=0, parse_dates=True, usecols=[0, 2, 3, 4])
         df.index = c.utcify_index(df.index)
         renamed = df.rename(columns=c.fuels, inplace=False)
         pivoted = c.unpivot(renamed)
@@ -147,7 +147,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_serialize_load(self):
         c = self.create_client('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
-                            index_col=0, parse_dates=True, usecols=[0, 1])
+                           index_col=0, parse_dates=True, usecols=[0, 1])
         df.index = c.utcify_index(df.index)
 
         data = c.serialize(df, header=['timestamp', 'load_MW'])
@@ -157,12 +157,12 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
     def test_parse_xls(self):
         c = self.create_client('BPA')
         xd = c.fetch_xls(c.base_url + 'wind/WindGenTotalLoadYTD_2014.xls')
-            
+
         # parse xls
         df = c.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names, skiprows=18,
-                            index_col=0, parse_dates=True,
-                            parse_cols=[0, 2, 4, 5], header_names=['Wind', 'Hydro', 'Thermal']
-                            )
+                           index_col=0, parse_dates=True,
+                           parse_cols=[0, 2, 4, 5], header_names=['Wind', 'Hydro', 'Thermal']
+                           )
 
         self.assertEqual(list(df.columns), ['Wind', 'Hydro', 'Thermal'])
         self.assertGreater(len(df), 0)

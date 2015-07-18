@@ -21,7 +21,7 @@ class TestBaseTrade(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.DEBUG)
+        c.logger.setLevel(logging.INFO)
         return c
 
     def _run_test(self, ba_name, **kwargs):
@@ -30,21 +30,21 @@ class TestBaseTrade(TestCase):
 
         # get data
         data = c.get_trade(**kwargs)
-        
+
         # test number
         self.assertGreaterEqual(len(data), 1)
-                
+
         # test contents
         for dp in data:
             # test key names
             for key in ['ba_name', 'timestamp', 'freq', 'market']:
                 self.assertIn(key, dp.keys())
             self.assertEqual(len(dp.keys()), 5)
-    
+
             # test values
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
             self.assertIn(dp['ba_name'], self.BA_CHOICES)
-            
+
             # test for numeric value
             self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
 
@@ -53,7 +53,7 @@ class TestBaseTrade(TestCase):
                 self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-            
+
         # return
         return data
 
@@ -81,22 +81,22 @@ class TestCAISOTrade(TestBaseTrade):
     def test_latest(self):
         # basic test
         data = self._run_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -104,7 +104,7 @@ class TestCAISOTrade(TestBaseTrade):
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_forecast(self):
         # basic test
@@ -119,29 +119,29 @@ class TestCAISOTrade(TestBaseTrade):
        # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
 
 class TestNYISOTrade(TestBaseTrade):
     def test_latest(self):
         # basic test
         data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NYISO', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -155,7 +155,7 @@ class TestNYISOTrade(TestBaseTrade):
         # basic test
         data = self._run_test('NYISO', start_at=datetime.now()-timedelta(minutes=10),
                               end_at=datetime.now()-timedelta(minutes=5))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
@@ -168,9 +168,9 @@ class TestNYISOTrade(TestBaseTrade):
     def test_date_range_future(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_failing_test('NYISO', start_at=today+timedelta(days=1),
-                              end_at=today+timedelta(days=2))
-        
+        self._run_failing_test('NYISO', start_at=today+timedelta(days=1),
+                               end_at=today+timedelta(days=2))
+
 
 class TestERCOTTrade(TestBaseTrade):
     def test_failing(self):
