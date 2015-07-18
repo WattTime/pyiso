@@ -68,5 +68,6 @@ setup(
         'pytz',
         'requests',
         'celery>=3.1',
+        'xlrd',
     ],
 )
