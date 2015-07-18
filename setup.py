@@ -67,7 +67,6 @@ setup(
         'python-dateutil',
         'pytz',
         'requests',
-        'xlrd',
         'celery>=3.1',
     ],
 )

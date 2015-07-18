@@ -5,5 +5,4 @@ pandas>=0.15
 python-dateutil==2.2
 pytz
 requests==2.2.1
-xlrd==0.9.2
 celery>=3.1
