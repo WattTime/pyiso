@@ -67,8 +67,7 @@ setup(
         'python-dateutil',
         'pytz',
         'requests',
-        'xlrd',
-        'selenium',
         'celery>=3.1',
+        'xlrd',
     ],
 )

@@ -21,7 +21,7 @@ class TestBaseLoad(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.DEBUG)
+        c.logger.setLevel(logging.INFO)
         return c
 
     def _run_test(self, ba_name, **kwargs):
@@ -30,21 +30,21 @@ class TestBaseLoad(TestCase):
 
         # get data
         data = c.get_load(**kwargs)
-        
+
         # test number
         self.assertGreaterEqual(len(data), 1)
-                
+
         # test contents
         for dp in data:
             # test key names
             self.assertEqual(set(['load_MW', 'ba_name',
                                   'timestamp', 'freq', 'market']),
                              set(dp.keys()))
-    
+
             # test values
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
             self.assertIn(dp['ba_name'], self.BA_CHOICES)
-            
+
             # test for numeric gen
             self.assertGreaterEqual(dp['load_MW']+1, dp['load_MW'])
 
@@ -53,7 +53,7 @@ class TestBaseLoad(TestCase):
                 self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-            
+
         # return
         return data
 
@@ -69,22 +69,22 @@ class TestBPALoad(TestBaseLoad):
     def test_latest(self):
         # basic test
         data = self._run_test('BPA', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -94,7 +94,7 @@ class TestBPALoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -104,22 +104,22 @@ class TestCAISOLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
         data = self._run_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -139,20 +139,48 @@ class TestERCOTLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
         data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
 
 class TestISONELoad(TestBaseLoad):
-    def test_failing(self):
-        self._run_notimplemented_test('ISONE')
+    def test_latest(self):
+        # basic test
+        data = self._run_test('ISONE', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('ISONE', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_forecast(self):
+        # basic test
+        data = self._run_test('ISONE', forecast=True)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
 
 
 class TestMISOLoad(TestBaseLoad):
@@ -164,22 +192,22 @@ class TestNYISOLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
         data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)                
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NYISO', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -189,11 +217,11 @@ class TestPJMLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
         data = self._run_test('PJM', latest=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-        
+
         # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)

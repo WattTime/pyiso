@@ -27,7 +27,7 @@ class TestPJM(TestCase):
         self.c = client_factory('PJM')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.DEBUG)
+        self.c.logger.setLevel(logging.INFO)
 
     def test_utcify_pjmlike(self):
         ts_str = '04/13/14 21:45 EDT'
