@@ -16,6 +16,7 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``ERCOT.get_generation``  yes         yes                                no            no
 ``ERCOT.get_load``        yes         no                                 no            no
 ``ISONE.get_generation``  yes         yes                                no            no
+``ISONE.get_load`` 		  yes         yes                                no            yes
 ``MISO.get_generation``   yes         no                                 no            no
 ``NYISO.get_generation``  yes         yes                                no            no
 ``NYISO.get_load``        yes         yes                                no            no
