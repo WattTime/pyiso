@@ -176,7 +176,7 @@ class TestISONELoad(TestBaseLoad):
 
     def test_forecast(self):
         # basic test
-        data = self._run_test('ISONE', forecast=True)
+        data = self._run_test('ISONE', forecast=True, market='DAHR', freq='1hr')
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

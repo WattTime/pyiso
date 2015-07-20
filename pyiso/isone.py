@@ -80,13 +80,14 @@ class ISONEClient(BaseClient):
             data = self.fetch_data(endpoint, self.auth)
 
             # pull out data
-            if 'FiveMinSystemLoads' in data.keys():
-                raw_data += data['FiveMinSystemLoads']['FiveMinSystemLoad']
-            elif 'FiveMinSystemLoad' in data.keys():
-                raw_data += data['FiveMinSystemLoad']
-            elif 'HourlyLoadForecasts' in data.keys():
-                raw_data += data['HourlyLoadForecasts']['HourlyLoadForecast']
-            else:
+            try:
+                if self.options.get('latest'):
+                    raw_data += data['FiveMinSystemLoad']
+                elif self.options['market'] == self.MARKET_CHOICES.dam:
+                    raw_data += data['HourlyLoadForecasts']['HourlyLoadForecast']
+                else:
+                    raw_data += data['FiveMinSystemLoads']['FiveMinSystemLoad']
+            except (KeyError, TypeError):
                 raise ValueError('Could not parse ISONE load data %s' % data)
 
         # parse data
