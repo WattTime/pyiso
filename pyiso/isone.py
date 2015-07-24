@@ -2,6 +2,10 @@ from pyiso.base import BaseClient
 from os import environ
 from datetime import datetime
 import pytz
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ISONEClient(BaseClient):
@@ -81,14 +85,10 @@ class ISONEClient(BaseClient):
 
             # pull out data
             try:
-                if self.options.get('latest'):
-                    raw_data += data['FiveMinSystemLoad']
-                elif self.options['market'] == self.MARKET_CHOICES.dam:
-                    raw_data += data['HourlyLoadForecasts']['HourlyLoadForecast']
-                else:
-                    raw_data += data['FiveMinSystemLoads']['FiveMinSystemLoad']
-            except (KeyError, TypeError):
-                raise ValueError('Could not parse ISONE load data %s' % data)
+                raw_data += self.parse_json_load_data(data)
+            except ValueError as e:
+                logger.warn(e)
+                continue
 
         # parse data
         now = pytz.utc.localize(datetime.utcnow())
@@ -173,3 +173,18 @@ class ISONEClient(BaseClient):
         url = self.base_url + endpoint
         response = self.request(url, auth=auth)
         return response.json()
+
+    def parse_json_load_data(self, data):
+        """
+        Pull approriate keys from json data set.
+        Raise ValueError if parser fails.
+        """
+        try:
+            if self.options.get('latest'):
+                return data['FiveMinSystemLoad']
+            elif self.options['market'] == self.MARKET_CHOICES.dam:
+                return data['HourlyLoadForecasts']['HourlyLoadForecast']
+            else:
+                return data['FiveMinSystemLoads']['FiveMinSystemLoad']
+        except (KeyError, TypeError):
+            raise ValueError('Could not parse ISONE load data %s' % data)
