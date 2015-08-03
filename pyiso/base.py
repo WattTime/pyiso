@@ -301,10 +301,10 @@ class BaseClient(object):
         if mode == 'csv':
             # convert string to filelike if needed
             try:
-                is_closed = filelike.closed
-            except AttributeError: # string, unicode, etc
+                filelike.closed
+            except AttributeError:  # string, unicode, etc
                 try:
-                    filelike = BytesIO(filelike)    ## This was changed from StringIO to work in Python 3.x
+                    filelike = BytesIO(filelike)  # This was changed from StringIO to work in Python 3.x
                 except TypeError:
                     filelike = StringIO(filelike)
 

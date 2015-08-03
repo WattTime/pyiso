@@ -5,7 +5,6 @@ import re
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 import pandas
-from pandas.computation.ops import UndefinedVariableError
 
 
 class CAISOClient(BaseClient):
@@ -81,7 +80,7 @@ class CAISOClient(BaseClient):
             return self._generation_historical()
 
     def get_load(self, latest=False,
-                       start_at=False, end_at=False, **kwargs):
+                 start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='load', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -125,7 +124,7 @@ class CAISOClient(BaseClient):
             return parsed_data
 
     def get_trade(self, latest=False,
-                       start_at=False, end_at=False, **kwargs):
+                  start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='trade', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -206,50 +205,48 @@ class CAISOClient(BaseClient):
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
                                                node=node_id)
-        
+
         # Fetch data
-        data = self.fetch_oasis(payload=payload, return_all_files = not(lmp_only))
+        data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
-        
-        if lmp_only==True:    
+
+        if lmp_only is True:
             # Turn into pandas Dataframe
-            print(data)
-            
-            if len(data)==0:
+            if len(data) == 0:
                 return pandas.DataFrame()
-            
+
             try:
                 str_data = BytesIO(data)    # Changed from StringIO for Python 3.4
             except TypeError:
                 str_data = StringIO(data)
-                
+
             df = pandas.DataFrame.from_csv(str_data, sep=",")
-    
+
             # strip congestion and loss prices
             try:
                 df = df.ix[df['LMP_TYPE'] == 'LMP']
             except KeyError:  # no good data
                 return pandas.DataFrame
         else:
-            # data is an array of csv-derived strings            
+            # data is an array of csv-derived strings
             df = pandas.DataFrame()
             for thisFile in data:
                 # Turn into pandas Dataframe
                 try:
-                    str_data = BytesIO(thisFile) # Changed from StringIO for Python 3.4
+                    str_data = BytesIO(thisFile)  # Changed from StringIO for Python 3.4
                 except TypeError:
                     str_data = StringIO(thisFile)
-                    
+
                 tempDf = pandas.DataFrame.from_csv(str_data, sep=",")
-                
+
                 df = pandas.concat([df, tempDf])
             # Check to ensure good data
             try:
-                foo = df['LMP_TYPE'][0]
+                df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
-            
+
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
@@ -262,13 +259,7 @@ class CAISOClient(BaseClient):
         df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
-    
-    
-            # We want to get multiple files, we pass a parameter to fetch_oasis
-            # Modify base.py unzip() to return all files in an array
-            # modify fetch_oasis to return just the first element in this array by default
-            # Have fetch_oasis return the full set if the parameter is set to that.
-            
+
     def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
         """
@@ -287,14 +278,14 @@ class CAISOClient(BaseClient):
         queryname = self.AS_MARKETS[market_run_id]
 
         payload = self.construct_oasis_payload(queryname,
-                                               resultformat=6, # csv
+                                               resultformat=6,  # csv
                                                anc_region=anc_region)
         payload.update(kwargs)
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
-    
-        if len(data)==0:
+
+        if len(data) == 0:
             return pandas.DataFrame()
 
         # Turn into pandas Dataframe
@@ -303,7 +294,7 @@ class CAISOClient(BaseClient):
             str_data = BytesIO(data)    # Changed from StringIO.StringIO() for Python 3.4
         except TypeError:
             str_data = StringIO(data)
-            
+
         df = pandas.DataFrame.from_csv(str_data, sep=",")
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
@@ -343,7 +334,7 @@ class CAISOClient(BaseClient):
                 firsttime = False
             else:
                 a = pandas.merge(a, group[i].rename(columns=re(name)),
-                                left_index=True, right_index=True, how='outer')
+                                 left_index=True, right_index=True, how='outer')
 
         pandas.set_option('display.width', 200)
 
@@ -377,7 +368,7 @@ class CAISOClient(BaseClient):
                    'market_run_id': market_run_id,
                    'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
                    'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
-                  }
+                   }
         payload.update(self.base_payload)
         payload.update(kwargs)
 
@@ -422,8 +413,8 @@ class CAISOClient(BaseClient):
             # process both halves of page
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
-                                    nrows=24, header=header,
-                                    delimiter='\t+')
+                                      nrows=24, header=header,
+                                      delimiter='\t+')
 
                 # combine date with hours to index
                 indexed = self.set_dt_index(df, this_date, df['Hour'])
@@ -432,7 +423,7 @@ class CAISOClient(BaseClient):
                 indexed.rename(columns=self.fuels, inplace=True)
 
                 # remove non-fuel cols
-                fuel_cols = list( set(self.fuels.values()) & set(indexed.columns) )
+                fuel_cols = list(set(self.fuels.values()) & set(indexed.columns))
                 subsetted = indexed[fuel_cols]
 
                 # pivot
@@ -441,10 +432,10 @@ class CAISOClient(BaseClient):
 
                 # store
                 parsed_data += self.serialize(pivoted,
-                                      header=['timestamp', 'fuel_name', 'gen_MW'],
-                                      extras={'ba_name': self.NAME,
-                                              'market': self.MARKET_CHOICES.hourly,
-                                              'freq': self.FREQUENCY_CHOICES.hourly})
+                                              header=['timestamp', 'fuel_name', 'gen_MW'],
+                                              extras={'ba_name': self.NAME,
+                                                      'market': self.MARKET_CHOICES.hourly,
+                                                      'freq': self.FREQUENCY_CHOICES.hourly})
 
             # finish day
             this_date += timedelta(days=1)
@@ -455,7 +446,7 @@ class CAISOClient(BaseClient):
     def fetch_oasis(self, payload={}, return_all_files=False):
         """
         Returns a list of report data elements, or an empty list if an error was encountered.
-        
+
         If return_all_files=False, returns only the content from the first file in the .zip -
         this is the default behavior and was used in earlier versions of this function.
         
