@@ -2,7 +2,10 @@ from pyiso import client_factory
 from unittest import TestCase
 from io import StringIO
 from datetime import datetime, date
-from urllib2 import HTTPError
+try:
+    from urllib2 import HTTPError
+except ImportError:
+    from urllib.error import HTTPError
 import logging
 import pytz
 

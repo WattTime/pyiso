@@ -39,7 +39,11 @@ class NVEnergyClient(BaseClient):
                 continue
 
             # store
-            parsed_data += self.parse_df(df, this_date)
+            try:
+                parsed_data += self.parse_df(df, this_date)
+            except KeyError:
+                logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
+                continue
 
         # if latest, only return most recent
         if self.options['latest']:
