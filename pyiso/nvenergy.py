@@ -1,7 +1,10 @@
 from pyiso.base import BaseClient
 import pandas as pd
 from datetime import time, datetime
-from urllib2 import HTTPError
+try:
+    from urllib2 import HTTPError
+except ImportError:
+    from urllib import HTTPError
 import logging
 
 
