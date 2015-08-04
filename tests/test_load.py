@@ -193,10 +193,10 @@ class TestMISOLoad(TestBaseLoad):
         self._run_notimplemented_test('MISO')
 
 
-class TestNVEnergyLoad(TestBaseLoad):
+class TestNEVPLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
-        data = self._run_test('NVEnergy', latest=True)
+        data = self._run_test('NEVP', latest=True)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -210,7 +210,7 @@ class TestNVEnergyLoad(TestBaseLoad):
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NVEnergy', start_at=today-timedelta(days=1),
+        data = self._run_test('NEVP', start_at=today-timedelta(days=1),
                               end_at=today)
 
         # test all timestamps are equal
@@ -220,7 +220,7 @@ class TestNVEnergyLoad(TestBaseLoad):
     def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NVEnergy', start_at=today-timedelta(days=35),
+        data = self._run_test('NEVP', start_at=today-timedelta(days=35),
                               end_at=today-timedelta(days=33),
                               expect_data=False)
 
@@ -268,3 +268,36 @@ class TestPJMLoad(TestBaseLoad):
 class TestSPPLoad(TestBaseLoad):
     def test_failing(self):
         self._run_notimplemented_test('SPP')
+
+
+class TestSPPCLoad(TestBaseLoad):
+    def test_latest(self):
+        # basic test
+        data = self._run_test('SPPC', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SPPC', start_at=today-timedelta(days=1),
+                              end_at=today)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_farpast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SPPC', start_at=today-timedelta(days=35),
+                              end_at=today-timedelta(days=33),
+                              expect_data=False)
+

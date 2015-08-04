@@ -340,6 +340,11 @@ class TestNYISOGenMix(TestBaseGenMix):
         self._run_notimplemented_test('NYISO')
 
 
-class TestNVEnergyGenMix(TestBaseGenMix):
+class TestNEVPGenMix(TestBaseGenMix):
     def test_failing(self):
-        self._run_notimplemented_test('NVEnergy')
+        self._run_notimplemented_test('NEVP')
+
+
+class TestSPPCGenMix(TestBaseGenMix):
+    def test_failing(self):
+        self._run_notimplemented_test('SPPC')
