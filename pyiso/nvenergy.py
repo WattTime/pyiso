@@ -4,7 +4,7 @@ from datetime import time, datetime
 try:
     from urllib2 import HTTPError
 except ImportError:
-    from urllib import HTTPError
+    from urllib.error import HTTPError
 import logging
 
 
