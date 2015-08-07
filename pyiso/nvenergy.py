@@ -1,11 +1,13 @@
 from pyiso.base import BaseClient
 import pandas as pd
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 try:
     from urllib2 import HTTPError
 except ImportError:
     from urllib.error import HTTPError
 import logging
+import pytz
+import calendar
 
 
 logger = logging.getLogger(__name__)
@@ -27,43 +29,96 @@ class NVEnergyClient(BaseClient):
 
         # collect data
         for this_date in self.dates():
-            # set up request
-            url_file = this_date.strftime('native_system_load_and_ties_for_%m_%d_%Y_.html')
-            url = self.BASE_URL + url_file
-
             # fetch
             try:
-                df = self.fetch_df(url)
-            except HTTPError:
+                df, mode = self.fetch_df(this_date)
+            except (HTTPError, ValueError):
                 logger.warn('No data available in NVEnergy at %s' % this_date)
                 continue
 
             # store
             try:
-                parsed_data += self.parse_df(df, this_date)
+                parsed_data += self.parse_df(df, this_date, mode)
             except KeyError:
                 logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
                 continue
 
-        # if latest, only return most recent
-        if self.options['latest']:
-            parsed_data = [parsed_data[-1]]
+        # return
+        return self.time_subset(parsed_data)
+
+    def data_url(self, ts):
+        # today's date in local time
+        today = pytz.timezone(self.TZ_NAME).localize(datetime.now()).date()
+        tomorrow = today + timedelta(days=1)
+        try:
+            this_day = ts.date()
+        except AttributeError:  # already date object not datetime
+            this_day = ts
+
+        # file is tomorrow, this month, or past
+        if this_day > tomorrow:
+            raise ValueError('No data available in NVEnergy at %s' % ts)
+        if this_day == tomorrow:
+            url_file = ts.strftime('tomorrow.htm')
+            mode = 'tomorrow'
+        elif ts.month == today.month and ts.year == today.year:
+            url_file = ts.strftime('native_system_load_and_ties_for_%m_%d_%Y_.html')
+            mode = 'recent'
+        else:
+            dummy, month_length = calendar.monthrange(ts.year, ts.month)
+            url_file = 'Monthly_Ties_and_Loads_L_from_%02d_%02d_%04d_to_%02d_%02d_%04d_.html' % (
+                ts.month, 1, ts.year,
+                ts.month, month_length, ts.year
+            )
+            mode = 'historical'
 
         # return
-        return parsed_data
+        return self.BASE_URL + url_file, mode
 
-    def fetch_df(sel, url):
-        # carry out request and parse html table
-        dfs = pd.read_html(url, index_col=0, header=1)
-        df = dfs[1]
-        return df
+    def fetch_df(self, this_date, url=None, mode=None):
+        # set up request
+        if not url:
+            url, mode = self.data_url(this_date)
 
-    def parse_df(self, df, this_date):
+        # carry out request and parse html tables
+        dfs = pd.read_html(url, index_col=0)
+
+        # choose df based on mode
+        if mode == 'recent':
+            df = dfs[1]
+        elif mode == 'tomorrow':
+            df = dfs[0]
+        else:  # historical
+            # set up date string
+            try:
+                datestr = pytz.timezone(self.TZ_NAME).localize(this_date).strftime('%Y-%m-%d')
+            except AttributeError:  # already date not datetime, assume local
+                datestr = this_date.strftime('%Y-%m-%d')
+
+            # choose based on date string
+            df = None
+            for xdf in dfs[1:]:
+                if xdf.index[0] == datestr:
+                    df = xdf
+                    break
+
+            # if no df, no data in range
+            if df is None:
+                raise ValueError('No data available in NVEnergy at %s' % this_date)
+
+        # set and slice header
+        df.columns = df.iloc[1]
+        df = df[2:]
+
+        # return
+        return df, mode
+
+    def parse_df(self, df, this_date, mode='recent'):
         # set up storage
         data = []
 
         # pull out actual or forecast data
-        if self.options['forecast']:
+        if self.options['forecast'] or mode == 'tomorrow':
             series = df.loc['Forecast System Load']
         else:
             series = df.loc['Actual System Load']
@@ -90,15 +145,25 @@ class NVEnergyClient(BaseClient):
             }
 
             # add to storage
-            to_store = True
-            if self.options['sliceable']:
-                if dp['timestamp'] < self.options['start_at'] or dp['timestamp'] > self.options['end_at']:
-                    to_store = False
-            if to_store:
-                data.append(dp)
+            data.append(dp)
 
         # return
         return data
+
+    def time_subset(self, data):
+        # if sliceable, return inclusive of dates
+        if self.options['sliceable']:
+            f = lambda x: x['timestamp'] >= self.options['start_at'] and x['timestamp'] <= self.options['end_at']
+            return filter(f, data)
+
+        # if latest, only return most recent
+        elif self.options['latest']:
+            latest = sorted(data, key=lambda x: x['timestamp'])[-1]
+            return [latest]
+
+        # if neither, return all data
+        else:
+            return data
 
     def idx2ts(self, this_date, shour):
         """
