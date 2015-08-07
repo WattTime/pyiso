@@ -3855,14 +3855,14 @@ class TestNVEnergy(TestCase):
         self.assertRaises(HTTPError, self.c.fetch_df, self.today,
                           self.c.BASE_URL + 'native_system_load_and_ties_for_01_01_2020_.html')
 
-    def test_parse_df_today(self):
+    def test_parse_load_today(self):
         # set up df from StringIO
         one_day.seek(0)
         df, mode = self.c.fetch_df(self.today, url=one_day)
 
         # set up options
         self.c.handle_options(latest=True)
-        data = self.c.parse_df(df, self.today)
+        data = self.c.parse_load(df, self.today)
 
         # test
         self.assertEqual(len(data), 18)
@@ -3872,14 +3872,14 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['ba_name'], 'NVEnergy')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
-    def test_parse_df_tomorrow(self):
+    def test_parse_load_tomorrow(self):
         # set up df from StringIO
         tomorrow.seek(0)
         df, mode = self.c.fetch_df(self.tomorrow, tomorrow, 'tomorrow')
 
         # set up options
         self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
-        data = self.c.parse_df(df, self.tomorrow, 'tomorrow')
+        data = self.c.parse_load(df, self.tomorrow, 'tomorrow')
 
         # test
         self.assertEqual(len(data), 24)
@@ -3889,14 +3889,14 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['ba_name'], 'NVEnergy')
             self.assertEqual(dp['load_MW'], df.ix['Forecast System Load', idp+1])
 
-    def test_parse_df_last_month(self):
+    def test_parse_load_last_month(self):
         # set up df from StringIO
         one_month.seek(0)
         df, mode = self.c.fetch_df(self.last_month, one_month, 'historical')
 
         # set up options
         self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
-        data = self.c.parse_df(df, self.last_month)
+        data = self.c.parse_load(df, self.last_month)
 
         # test
         self.assertEqual(len(data), 18)
@@ -3905,3 +3905,52 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['freq'], '1hr')
             self.assertEqual(dp['ba_name'], 'NVEnergy')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
+
+    def test_parse_trade_today(self):
+        # set up df from StringIO
+        one_day.seek(0)
+        df, mode = self.c.fetch_df(self.today, url=one_day)
+
+        # set up options
+        self.c.handle_options(latest=True)
+        data = self.c.parse_trade(df, self.today)
+
+        # test
+        self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+        for idp, dp in enumerate(data):
+            self.assertEqual(dp['market'], 'RTHR')
+            self.assertEqual(dp['freq'], '1hr')
+            self.assertEqual(dp['source_ba_name'], 'NVEnergy')
+
+            idx = idp % 18 + 1
+            self.assertEqual(dp['trade_MW'], df.ix[dp['dest_ba_name'], idx])
+
+    def test_parse_trade_tomorrow(self):
+        # set up df from StringIO
+        tomorrow.seek(0)
+        df, mode = self.c.fetch_df(self.tomorrow, tomorrow, 'tomorrow')
+
+        # set up options
+        self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
+
+        # no trade data tomorrow
+        self.assertRaises(KeyError, self.c.parse_trade, df, self.tomorrow, 'tomorrow')
+
+    def test_parse_trade_last_month(self):
+        # set up df from StringIO
+        one_month.seek(0)
+        df, mode = self.c.fetch_df(self.last_month, one_month, 'historical')
+
+        # set up options
+        self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
+        data = self.c.parse_trade(df, self.last_month)
+
+        # test
+        self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+        for idp, dp in enumerate(data):
+            self.assertEqual(dp['market'], 'RTHR')
+            self.assertEqual(dp['freq'], '1hr')
+            self.assertEqual(dp['source_ba_name'], 'NVEnergy')
+
+            idx = idp % 18 + 1
+            self.assertEqual(dp['trade_MW'], df.ix[dp['dest_ba_name'], idx])

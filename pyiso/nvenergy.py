@@ -17,6 +17,7 @@ class NVEnergyClient(BaseClient):
     BASE_URL = 'http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
     TZ_NAME = 'America/Los_Angeles'
     NAME = 'NVEnergy'
+    TRADE_BAS = ['BPA', 'CAISO', 'LADWP', 'IPCO', 'PACE', 'NVE', 'WALC']
 
     def get_load(self, latest=False,
                  start_at=False, end_at=False, **kwargs):
@@ -38,7 +39,35 @@ class NVEnergyClient(BaseClient):
 
             # store
             try:
-                parsed_data += self.parse_df(df, this_date, mode)
+                parsed_data += self.parse_load(df, this_date, mode)
+            except KeyError:
+                logger.warn('Unparseable data available in NVEnergy at %s for mode %s: %s' % (this_date, mode, df))
+                continue
+
+        # return
+        return self.time_subset(parsed_data)
+
+    def get_trade(self, latest=False,
+                  start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='trade', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # set up storage
+        parsed_data = []
+
+        # collect data
+        for this_date in self.dates():
+            # fetch
+            try:
+                df, mode = self.fetch_df(this_date)
+            except (HTTPError, ValueError):
+                logger.warn('No data available in NVEnergy at %s' % this_date)
+                continue
+
+            # store
+            try:
+                parsed_data += self.parse_trade(df, this_date, mode)
             except KeyError:
                 logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
                 continue
@@ -113,7 +142,7 @@ class NVEnergyClient(BaseClient):
         # return
         return df, mode
 
-    def parse_df(self, df, this_date, mode='recent'):
+    def parse_load(self, df, this_date, mode='recent'):
         # set up storage
         data = []
 
@@ -146,6 +175,45 @@ class NVEnergyClient(BaseClient):
 
             # add to storage
             data.append(dp)
+
+        # return
+        return data
+
+    def parse_trade(self, df, this_date, mode='recent'):
+        # set up storage
+        data = []
+
+        # set index as counterparty bas
+        df.index = df['Counterparty']
+
+        # store for all counterparty bas
+        for iso in self.TRADE_BAS:
+            # pull out data
+            series = df.loc[iso]
+
+            for shour, value in series.iteritems():
+                # skip if no load data (in future)
+                if not value:
+                    continue
+
+                # create local time
+                try:
+                    ts = self.idx2ts(this_date, shour)
+                except ValueError:
+                    continue
+
+                # set up datapoint
+                dp = {
+                    'timestamp': ts,
+                    'trade_MW': value,
+                    'source_ba_name': self.NAME,  # TODO actually source?
+                    'dest_ba_name': iso,          # TODO actually dest?
+                    'market': self.MARKET_CHOICES.hourly,
+                    'freq': self.FREQUENCY_CHOICES.hourly,
+                }
+
+                # add to storage
+                data.append(dp)
 
         # return
         return data

@@ -14,7 +14,9 @@ class TestBaseTrade(TestCase):
         self.FREQUENCY_CHOICES = bc.FREQUENCY_CHOICES
 
         # set up other expected values
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'NYISO', 'ERCOT', 'PJM']
+        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
+                           'BPA', 'CAISO', 'ERCOT',
+                           'PJM', 'NYISO', 'NVEnergy']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -24,7 +26,7 @@ class TestBaseTrade(TestCase):
         c.logger.setLevel(logging.INFO)
         return c
 
-    def _run_test(self, ba_name, **kwargs):
+    def _run_net_test(self, ba_name, **kwargs):
         # set up
         c = self.create_client(ba_name)
 
@@ -47,6 +49,39 @@ class TestBaseTrade(TestCase):
 
             # test for numeric value
             self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+        # return
+        return data
+
+    def _run_pairwise_test(self, ba_name, **kwargs):
+        # set up
+        c = self.create_client(ba_name)
+
+        # get data
+        data = c.get_trade(**kwargs)
+
+        # test number
+        self.assertGreaterEqual(len(data), 1)
+
+        # test contents
+        for dp in data:
+            # test key names
+            for key in ['source_ba_name', 'dest_ba_name', 'timestamp', 'freq', 'market']:
+                self.assertIn(key, dp.keys())
+            self.assertEqual(len(dp.keys()), 6)
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['source_ba_name'], self.BA_CHOICES)
+
+            # test for numeric value
+            self.assertGreaterEqual(dp['trade_MW']+1, dp['trade_MW'])
 
             # test correct temporal relationship to now
             if c.options['forecast']:
@@ -80,7 +115,7 @@ class TestBPATrade(TestBaseTrade):
 class TestCAISOTrade(TestBaseTrade):
     def test_latest(self):
         # basic test
-        data = self._run_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
+        data = self._run_net_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -94,8 +129,8 @@ class TestCAISOTrade(TestBaseTrade):
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+        data = self._run_net_test('CAISO', start_at=today-timedelta(days=2),
+                                  end_at=today-timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -109,8 +144,8 @@ class TestCAISOTrade(TestBaseTrade):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(hours=10),
-                              end_at=today+timedelta(days=2))
+        data = self._run_net_test('CAISO', start_at=today+timedelta(hours=10),
+                                  end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -125,7 +160,7 @@ class TestCAISOTrade(TestBaseTrade):
 class TestNYISOTrade(TestBaseTrade):
     def test_latest(self):
         # basic test
-        data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
+        data = self._run_net_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -139,8 +174,8 @@ class TestNYISOTrade(TestBaseTrade):
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NYISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+        data = self._run_net_test('NYISO', start_at=today-timedelta(days=2),
+                                  end_at=today-timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -153,8 +188,8 @@ class TestNYISOTrade(TestBaseTrade):
 
     def test_date_range_short(self):
         # basic test
-        data = self._run_test('NYISO', start_at=datetime.now()-timedelta(minutes=10),
-                              end_at=datetime.now()-timedelta(minutes=5))
+        data = self._run_net_test('NYISO', start_at=datetime.now()-timedelta(minutes=10),
+                                  end_at=datetime.now()-timedelta(minutes=5))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -187,6 +222,42 @@ class TestMISOTrade(TestBaseTrade):
         self._run_notimplemented_test('MISO')
 
 
+class TestNEVPTrade(TestBaseTrade):
+    def test_latest(self):
+        # basic test
+        data = self._run_pairwise_test('NEVP', latest=True, market=self.MARKET_CHOICES.hourly)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_pairwise_test('NEVP', start_at=today-timedelta(days=2),
+                                       end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self._run_failing_test('NEVP', start_at=today+timedelta(hours=10),
+                               end_at=today+timedelta(days=2))
+
+
 class TestPJMTrade(TestBaseTrade):
     def test_failing(self):
         self._run_notimplemented_test('PJM')
@@ -195,3 +266,39 @@ class TestPJMTrade(TestBaseTrade):
 class TestSPPTrade(TestBaseTrade):
     def test_failing(self):
         self._run_notimplemented_test('SPP')
+
+
+class TestSPPCTrade(TestBaseTrade):
+    def test_latest(self):
+        # basic test
+        data = self._run_pairwise_test('SPPC', latest=True, market=self.MARKET_CHOICES.hourly)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_pairwise_test('SPPC', start_at=today-timedelta(days=2),
+                                       end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self._run_failing_test('SPPC', start_at=today+timedelta(hours=10),
+                               end_at=today+timedelta(days=2))
