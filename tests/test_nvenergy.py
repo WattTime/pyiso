@@ -3920,10 +3920,9 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['source_ba_name'], 'NVEnergy')
 
             idx = idp % 18 + 1
-            self.assertEqual(dp['trade_MW'], df.ix[dp['dest_ba_name'], idx])
+            self.assertEqual(dp['export_MW'], df.ix[dp['dest_ba_name'], idx])
 
     def test_parse_trade_tomorrow(self):
         # set up df from StringIO
@@ -3950,7 +3949,6 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['source_ba_name'], 'NVEnergy')
 
             idx = idp % 18 + 1
-            self.assertEqual(dp['trade_MW'], df.ix[dp['dest_ba_name'], idx])
+            self.assertEqual(dp['export_MW'], df.ix[dp['dest_ba_name'], idx])

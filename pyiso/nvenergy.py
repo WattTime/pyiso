@@ -203,11 +203,11 @@ class NVEnergyClient(BaseClient):
                     continue
 
                 # set up datapoint
+                # negative exports = imports
                 dp = {
                     'timestamp': ts,
-                    'trade_MW': value,
-                    'source_ba_name': self.NAME,  # TODO actually source?
-                    'dest_ba_name': iso,          # TODO actually dest?
+                    'export_MW': value,
+                    'dest_ba_name': iso,
                     'market': self.MARKET_CHOICES.hourly,
                     'freq': self.FREQUENCY_CHOICES.hourly,
                 }
