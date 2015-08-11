@@ -43,6 +43,11 @@ class TestISONE(TestCase):
         self.assertEqual(self.c.options['market'], self.c.MARKET_CHOICES.dam)
         self.assertEqual(self.c.options['frequency'], self.c.FREQUENCY_CHOICES.dam)
 
+    def test_handle_options_lmp_latest(self):
+        self.c.handle_options(data='lmp', latest=True)
+        self.assertEqual(self.c.options['market'], self.c.MARKET_CHOICES.fivemin)
+        self.assertEqual(self.c.options['frequency'], self.c.FREQUENCY_CHOICES.fivemin)
+
     def test_endpoints_gen_latest(self):
         self.c.handle_options(data='gen', latest=True)
         endpoints = self.c.request_endpoints()
@@ -64,6 +69,12 @@ class TestISONE(TestCase):
         now = pytz.utc.localize(datetime.utcnow())
         date_str = now.strftime('%Y%m%d')
         self.assertIn(date_str, endpoints[0])
+
+    def test_endpoints_lmp_latest(self):
+        self.c.handle_options(data='lmp', latest=True)
+        endpoints = self.c.request_endpoints(123)
+        self.assertEqual(len(endpoints), 1)
+        self.assertIn('/fiveminutelmp/current/location/123.json', endpoints)
 
     def test_genmix_json_format(self):
         data = self.c.fetch_data('/genfuelmix/current.json', self.c.auth)
@@ -136,16 +147,56 @@ class TestISONE(TestCase):
         self.assertIn('BeginDate', data['HourlyLoadForecasts']['HourlyLoadForecast'][0].keys())
         self.assertIn('LoadMw', data['HourlyLoadForecasts']['HourlyLoadForecast'][0].keys())
 
+    def test_lmp_realtime_json_format(self):
+        data = self.c.fetch_data('/fiveminutelmp/current/location/4001.json', self.c.auth)
+
+        # one item, FiveMinLmp
+        self.assertIn('FiveMinLmp', data.keys())
+        self.assertEqual(len(data.keys()), 1)
+
+        # several items, including date and lmp
+        self.assertEqual(len(data['FiveMinLmp']), 1)
+        self.assertIn('BeginDate', data['FiveMinLmp'][0].keys())
+        self.assertIn('LmpTotal', data['FiveMinLmp'][0].keys())
+
+        # values
+        date = dateutil.parser.parse(data['FiveMinLmp'][0]['BeginDate'])
+        now = pytz.utc.localize(datetime.utcnow())
+        self.assertLessEqual(date, now)
+        self.assertGreaterEqual(date, now - timedelta(minutes=6))
+        self.assertEqual(date.minute % 5, 0)
+        self.assertGreater(data['FiveMinLmp'][0]['LmpTotal'], 0)
+
+    def test_lmp_past_json_format(self):
+        data = self.c.fetch_data('/fiveminutelmp/day/20150610/location/4001.json', self.c.auth)
+
+        # one item, FiveMinLmps
+        self.assertIn('FiveMinLmps', data.keys())
+        self.assertEqual(len(data.keys()), 1)
+        self.assertIn('FiveMinLmp', data['FiveMinLmps'].keys())
+        self.assertEqual(len(data['FiveMinLmps'].keys()), 1)
+
+        # 288 elements: every 5 min
+        self.assertEqual(len(data['FiveMinLmps']['FiveMinLmp']), 288)
+
+        # several items, including date and lmp
+        self.assertIn('BeginDate', data['FiveMinLmps']['FiveMinLmp'][0].keys())
+        self.assertIn('LmpTotal', data['FiveMinLmps']['FiveMinLmp'][0].keys())
+
     def test_get_lmp_latest(self):
-        price = self.c.get_lmp('NEMASSBOST')
-        self.assertLess(price, 1500)
-        self.assertGreater(price, -300)
+        prices = self.c.get_lmp('NEMASSBOST')
+        self.assertEqual(len(prices), 1)
+        self.assertLess(prices[0]['lmp'], 1500)
+        self.assertGreater(prices[0]['lmp'], -300)
+
+    def test_get_lmp_bad_zone(self):
+        self.assertRaises(ValueError, self.c.get_lmp, 'badzone')
 
     def test_get_lmp_hist(self):
         start_at = datetime(
             2015, 01, 01, 01, 1, 0, 0, tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
         end_at = start_at + timedelta(minutes=55)
 
-        price_dict = self.c.get_lmp('NEMASSBOST', latest=False, start_at=start_at, end_at=end_at)
-        self.assertEqual(len(price_dict), 11)
-        self.assertEqual(price_dict[price_dict.keys()[0]], 42.72)
+        prices = self.c.get_lmp('NEMASSBOST', latest=False, start_at=start_at, end_at=end_at)
+        self.assertEqual(len(prices), 11)
+        self.assertEqual(prices[0]['lmp'], 56.92)

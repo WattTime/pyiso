@@ -28,6 +28,16 @@ class ISONEClient(BaseClient):
         'Landfill Gas': 'biogas',
     }
 
+    locations = {
+        'MAINE': 4001,
+        'NEWHAMPSHIRE': 4002,
+        'VERMONT': 4003,
+        'CONNECTICUT': 4004,
+        'RHODEISLAND': 4005,
+        'SEMASS': 4006,
+        'WCMASS': 4007,
+        'NEMASSBOST': 4008,
+    }
 
     def __init__(self, *args, **kwargs):
         super(ISONEClient, self).__init__(*args, **kwargs)
@@ -142,11 +152,15 @@ class ISONEClient(BaseClient):
                 else:
                     self.options['frequency'] = self.FREQUENCY_CHOICES.fivemin
 
-    def request_endpoints(self):
+    def request_endpoints(self, location_id=None):
         """Returns a list of endpoints to query, based on handled options"""
         # base endpoint
+        ext = ''
         if self.options['data'] == 'gen':
             base_endpoint = 'genfuelmix'
+        elif self.options['data'] == 'lmp' and location_id is not None:
+            base_endpoint = 'fiveminutelmp'
+            ext = '/location/%s' % location_id
         elif self.options['market'] == self.MARKET_CHOICES.dam:
             base_endpoint = 'hourlyloadforecast'
         else:
@@ -157,12 +171,12 @@ class ISONEClient(BaseClient):
 
         # handle dates
         if self.options['latest']:
-            request_endpoints.append('/%s/current.json' % base_endpoint)
+            request_endpoints.append('/%s/current%s.json' % (base_endpoint, ext))
 
         elif self.options['start_at'] and self.options['end_at']:
             for date in self.dates():
                 date_str = date.strftime('%Y%m%d')
-                request_endpoints.append('/%s/day/%s.json' % (base_endpoint, date_str))
+                request_endpoints.append('/%s/day/%s%s.json' % (base_endpoint, date_str, ext))
 
         else:
             msg = 'Either latest or forecast must be True, or start_at and end_at must both be provided.'
@@ -191,67 +205,65 @@ class ISONEClient(BaseClient):
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE load data %s' % data)
 
+    def parse_json_lmp_data(self, data):
+        """
+        Pull approriate keys from json data set.
+        Raise ValueError if parser fails.
+        """
+        try:
+            if self.options.get('latest'):
+                return data['FiveMinLmp']
+            else:
+                return data['FiveMinLmps']['FiveMinLmp']
+        except (KeyError, TypeError):
+            raise ValueError('Could not parse ISONE lmp data %s' % data)
+
     def get_lmp(self, zone_name, latest=True, start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='lmp', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
 
-        # TODO, handle kwargs including latest, etc
-        loc_dict = [a for a in self.locations if a['LocationName'] == '.Z.%s' % zone_name][0]
-        locationid = loc_dict['LocationID']
-        if latest:
-            endpoint = '/fiveminutelmp/current/location/%s.json' % locationid
-            price = self.fetch_data(endpoint, self.auth)['FiveMinLmp'][0]['LmpTotal']
-            return price
-        else:
-            day = start_at.strftime('%Y%m%d')
-            if not end_at:
-                end_at = start_at + timedelta(days=1)
+        # get location id
+        try:
+            locationid = self.locations[zone_name.upper()]
+        except KeyError:
+            raise ValueError('No LMP data available for location %s' % zone_name)
 
-            endpoint = '/fiveminutelmp/day/%s/location/%s.json' % (day, locationid)
-            response = self.fetch_data(endpoint, self.auth)
+        # set up storage
+        raw_data = []
+        parsed_data = []
 
-            lmp_dict = {}
-            for item in response['FiveMinLmps']['FiveMinLmp']:
-                # '%Y-%m-%dT%H:%M:%S.%f%z'
-                current_time = parser.parse(item['BeginDate']).astimezone(pytz.utc)
-                if start_at <= current_time <= end_at:
-                    lmp_dict[current_time] = item['LmpTotal']
-            return lmp_dict
+        # collect raw data
+        for endpoint in self.request_endpoints(locationid):
+            # carry out request
+            data = self.fetch_data(endpoint, self.auth)
 
-    locations = [
-        {u'LocationName': u'.H.INTERNAL_HUB', u'LocationType': u'HUB', u'AreaType':
-            u'INTERNAL', u'LocationID': 4000},
-        {u'LocationName': u'.Z.MAINE', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4001},
-        {u'LocationName': u'.Z.NEWHAMPSHIRE', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4002},
-        {u'LocationName': u'.Z.VERMONT', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4003},
-        {u'LocationName': u'.Z.CONNECTICUT', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4004},
-        {u'LocationName': u'.Z.RHODEISLAND', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4005},
-        {u'LocationName': u'.Z.SEMASS', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4006},
-        {u'LocationName': u'.Z.WCMASS', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4007},
-        {u'LocationName': u'.Z.NEMASSBOST', u'LocationType': u'LOAD ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 4008},
-        {u'LocationName': u'.I.SALBRYNB345 1', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4010},
-        {u'LocationName': u'.I.ROSETON 345 1', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4011},
-        {u'LocationName': u'.I.HQ_P1_P2345 5', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4012},
-        {u'LocationName': u'.I.HQHIGATE120 2', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4013},
-        {u'LocationName': u'.I.SHOREHAM138 99', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4014},
-        {u'LocationName': u'.I.NRTHPORT138 5', u'LocationType': u'EXT. NODE', u'AreaType':
-            u'EXTERNAL', u'LocationID': 4017},
-        {u'LocationName': u'ROS', u'LocationType': u'SYSTEM', u'AreaType':
-            u'INTERNAL', u'LocationID': 7000},
-        {u'LocationName': u'SWCT', u'LocationType': u'RESERVE ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 7001},
-        {u'LocationName': u'CT', u'LocationType': u'RESERVE ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 7002},
-        {u'LocationName': u'NEMABSTN', u'LocationType': u'RESERVE ZONE', u'AreaType':
-            u'INTERNAL', u'LocationID': 7003}]
+            # pull out data
+            try:
+                raw_data += self.parse_json_lmp_data(data)
+            except ValueError as e:
+                logger.warn(e)
+                continue
+
+        # parse data
+        for raw_dp in raw_data:
+            # set up storage
+            parsed_dp = {}
+
+            # add values
+            parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
+            parsed_dp['lmp'] = raw_dp['LmpTotal']
+            parsed_dp['ba_name'] = self.NAME
+            parsed_dp['market'] = self.options['market']
+            parsed_dp['freq'] = self.options['frequency']
+            parsed_dp['zone_name'] = zone_name
+
+            # add to full storage
+            to_store = True
+            if self.options['sliceable']:
+                if self.options['start_at'] > parsed_dp['timestamp'] or self.options['end_at'] < parsed_dp['timestamp']:
+                    to_store = False
+            if to_store:
+                parsed_data.append(parsed_dp)
+
+        return parsed_data
