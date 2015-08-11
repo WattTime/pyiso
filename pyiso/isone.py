@@ -1,6 +1,7 @@
 from pyiso.base import BaseClient
 from os import environ
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import parser
 import pytz
 import logging
 
@@ -26,6 +27,7 @@ class ISONEClient(BaseClient):
         'Refuse': 'refuse',
         'Landfill Gas': 'biogas',
     }
+
 
     def __init__(self, *args, **kwargs):
         super(ISONEClient, self).__init__(*args, **kwargs)
@@ -188,3 +190,68 @@ class ISONEClient(BaseClient):
                 return data['FiveMinSystemLoads']['FiveMinSystemLoad']
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE load data %s' % data)
+
+    def get_lmp(self, zone_name, latest=True, start_at=False, end_at=False, **kwargs):
+
+        # TODO, handle kwargs including latest, etc
+        loc_dict = [a for a in self.locations if a['LocationName'] == '.Z.%s' % zone_name][0]
+        locationid = loc_dict['LocationID']
+        if latest:
+            endpoint = '/fiveminutelmp/current/location/%s.json' % locationid
+            price = self.fetch_data(endpoint, self.auth)['FiveMinLmp'][0]['LmpTotal']
+            return price
+        else:
+            day = start_at.strftime('%Y%m%d')
+            if not end_at:
+                end_at = start_at + timedelta(days=1)
+
+            endpoint = '/fiveminutelmp/day/%s/location/%s.json' % (day, locationid)
+            response = self.fetch_data(endpoint, self.auth)
+
+            lmp_dict = {}
+            for item in response['FiveMinLmps']['FiveMinLmp']:
+                # '%Y-%m-%dT%H:%M:%S.%f%z'
+                current_time = parser.parse(item['BeginDate']).astimezone(pytz.utc)
+                if start_at <= current_time <= end_at:
+                    lmp_dict[current_time] = item['LmpTotal']
+            return lmp_dict
+
+    locations = [
+        {u'LocationName': u'.H.INTERNAL_HUB', u'LocationType': u'HUB', u'AreaType':
+            u'INTERNAL', u'LocationID': 4000},
+        {u'LocationName': u'.Z.MAINE', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4001},
+        {u'LocationName': u'.Z.NEWHAMPSHIRE', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4002},
+        {u'LocationName': u'.Z.VERMONT', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4003},
+        {u'LocationName': u'.Z.CONNECTICUT', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4004},
+        {u'LocationName': u'.Z.RHODEISLAND', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4005},
+        {u'LocationName': u'.Z.SEMASS', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4006},
+        {u'LocationName': u'.Z.WCMASS', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4007},
+        {u'LocationName': u'.Z.NEMASSBOST', u'LocationType': u'LOAD ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 4008},
+        {u'LocationName': u'.I.SALBRYNB345 1', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4010},
+        {u'LocationName': u'.I.ROSETON 345 1', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4011},
+        {u'LocationName': u'.I.HQ_P1_P2345 5', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4012},
+        {u'LocationName': u'.I.HQHIGATE120 2', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4013},
+        {u'LocationName': u'.I.SHOREHAM138 99', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4014},
+        {u'LocationName': u'.I.NRTHPORT138 5', u'LocationType': u'EXT. NODE', u'AreaType':
+            u'EXTERNAL', u'LocationID': 4017},
+        {u'LocationName': u'ROS', u'LocationType': u'SYSTEM', u'AreaType':
+            u'INTERNAL', u'LocationID': 7000},
+        {u'LocationName': u'SWCT', u'LocationType': u'RESERVE ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 7001},
+        {u'LocationName': u'CT', u'LocationType': u'RESERVE ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 7002},
+        {u'LocationName': u'NEMABSTN', u'LocationType': u'RESERVE ZONE', u'AreaType':
+            u'INTERNAL', u'LocationID': 7003}]

@@ -135,3 +135,17 @@ class TestISONE(TestCase):
         # several items, including date and load
         self.assertIn('BeginDate', data['HourlyLoadForecasts']['HourlyLoadForecast'][0].keys())
         self.assertIn('LoadMw', data['HourlyLoadForecasts']['HourlyLoadForecast'][0].keys())
+
+    def test_get_lmp_latest(self):
+        price = self.c.get_lmp('NEMASSBOST')
+        self.assertLess(price, 1500)
+        self.assertGreater(price, -300)
+
+    def test_get_lmp_hist(self):
+        start_at = datetime(
+            2015, 01, 01, 01, 1, 0, 0, tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
+        end_at = start_at + timedelta(minutes=55)
+
+        price_dict = self.c.get_lmp('NEMASSBOST', latest=False, start_at=start_at, end_at=end_at)
+        self.assertEqual(len(price_dict), 11)
+        self.assertEqual(price_dict[price_dict.keys()[0]], 42.72)
