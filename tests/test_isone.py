@@ -194,9 +194,12 @@ class TestISONE(TestCase):
 
     def test_get_lmp_hist(self):
         start_at = datetime(
-            2015, 01, 01, 01, 1, 0, 0, tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
+            2015, 01, 01, 01, 0, 0, 0, tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
         end_at = start_at + timedelta(minutes=55)
 
         prices = self.c.get_lmp('NEMASSBOST', latest=False, start_at=start_at, end_at=end_at)
         self.assertEqual(len(prices), 11)
+        self.assertGreaterEqual(prices[0]['timestamp'], start_at)
+        self.assertLessEqual(prices[0]['timestamp'], start_at + timedelta(minutes=5))
         self.assertEqual(prices[0]['lmp'], 56.92)
+
