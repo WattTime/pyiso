@@ -54,4 +54,7 @@ def client_factory(client_name, **kwargs):
     except AttributeError:
         raise ValueError(error_msg)
 
+    # set name
+    client_inst.NAME = client_name
+
     return client_inst

@@ -208,6 +208,7 @@ class NVEnergyClient(BaseClient):
                     'timestamp': ts,
                     'export_MW': value,
                     'dest_ba_name': iso,
+                    'source_ba_name': self.NAME,
                     'market': self.MARKET_CHOICES.hourly,
                     'freq': self.FREQUENCY_CHOICES.hourly,
                 }

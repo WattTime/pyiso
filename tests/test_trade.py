@@ -16,7 +16,7 @@ class TestBaseTrade(TestCase):
         # set up other expected values
         self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
                            'BPA', 'CAISO', 'ERCOT',
-                           'PJM', 'NYISO', 'NVEnergy']
+                           'PJM', 'NYISO', 'NEVP', 'SPPC']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -81,7 +81,7 @@ class TestBaseTrade(TestCase):
             self.assertIn(dp['source_ba_name'], self.BA_CHOICES)
 
             # test for numeric value
-            self.assertGreaterEqual(dp['trade_MW']+1, dp['trade_MW'])
+            self.assertGreaterEqual(dp['export_MW']+1, dp['export_MW'])
 
             # test correct temporal relationship to now
             if c.options['forecast']:

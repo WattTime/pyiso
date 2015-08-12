@@ -16,7 +16,7 @@ class TestBaseLoad(TestCase):
         # set up other expected values
         self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
                            'BPA', 'CAISO', 'ERCOT',
-                           'PJM', 'NYISO', 'NVEnergy']
+                           'PJM', 'NYISO', 'NEVP', 'SPPC']
 
     def create_client(self, ba_name):
         # set up client with logging

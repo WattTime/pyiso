@@ -3869,7 +3869,7 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NVEnergy')
+            self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_load_tomorrow(self):
@@ -3886,7 +3886,7 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NVEnergy')
+            self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Forecast System Load', idp+1])
 
     def test_parse_load_last_month(self):
@@ -3903,7 +3903,7 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NVEnergy')
+            self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_trade_today(self):
