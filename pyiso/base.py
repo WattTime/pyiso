@@ -40,6 +40,9 @@ class BaseClient(object):
     # name
     NAME = ''
 
+    # default connection timeout
+    TIMEOUT_SECONDS = 3
+
     def __init__(self):
         self.options = {}
 
@@ -225,7 +228,7 @@ class BaseClient(object):
 
         # carry out request
        # try:
-        response = getattr(session, mode)(url, verify=False, **kwargs)
+        response = getattr(session, mode)(url, verify=False, timeout=self.TIMEOUT_SECONDS, **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
