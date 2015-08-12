@@ -77,7 +77,7 @@ class NVEnergyClient(BaseClient):
 
     def data_url(self, ts):
         # today's date in local time
-        today = pytz.timezone(self.TZ_NAME).localize(datetime.now()).date()
+        today = pytz.timezone(self.TZ_NAME).localize(datetime.utcnow()).date()
         tomorrow = today + timedelta(days=1)
         try:
             this_day = ts.date()

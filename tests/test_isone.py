@@ -61,7 +61,7 @@ class TestISONE(TestCase):
         self.assertEqual(len(endpoints), 3)
         self.assertIn('/hourlyloadforecast/day/', endpoints[0])
 
-        now = pytz.utc.localize(datetime.utcnow())
+        now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('US/Eastern'))
         date_str = now.strftime('%Y%m%d')
         self.assertIn(date_str, endpoints[0])
 
@@ -120,7 +120,7 @@ class TestISONE(TestCase):
     def test_load_forecast_json_format(self):
         # two days in future
         day_after_tomorrow = pytz.utc.localize(datetime.utcnow()) + timedelta(days=2)
-        date_str = day_after_tomorrow.strftime('%Y%m%d')
+        date_str = day_after_tomorrow.astimezone(pytz.timezone('US/Eastern')).strftime('%Y%m%d')
         data = self.c.fetch_data('/hourlyloadforecast/day/%s.json' % date_str, self.c.auth)
 
         # one item, u'HourlyLoadForecasts
