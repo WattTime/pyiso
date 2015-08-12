@@ -41,7 +41,7 @@ class BaseClient(object):
     NAME = ''
 
     # default connection timeout
-    TIMEOUT_SECONDS = 3
+    TIMEOUT_SECONDS = 5
 
     def __init__(self):
         self.options = {}
@@ -227,18 +227,18 @@ class BaseClient(object):
             session = self.session
 
         # carry out request
-       # try:
-        response = getattr(session, mode)(url, verify=False, timeout=self.TIMEOUT_SECONDS, **kwargs)
+        try:
+            response = getattr(session, mode)(url, verify=False, timeout=self.TIMEOUT_SECONDS, **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
         #     self.logger.error(msg)
         #     return None
-        # except requests.exceptions.ConnectionError as e:
-        #     # eg max retries exceeded
-        #     msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-        #     self.logger.error(msg)
-        #     return None
+        except (requests.exceptions.ConnectionError, requests.expections.Timeout) as e:
+            # eg max retries exceeded
+            msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+            self.logger.error(msg)
+            return None
         # except requests.exceptions.RequestException:
         #     msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
         #     self.logger.error(msg)
