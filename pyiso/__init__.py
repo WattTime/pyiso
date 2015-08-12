@@ -5,13 +5,34 @@ import os.path
 __version__ = '0.2.4'
 
 
+BALANCING_AUTHORITIES = {
+    'BPA': {'module': 'bpa', 'class': 'BPAClient'},
+    'CAISO': {'module': 'caiso', 'class': 'CAISOClient'},
+    'ERCOT': {'module': 'ercot', 'class': 'ERCOTClient'},
+    'ISONE': {'module': 'isone', 'class': 'ISONEClient'},
+    'MISO': {'module': 'miso', 'class': 'MISOClient'},
+    'NEVP': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
+    'NYISO': {'module': 'nyiso', 'class': 'NYISOClient'},
+    'PJM': {'module': 'pjm', 'class': 'PJMClient'},
+    'SPPC': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
+    'SPP': {'module': 'spp', 'class': 'SPPClient'},
+}
+
+
 def client_factory(client_name, **kwargs):
     """Return a client for an external data set"""
     # set up
-    module_name = client_name.lower()
-    class_name = '%sClient' % client_name.upper()
     dir_name = os.path.dirname(os.path.abspath(__file__))
     error_msg = 'No client found for name %s' % client_name
+    client_key = client_name.upper()
+
+    # find client
+    try:
+        client_vals = BALANCING_AUTHORITIES[client_key]
+        module_name = client_vals['module']
+        class_name = client_vals['class']
+    except KeyError:
+        raise ValueError(error_msg)
 
     # find module
     try:
@@ -32,5 +53,8 @@ def client_factory(client_name, **kwargs):
         client_inst = getattr(mod, class_name)(**kwargs)
     except AttributeError:
         raise ValueError(error_msg)
+
+    # set name
+    client_inst.NAME = client_name
 
     return client_inst

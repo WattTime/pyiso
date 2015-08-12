@@ -15,7 +15,9 @@ class TestBaseGenMix(TestCase):
 
         # set up other expected values
         self.FUEL_CHOICES = FUEL_CHOICES
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'NYISO', 'ERCOT', 'PJM']
+        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
+                           'BPA', 'CAISO', 'ERCOT',
+                           'PJM', 'NYISO', 'NEVP', 'SPPC']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -336,3 +338,13 @@ class TestPJMGenMix(TestBaseGenMix):
 class TestNYISOGenMix(TestBaseGenMix):
     def test_failing(self):
         self._run_notimplemented_test('NYISO')
+
+
+class TestNEVPGenMix(TestBaseGenMix):
+    def test_failing(self):
+        self._run_notimplemented_test('NEVP')
+
+
+class TestSPPCGenMix(TestBaseGenMix):
+    def test_failing(self):
+        self._run_notimplemented_test('SPPC')

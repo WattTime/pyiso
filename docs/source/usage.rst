@@ -12,18 +12,24 @@ Clients
 .. py:currentmodule:: pyiso.base
 
 First, create a client using the ``client_factory(ba_name)`` function.
-``ba_name`` should be taken from this list of abbreviated names for ISO balancing authorities:
-``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'MISO', 'PJM', 'SPP']``.
-(See the :doc:`intro` for background about the ISOs.)
+``ba_name`` should be taken from this list of abbreviated names for available balancing authorities:
+``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'NVEnergy', 'NYISO', 'MISO', 'PJM']``.
+(See the :doc:`intro` for background about the ISOs and balancing authorities.)
 For example::
 
    >>> from pyiso import client_factory
    >>> isone = client_factory('ISONE')
 
 
-Each client returned by ``client_factory`` is derived from :py:class:`BaseClient` and provides the following method:
+Each client returned by ``client_factory`` is derived from :py:class:`BaseClient` and provides one or more of the following methods (see also :doc:`options`):
 
 .. automethod:: BaseClient.get_generation
+   :noindex:
+
+.. automethod:: BaseClient.get_load
+   :noindex:
+
+.. automethod:: BaseClient.get_trade
    :noindex:
 
 The lists returned by clients are conveniently structured for import into other data structures like :py:class:`pandas.DataFrame`::

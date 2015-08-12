@@ -69,5 +69,7 @@ setup(
         'requests',
         'celery>=3.1',
         'xlrd',
+        'lxml',
+        'html5lib',
     ],
 )

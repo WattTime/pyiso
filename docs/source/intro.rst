@@ -1,7 +1,7 @@
 Introduction
 =============
 
-Pyiso provides Python client libraries for ISO power grid data sources.
+Pyiso provides Python client libraries for ISO and other power grid data sources.
 It powers the WattTime Impact API
 (`code <https://github.com/WattTime/watttime-grid-api>`_,
 `live <http://api.watttime.org/>`_).
@@ -28,10 +28,11 @@ The US ISO-like entities are:
 
 ISOs are required to provide real-time data about electricity market operations,
 but choose to do so in a wide variety of unstandardized, inconvenient formats.
+Some smaller balancing authorities provide data too.
 
 What's included
 ----------------
 
-Pyiso makes it easier to collect data from ISOs by providing a uniform Python interface
-to each ISO's data streams.
+Pyiso makes it easier to collect data from ISOs and other balancing authorities
+by providing a uniform Python interface to each data stream.
 See the :doc:`usage` page for instructions on how to get started.
