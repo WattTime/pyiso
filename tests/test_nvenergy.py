@@ -3952,3 +3952,33 @@ class TestNVEnergy(TestCase):
 
             idx = idp % 18 + 1
             self.assertEqual(dp['export_MW'], df.ix[dp['dest_ba_name'], idx])
+
+    def test_time_subset_latest(self):
+        """Subset should return all elements with latest ts"""
+        self.c.handle_options(latest=True)
+        data = [
+            {'timestamp': datetime(2015, 8, 13), 'value': 1},
+            {'timestamp': datetime(2015, 8, 12), 'value': 2},
+            {'timestamp': datetime(2015, 8, 13), 'value': 3},
+        ]
+        subs = self.c.time_subset(data)
+        self.assertEqual(len(subs), 2)
+        self.assertIn({'timestamp': datetime(2015, 8, 13), 'value': 1}, subs)
+        self.assertIn({'timestamp': datetime(2015, 8, 13), 'value': 3}, subs)
+
+    def test_time_subset_range(self):
+        """Subset should return all elements with ts in range, inclusive"""
+        self.c.handle_options(start_at=pytz.utc.localize(datetime(2015, 8, 11)),
+                              end_at=pytz.utc.localize(datetime(2015, 8, 13)))
+        data = [
+            {'timestamp': pytz.utc.localize(datetime(2015, 8, 13)), 'value': 1},
+            {'timestamp': pytz.utc.localize(datetime(2015, 8, 10)), 'value': 2},
+            {'timestamp': pytz.utc.localize(datetime(2015, 8, 15)), 'value': 3},
+            {'timestamp': pytz.utc.localize(datetime(2015, 8, 11)), 'value': 4},
+            {'timestamp': pytz.utc.localize(datetime(2015, 8, 12)), 'value': 5},
+        ]
+        subs = self.c.time_subset(data)
+        self.assertEqual(len(subs), 3)
+        self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 13)), 'value': 1}, subs)
+        self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 11)), 'value': 4}, subs)
+        self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 12)), 'value': 5}, subs)

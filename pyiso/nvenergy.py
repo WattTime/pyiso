@@ -227,8 +227,9 @@ class NVEnergyClient(BaseClient):
 
         # if latest, only return most recent
         elif self.options['latest']:
-            latest = sorted(data, key=lambda x: x['timestamp'])[-1]
-            return [latest]
+            latest_ts = max([x['timestamp'] for x in data])
+            latest = filter(lambda x: x['timestamp'] == latest_ts, data)
+            return latest
 
         # if neither, return all data
         else:
