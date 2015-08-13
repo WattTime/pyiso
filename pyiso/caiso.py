@@ -5,7 +5,6 @@ import re
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 import pandas
-from pandas.computation.ops import UndefinedVariableError
 
 
 class CAISOClient(BaseClient):
@@ -40,7 +39,7 @@ class CAISOClient(BaseClient):
     }
 
     oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
-        BaseClient.MARKET_CHOICES.hourly: 'HASP',
+        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
@@ -81,7 +80,7 @@ class CAISOClient(BaseClient):
             return self._generation_historical()
 
     def get_load(self, latest=False,
-                       start_at=False, end_at=False, **kwargs):
+                 start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='load', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -125,7 +124,7 @@ class CAISOClient(BaseClient):
             return parsed_data
 
     def get_trade(self, latest=False,
-                       start_at=False, end_at=False, **kwargs):
+                  start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='trade', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -226,7 +225,7 @@ class CAISOClient(BaseClient):
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
 
-        if lmp_only == True:
+        if lmp_only is True:
             # Turn into pandas Dataframe
             if len(data) == 0:
                 return pandas.DataFrame()
@@ -258,7 +257,7 @@ class CAISOClient(BaseClient):
                 df = pandas.concat([df, tempDf])
             # Check to ensure good data
             try:
-                foo = df['LMP_TYPE'][0]
+                df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
 
@@ -274,12 +273,6 @@ class CAISOClient(BaseClient):
         df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
-
-
-            # We want to get multiple files, we pass a parameter to fetch_oasis
-            # Modify base.py unzip() to return all files in an array
-            # modify fetch_oasis to return just the first element in this array by default
-            # Have fetch_oasis return the full set if the parameter is set to that.
 
     def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
@@ -299,14 +292,14 @@ class CAISOClient(BaseClient):
         queryname = self.AS_MARKETS[market_run_id]
 
         payload = self.construct_oasis_payload(queryname,
-                                               resultformat=6, # csv
+                                               resultformat=6,  # csv
                                                anc_region=anc_region)
         payload.update(kwargs)
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
 
-        if len(data)==0:
+        if len(data) == 0:
             return pandas.DataFrame()
 
         # Turn into pandas Dataframe
@@ -434,8 +427,8 @@ class CAISOClient(BaseClient):
             # process both halves of page
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
-                                    nrows=24, header=header,
-                                    delimiter='\t+')
+                                      nrows=24, header=header,
+                                      delimiter='\t+')
 
                 # combine date with hours to index
                 indexed = self.set_dt_index(df, this_date, df['Hour'])
@@ -444,7 +437,7 @@ class CAISOClient(BaseClient):
                 indexed.rename(columns=self.fuels, inplace=True)
 
                 # remove non-fuel cols
-                fuel_cols = list( set(self.fuels.values()) & set(indexed.columns) )
+                fuel_cols = list(set(self.fuels.values()) & set(indexed.columns))
                 subsetted = indexed[fuel_cols]
 
                 # pivot

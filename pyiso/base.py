@@ -40,6 +40,9 @@ class BaseClient(object):
     # name
     NAME = ''
 
+    # default connection timeout
+    TIMEOUT_SECONDS = 10
+
     def __init__(self):
         self.options = {}
 
@@ -224,18 +227,18 @@ class BaseClient(object):
             session = self.session
 
         # carry out request
-       # try:
-        response = getattr(session, mode)(url, verify=False, **kwargs)
+        try:
+            response = getattr(session, mode)(url, verify=False, timeout=self.TIMEOUT_SECONDS, **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
         #     self.logger.error(msg)
         #     return None
-        # except requests.exceptions.ConnectionError as e:
-        #     # eg max retries exceeded
-        #     msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-        #     self.logger.error(msg)
-        #     return None
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            # eg max retries exceeded
+            msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
+            self.logger.error(msg)
+            return None
         # except requests.exceptions.RequestException:
         #     msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
         #     self.logger.error(msg)
@@ -301,10 +304,10 @@ class BaseClient(object):
         if mode == 'csv':
             # convert string to filelike if needed
             try:
-                is_closed = filelike.closed
-            except AttributeError: # string, unicode, etc
+                filelike.closed
+            except AttributeError:  # string, unicode, etc
                 try:
-                    filelike = BytesIO(filelike)    ## This was changed from StringIO to work in Python 3.x
+                    filelike = BytesIO(filelike)  # This was changed from StringIO to work in Python 3.x
                 except TypeError:
                     filelike = StringIO(filelike)
 

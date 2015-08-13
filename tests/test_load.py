@@ -14,7 +14,9 @@ class TestBaseLoad(TestCase):
         self.FREQUENCY_CHOICES = bc.FREQUENCY_CHOICES
 
         # set up other expected values
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP', 'BPA', 'CAISO', 'ERCOT', 'PJM', 'NYISO']
+        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
+                           'BPA', 'CAISO', 'ERCOT',
+                           'PJM', 'NYISO', 'NEVP', 'SPPC']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -24,7 +26,7 @@ class TestBaseLoad(TestCase):
         c.logger.setLevel(logging.INFO)
         return c
 
-    def _run_test(self, ba_name, **kwargs):
+    def _run_test(self, ba_name, expect_data=True, **kwargs):
         # set up
         c = self.create_client(ba_name)
 
@@ -32,7 +34,10 @@ class TestBaseLoad(TestCase):
         data = c.get_load(**kwargs)
 
         # test number
-        self.assertGreaterEqual(len(data), 1)
+        if expect_data:
+            self.assertGreaterEqual(len(data), 1)
+        else:
+            self.assertEqual(data, [])
 
         # test contents
         for dp in data:
@@ -188,6 +193,38 @@ class TestMISOLoad(TestBaseLoad):
         self._run_notimplemented_test('MISO')
 
 
+class TestNEVPLoad(TestBaseLoad):
+    def test_latest(self):
+        # basic test
+        data = self._run_test('NEVP', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NEVP', start_at=today-timedelta(days=1),
+                              end_at=today)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_farpast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NEVP', start_at=today-timedelta(days=35),
+                              end_at=today-timedelta(days=33),
+                              expect_data=False)
+
+
 class TestNYISOLoad(TestBaseLoad):
     def test_latest(self):
         # basic test
@@ -231,3 +268,36 @@ class TestPJMLoad(TestBaseLoad):
 class TestSPPLoad(TestBaseLoad):
     def test_failing(self):
         self._run_notimplemented_test('SPP')
+
+
+class TestSPPCLoad(TestBaseLoad):
+    def test_latest(self):
+        # basic test
+        data = self._run_test('SPPC', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SPPC', start_at=today-timedelta(days=1),
+                              end_at=today)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_farpast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SPPC', start_at=today-timedelta(days=35),
+                              end_at=today-timedelta(days=33),
+                              expect_data=False)
+
