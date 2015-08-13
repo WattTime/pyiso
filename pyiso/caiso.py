@@ -40,7 +40,7 @@ class CAISOClient(BaseClient):
     }
 
     oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
-        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
+        BaseClient.MARKET_CHOICES.hourly: 'HASP',
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
@@ -178,10 +178,24 @@ class CAISOClient(BaseClient):
         if df.empty:
             return {}
 
-        lmp_dict = {}
+        return_list = []
         for i, row in df.iterrows():
-            lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
-        return lmp_dict
+            dp = {
+                     'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
+                     'lmp': row['LMP_PRC'],
+                     'zone_name': row['NODE'],
+                     'ba_name': 'CAISO',
+                     'lmp_type': row['LMP_TYPE'],
+                 }
+
+            # Add other items`
+            for item in ['market', 'market_run_id', 'freq']:
+                value = self.options.get(item, False)
+                if value:
+                    dp[item] = value
+
+            return_list.append(dp)
+        return return_list
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
                              market_run_id='RTM', lmp_only=True, **kwargs):
@@ -197,7 +211,7 @@ class CAISOClient(BaseClient):
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
                             **kwargs)
-        
+
         if latest:
             queryname = 'PRC_CURR_LMP'
         else:
@@ -206,50 +220,48 @@ class CAISOClient(BaseClient):
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
                                                node=node_id)
-        
+
         # Fetch data
-        data = self.fetch_oasis(payload=payload, return_all_files = not(lmp_only))
+        data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
-        
-        if lmp_only==True:    
+
+        if lmp_only == True:
             # Turn into pandas Dataframe
-            print(data)
-            
-            if len(data)==0:
+            if len(data) == 0:
                 return pandas.DataFrame()
-            
+
             try:
                 str_data = BytesIO(data)    # Changed from StringIO for Python 3.4
             except TypeError:
                 str_data = StringIO(data)
-                
+
             df = pandas.DataFrame.from_csv(str_data, sep=",")
-    
+
             # strip congestion and loss prices
             try:
                 df = df.ix[df['LMP_TYPE'] == 'LMP']
             except KeyError:  # no good data
                 return pandas.DataFrame
         else:
-            # data is an array of csv-derived strings            
+            # data is an array of csv-derived strings
             df = pandas.DataFrame()
             for thisFile in data:
                 # Turn into pandas Dataframe
                 try:
-                    str_data = BytesIO(thisFile) # Changed from StringIO for Python 3.4
+                    str_data = BytesIO(thisFile)  # Changed from StringIO for Python 3.4
                 except TypeError:
                     str_data = StringIO(thisFile)
-                    
+
                 tempDf = pandas.DataFrame.from_csv(str_data, sep=",")
-                
+
                 df = pandas.concat([df, tempDf])
             # Check to ensure good data
             try:
                 foo = df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
-            
+
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
@@ -262,13 +274,13 @@ class CAISOClient(BaseClient):
         df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
-    
-    
+
+
             # We want to get multiple files, we pass a parameter to fetch_oasis
             # Modify base.py unzip() to return all files in an array
             # modify fetch_oasis to return just the first element in this array by default
             # Have fetch_oasis return the full set if the parameter is set to that.
-            
+
     def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
         """
@@ -293,7 +305,7 @@ class CAISOClient(BaseClient):
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
-    
+
         if len(data)==0:
             return pandas.DataFrame()
 
@@ -303,7 +315,7 @@ class CAISOClient(BaseClient):
             str_data = BytesIO(data)    # Changed from StringIO.StringIO() for Python 3.4
         except TypeError:
             str_data = StringIO(data)
-            
+
         df = pandas.DataFrame.from_csv(str_data, sep=",")
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
@@ -455,16 +467,16 @@ class CAISOClient(BaseClient):
     def fetch_oasis(self, payload={}, return_all_files=False):
         """
         Returns a list of report data elements, or an empty list if an error was encountered.
-        
+
         If return_all_files=False, returns only the content from the first file in the .zip -
         this is the default behavior and was used in earlier versions of this function.
-        
+
         If return_all_files=True, will return an array representing the content from each file.
         This is useful for processing LMP data or other fields where multiple price components are returned in a zip.
         """
         # set up storage
         raw_data = []
-        
+
         if return_all_files is True:
             default_return_val = []
         else:

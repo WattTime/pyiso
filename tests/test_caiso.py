@@ -623,24 +623,33 @@ class TestCAISOBase(TestCase):
         lmp = c.get_lmp('SLAP_PGP2-APND')
         self.assertEqual(len(lmp), 1)
 
-        self.assertGreaterEqual(min(lmp.keys()), ts - timedelta(minutes=5))
-        self.assertLessEqual(max(lmp.keys()), ts + timedelta(minutes=5))
+        self.assertGreaterEqual(min([a['timestamp'] for a in lmp]), ts - timedelta(minutes=5))
+        self.assertLessEqual(max([a['timestamp'] for a in lmp]), ts + timedelta(minutes=5))
 
-        self.assertGreaterEqual(min(lmp.values()), -300)
-        self.assertLess(max(lmp.values()), 1500)
+        self.assertGreaterEqual(min([a['lmp'] for a in lmp]), -300)
+        self.assertLess(max([a['lmp'] for a in lmp]), 1500)
+
+        self.assertIn('lmp', lmp[0].keys())
+        self.assertIn('timestamp', lmp[0].keys())
+        self.assertIn('market_run_id', lmp[0].keys())
 
     def test_get_lmp_hist(self):
         c = self.create_client('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 11, 0, 0))
         start = ts - timedelta(hours=2)
-        lmp = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
-        self.assertEqual(len(lmp), 24)
+        lmps = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
 
-        self.assertGreaterEqual(min(lmp.keys()), start)
-        self.assertLessEqual(max(lmp.keys()), ts)
+        self.assertEqual(len(lmps), 24)
 
-        self.assertGreaterEqual(min(lmp.values()), -300)
-        self.assertLess(max(lmp.values()), 1500)
+        self.assertGreaterEqual(min([a['timestamp'] for a in lmps]), start)
+        self.assertLessEqual(max([a['timestamp'] for a in lmps]), ts)
+
+        self.assertGreaterEqual(min([a['lmp'] for a in lmps]), -300)
+        self.assertLess(max([a['lmp'] for a in lmps]), 1500)
+
+        self.assertIn('lmp', lmps[0].keys())
+        self.assertIn('timestamp', lmps[0].keys())
+        self.assertIn('market_run_id', lmps[0].keys())
 
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')
