@@ -3920,9 +3920,11 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
+            self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
+            dest = [k for k, v in self.c.TRADE_BAS.iteritems() if v == dp['dest_ba_name']][0]
             idx = idp % 18 + 1
-            self.assertEqual(dp['export_MW'], df.ix[dp['dest_ba_name'], idx])
+            self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_parse_trade_tomorrow(self):
         # set up df from StringIO
@@ -3949,9 +3951,11 @@ class TestNVEnergy(TestCase):
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
+            self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
+            dest = [k for k, v in self.c.TRADE_BAS.iteritems() if v == dp['dest_ba_name']][0]
             idx = idp % 18 + 1
-            self.assertEqual(dp['export_MW'], df.ix[dp['dest_ba_name'], idx])
+            self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_time_subset_latest(self):
         """Subset should return all elements with latest ts"""
