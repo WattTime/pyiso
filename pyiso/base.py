@@ -41,7 +41,7 @@ class BaseClient(object):
     NAME = ''
 
     # default connection timeout
-    TIMEOUT_SECONDS = 10
+    TIMEOUT_SECONDS = 15
 
     def __init__(self):
         self.options = {}
