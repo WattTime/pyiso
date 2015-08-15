@@ -237,13 +237,14 @@ class NVEnergyClient(BaseClient):
         # if sliceable, return inclusive of dates
         if self.options['sliceable']:
             f = lambda x: x['timestamp'] >= self.options['start_at'] and x['timestamp'] <= self.options['end_at']
-            return filter(f, data)
+            filtered = filter(f, data)
+            return list(filtered)
 
         # if latest, only return most recent
         elif self.options['latest']:
             latest_ts = max([x['timestamp'] for x in data])
             latest = filter(lambda x: x['timestamp'] == latest_ts, data)
-            return latest
+            return list(latest)
 
         # if neither, return all data
         else:
