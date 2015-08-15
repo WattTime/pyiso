@@ -3848,7 +3848,7 @@ class TestNVEnergy(TestCase):
                           u'Tie Line', u'Tie Line', u'Tie Line', u'Tie Line',
                           u'Tie Line', u'Tie Line', u'Tie Line'])
         self.assertEqual(list(df.columns),
-                         [u'Counterparty'] + range(1, 25) + [u'Total'])
+                         [u'Counterparty'] + list(range(1, 25)) + [u'Total'])
 
     def test_fetch_df_bad(self):
         # no data in year 2020
@@ -3922,7 +3922,7 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['freq'], '1hr')
             self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
-            dest = [k for k, v in self.c.TRADE_BAS.iteritems() if v == dp['dest_ba_name']][0]
+            dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
             idx = idp % 18 + 1
             self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
@@ -3953,7 +3953,7 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['freq'], '1hr')
             self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
-            dest = [k for k, v in self.c.TRADE_BAS.iteritems() if v == dp['dest_ba_name']][0]
+            dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
             idx = idp % 18 + 1
             self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 

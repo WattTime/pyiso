@@ -188,8 +188,9 @@ class TestNYISOTrade(TestBaseTrade):
 
     def test_date_range_short(self):
         # basic test
-        data = self._run_net_test('NYISO', start_at=datetime.now()-timedelta(minutes=10),
-                                  end_at=datetime.now()-timedelta(minutes=5))
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
+                                  end_at=now-timedelta(minutes=5))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
