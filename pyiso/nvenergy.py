@@ -17,7 +17,15 @@ class NVEnergyClient(BaseClient):
     BASE_URL = 'http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
     TZ_NAME = 'America/Los_Angeles'
     NAME = 'NVEnergy'
-    TRADE_BAS = ['BPA', 'CAISO', 'LADWP', 'IPCO', 'PACE', 'NVE', 'WALC']
+    TRADE_BAS = {
+        'BPA': 'BPA',
+        'CAISO': 'CAISO',
+        'LADWP': 'LDWP',
+        'IPCO': 'IPCO',
+        'PACE': 'PACE',
+        'NVE': 'NEVP',
+        'WALC': 'WALC',
+    }
 
     def get_load(self, latest=False,
                  start_at=False, end_at=False, **kwargs):
@@ -75,7 +83,7 @@ class NVEnergyClient(BaseClient):
         # return
         return self.time_subset(parsed_data)
 
-    def data_url(self, ts):
+    def data_url(self, ts, mode=None):
         # today's date in local time
         today = pytz.timezone(self.TZ_NAME).localize(datetime.utcnow()).date()
         tomorrow = today + timedelta(days=1)
@@ -90,6 +98,9 @@ class NVEnergyClient(BaseClient):
         if this_day == tomorrow:
             url_file = ts.strftime('tomorrow.htm')
             mode = 'tomorrow'
+        elif mode == 'alternate':
+            url_file = ts.strftime('native_system_load_and_ties_Y_for_%m_%d_%Y_.html')
+            mode = 'recent'
         elif ts.month == today.month and ts.year == today.year:
             url_file = ts.strftime('native_system_load_and_ties_for_%m_%d_%Y_.html')
             mode = 'recent'
@@ -107,14 +118,17 @@ class NVEnergyClient(BaseClient):
     def fetch_df(self, this_date, url=None, mode=None):
         # set up request
         if not url:
-            url, mode = self.data_url(this_date)
+            url, mode = self.data_url(this_date, mode=mode)
 
         # carry out request and parse html tables
         dfs = pd.read_html(url, index_col=0)
 
         # choose df based on mode
         if mode == 'recent':
-            df = dfs[1]
+            try:
+                df = dfs[1]
+            except IndexError:  # try alternate
+                return self.fetch_df(this_date, mode='alternate')
         elif mode == 'tomorrow':
             df = dfs[0]
         else:  # historical
@@ -207,7 +221,7 @@ class NVEnergyClient(BaseClient):
                 dp = {
                     'timestamp': ts,
                     'export_MW': value,
-                    'dest_ba_name': iso,
+                    'dest_ba_name': self.TRADE_BAS[iso],
                     'source_ba_name': self.NAME,
                     'market': self.MARKET_CHOICES.hourly,
                     'freq': self.FREQUENCY_CHOICES.hourly,
@@ -223,12 +237,14 @@ class NVEnergyClient(BaseClient):
         # if sliceable, return inclusive of dates
         if self.options['sliceable']:
             f = lambda x: x['timestamp'] >= self.options['start_at'] and x['timestamp'] <= self.options['end_at']
-            return filter(f, data)
+            filtered = filter(f, data)
+            return list(filtered)
 
         # if latest, only return most recent
         elif self.options['latest']:
-            latest = sorted(data, key=lambda x: x['timestamp'])[-1]
-            return [latest]
+            latest_ts = max([x['timestamp'] for x in data])
+            latest = filter(lambda x: x['timestamp'] == latest_ts, data)
+            return list(latest)
 
         # if neither, return all data
         else:
