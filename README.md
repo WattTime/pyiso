@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
-
+* 0.2.8: Added lmp in ISONE. Also, made a backward-incompatible change to the data structure that's returned from `get_lmp` in CAISO.
+* 0.2.7: Added load and trade in Nevada Energy (NEVP and SPPC)
 * 0.2.1: Added load (real-time 5-minute and hourly forecast) in ISONE
 * 0.2.0: Maintained Python 2.7 support and added Python 3.4! Thanks @emunsing
