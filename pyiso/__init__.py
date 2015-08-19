@@ -2,7 +2,7 @@ import imp
 import os.path
 
 
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 
 
 BALANCING_AUTHORITIES = {
