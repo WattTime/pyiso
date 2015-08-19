@@ -177,10 +177,24 @@ class CAISOClient(BaseClient):
         if df.empty:
             return {}
 
-        lmp_dict = {}
+        return_list = []
         for i, row in df.iterrows():
-            lmp_dict[i.to_pydatetime()] = row['LMP_PRC']
-        return lmp_dict
+            dp = {
+                     'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
+                     'lmp': row['LMP_PRC'],
+                     'zone_name': row['NODE'],
+                     'ba_name': 'CAISO',
+                     'lmp_type': row['LMP_TYPE'],
+                 }
+
+            # Add other items`
+            for item in ['market', 'market_run_id', 'freq']:
+                value = self.options.get(item, False)
+                if value:
+                    dp[item] = value
+
+            return_list.append(dp)
+        return return_list
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
                              market_run_id='RTM', lmp_only=True, **kwargs):
@@ -196,7 +210,7 @@ class CAISOClient(BaseClient):
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
                             **kwargs)
-        
+
         if latest:
             queryname = 'PRC_CURR_LMP'
         else:
@@ -334,7 +348,7 @@ class CAISOClient(BaseClient):
                 firsttime = False
             else:
                 a = pandas.merge(a, group[i].rename(columns=re(name)),
-                                 left_index=True, right_index=True, how='outer')
+                                left_index=True, right_index=True, how='outer')
 
         pandas.set_option('display.width', 200)
 
@@ -368,7 +382,7 @@ class CAISOClient(BaseClient):
                    'market_run_id': market_run_id,
                    'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
                    'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
-                   }
+                  }
         payload.update(self.base_payload)
         payload.update(kwargs)
 
@@ -432,10 +446,10 @@ class CAISOClient(BaseClient):
 
                 # store
                 parsed_data += self.serialize(pivoted,
-                                              header=['timestamp', 'fuel_name', 'gen_MW'],
-                                              extras={'ba_name': self.NAME,
-                                                      'market': self.MARKET_CHOICES.hourly,
-                                                      'freq': self.FREQUENCY_CHOICES.hourly})
+                                      header=['timestamp', 'fuel_name', 'gen_MW'],
+                                      extras={'ba_name': self.NAME,
+                                              'market': self.MARKET_CHOICES.hourly,
+                                              'freq': self.FREQUENCY_CHOICES.hourly})
 
             # finish day
             this_date += timedelta(days=1)
@@ -449,13 +463,13 @@ class CAISOClient(BaseClient):
 
         If return_all_files=False, returns only the content from the first file in the .zip -
         this is the default behavior and was used in earlier versions of this function.
-        
+
         If return_all_files=True, will return an array representing the content from each file.
         This is useful for processing LMP data or other fields where multiple price components are returned in a zip.
         """
         # set up storage
         raw_data = []
-        
+
         if return_all_files is True:
             default_return_val = []
         else:

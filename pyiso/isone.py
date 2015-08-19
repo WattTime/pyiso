@@ -1,6 +1,7 @@
 from pyiso.base import BaseClient
 from os import environ
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil import parser
 import pytz
 import logging
 
@@ -25,6 +26,17 @@ class ISONEClient(BaseClient):
         'Wood': 'biomass',
         'Refuse': 'refuse',
         'Landfill Gas': 'biogas',
+    }
+
+    locations = {
+        'MAINE': 4001,
+        'NEWHAMPSHIRE': 4002,
+        'VERMONT': 4003,
+        'CONNECTICUT': 4004,
+        'RHODEISLAND': 4005,
+        'SEMASS': 4006,
+        'WCMASS': 4007,
+        'NEMASSBOST': 4008,
     }
 
     def __init__(self, *args, **kwargs):
@@ -140,11 +152,15 @@ class ISONEClient(BaseClient):
                 else:
                     self.options['frequency'] = self.FREQUENCY_CHOICES.fivemin
 
-    def request_endpoints(self):
+    def request_endpoints(self, location_id=None):
         """Returns a list of endpoints to query, based on handled options"""
         # base endpoint
+        ext = ''
         if self.options['data'] == 'gen':
             base_endpoint = 'genfuelmix'
+        elif self.options['data'] == 'lmp' and location_id is not None:
+            base_endpoint = 'fiveminutelmp'
+            ext = '/location/%s' % location_id
         elif self.options['market'] == self.MARKET_CHOICES.dam:
             base_endpoint = 'hourlyloadforecast'
         else:
@@ -155,12 +171,12 @@ class ISONEClient(BaseClient):
 
         # handle dates
         if self.options['latest']:
-            request_endpoints.append('/%s/current.json' % base_endpoint)
+            request_endpoints.append('/%s/current%s.json' % (base_endpoint, ext))
 
         elif self.options['start_at'] and self.options['end_at']:
             for date in self.dates():
                 date_str = date.strftime('%Y%m%d')
-                request_endpoints.append('/%s/day/%s.json' % (base_endpoint, date_str))
+                request_endpoints.append('/%s/day/%s%s.json' % (base_endpoint, date_str, ext))
 
         else:
             msg = 'Either latest or forecast must be True, or start_at and end_at must both be provided.'
@@ -188,3 +204,66 @@ class ISONEClient(BaseClient):
                 return data['FiveMinSystemLoads']['FiveMinSystemLoad']
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE load data %s' % data)
+
+    def parse_json_lmp_data(self, data):
+        """
+        Pull approriate keys from json data set.
+        Raise ValueError if parser fails.
+        """
+        try:
+            if self.options.get('latest'):
+                return data['FiveMinLmp']
+            else:
+                return data['FiveMinLmps']['FiveMinLmp']
+        except (KeyError, TypeError):
+            raise ValueError('Could not parse ISONE lmp data %s' % data)
+
+    def get_lmp(self, zone_name, latest=True, start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='lmp', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # get location id
+        try:
+            locationid = self.locations[zone_name.upper()]
+        except KeyError:
+            raise ValueError('No LMP data available for location %s' % zone_name)
+
+        # set up storage
+        raw_data = []
+        parsed_data = []
+
+        # collect raw data
+        for endpoint in self.request_endpoints(locationid):
+            # carry out request
+            data = self.fetch_data(endpoint, self.auth)
+
+            # pull out data
+            try:
+                raw_data += self.parse_json_lmp_data(data)
+            except ValueError as e:
+                logger.warn(e)
+                continue
+
+        # parse data
+        for raw_dp in raw_data:
+            # set up storage
+            parsed_dp = {}
+
+            # add values
+            parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
+            parsed_dp['lmp'] = raw_dp['LmpTotal']
+            parsed_dp['ba_name'] = self.NAME
+            parsed_dp['market'] = self.options['market']
+            parsed_dp['freq'] = self.options['frequency']
+            parsed_dp['zone_name'] = zone_name
+
+            # add to full storage
+            to_store = True
+            if self.options['sliceable']:
+                if self.options['start_at'] > parsed_dp['timestamp'] or self.options['end_at'] < parsed_dp['timestamp']:
+                    to_store = False
+            if to_store:
+                parsed_data.append(parsed_dp)
+
+        return parsed_data
