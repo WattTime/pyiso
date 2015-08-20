@@ -1,5 +1,6 @@
 from pyiso.base import BaseClient
 from datetime import datetime, timedelta
+from dateutil.parser import parse as dateutil_parse
 import pandas as pd
 import pytz
 
@@ -22,7 +23,7 @@ class SVERIClient(BaseClient):
         'Hydro Aggregate (MW)': 'hydro',
         'Coal Aggregate (MW)': 'coal',
         'Gas Aggregate (MW)': 'natgas',
-        'Other Fossil Fuels Aggregate (MW)': 'other',
+        'Other Fossil Fuels Aggregate (MW)': 'fossil',
         'Nuclear Aggregate (MW)': 'nuclear',
     }
 
@@ -33,7 +34,7 @@ class SVERIClient(BaseClient):
             end = (now + timedelta(days=1)).strftime('%Y-%m-%d')
         else:
             start = self.options['start_at'].astimezone(pytz.timezone(self.TZ_NAME)).strftime('%Y-%m-%d')
-            end = self.options['end_at'].strftime('%Y-%m-%d')
+            end = self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)).strftime('%Y-%m-%d')
         return {
             'ids': ids,
             'startDate': start,
@@ -49,67 +50,65 @@ class SVERIClient(BaseClient):
     def get_load_payload(self):
         return self._get_payload('0')
 
-    def _get_gen_dps_from_row(self, row):
-        dps = []
-        for f in self.fuels:
-            dp = {
-                'timestamp': self.utcify(row[0]),
-                'ba_name': self.NAME,
-                'freq': self.FREQUENCY_CHOICES.onemin,
-                'market': self.MARKET_CHOICES.onemin,
-                'fuel_name': self.fuels[f],
-                'gen_MW': row.loc[f],
-            }
-            dps.append(dp)
-        return dps
+    def clean_df(self, df):
+        if self.options['data'] == 'gen':
+            df.rename(columns=self.fuels, inplace=True)
+            df = self.unpivot(df)
+            df.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
+        else:
+            df.rename(columns={"Load Aggregate (MW)": "load_MW"}, inplace=True)
 
-    def _get_load_dp_from_row(self, row):
-        header = 'Load Aggregate (MW)'
-        dp = {
-            'timestamp': self.utcify(row[0]),
-            'ba_name': self.NAME,
-            'freq': self.FREQUENCY_CHOICES.onemin,
-            'market': self.MARKET_CHOICES.onemin,
-            'load_MW': row.loc[header],
+        df.index.names = ['timestamp']
+        df.index = self.utcify_index(df.index)
+        sliced = self.slice_times(df)
+        return sliced
+
+    def date_parser(self, ts_str):
+        TZINFOS = {
+            'MST': pytz.timezone(self.TZ_NAME),
         }
-        return [dp]
+
+        return dateutil_parse(ts_str, tzinfos=TZINFOS)
+
+    def no_forecast_warn(self):
+        if not self.options['latest'] and self.options['start_at'] >= pytz.utc.localize(datetime.utcnow()):
+            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
+
+    def _clean_and_serialize(self, df):
+        df = df[df.index.second == 5]
+        df = df[df.index.minute % 5 == 0]
+        cleaned_df = self.clean_df(df)
+        extras = {
+            'ba_name': self.NAME,
+            'market': self.MARKET_CHOICES.fivemin,
+            'freq': self.FREQUENCY_CHOICES.fivemin
+        }
+        return self.serialize_faster(cleaned_df, extras)
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
-        if not self.options['latest'] and self.options['start_at'] > pytz.utc.localize(datetime.utcnow()):
-            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
+        self.no_forecast_warn()
         payloads = self.get_gen_payloads()
         response = self.request(self.BASE_URL, params=payloads[0])
         response2 = self.request(self.BASE_URL, params=payloads[1])
-        result = []
-        if response and response2:
-            df = self.parse_to_df(response.content, header=0)
-            df2 = self.parse_to_df(response2.content, header=0)
-            df = pd.merge(df, df2, on=df.columns[0])
-            if self.options['latest']:
-                df = df.tail(1)
-            for index, row in df.iterrows():
-                if self.options['latest'] or row[0][-3:] == ':05':
-                    result += self._get_gen_dps_from_row(row)
-        return result
+        if not response or not response2:
+            return []
+        df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
+        df2 = self.parse_to_df(response2.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
+        df = pd.concat([df, df2], axis=1, join='inner')
+        return self._clean_and_serialize(df)
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         # set args
-        self.handle_options(data='gen', latest=latest, yesterday=yesterday,
+        self.handle_options(data='load', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
-        if not self.options['latest'] and self.options['start_at'] > pytz.utc.localize(datetime.utcnow()):
-            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
+        self.no_forecast_warn()
         payload = self.get_load_payload()
         response = self.request(self.BASE_URL, params=payload)
-        result = []
-        if response:
-            df = self.parse_to_df(response.content, header=0)
-            if self.options['latest']:
-                df = df.tail(1)
-            for index, row in df.iterrows():
-                if self.options['latest'] or row[0][-3:] == ':05':
-                    result += self._get_load_dp_from_row(row)
-        return result
+        if not response:
+            return []
+        df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
+        return self._clean_and_serialize(df)
