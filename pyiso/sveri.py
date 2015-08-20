@@ -51,6 +51,11 @@ class SVERIClient(BaseClient):
         return self._get_payload('0')
 
     def clean_df(self, df):
+        # take only data at 5 minute marks
+        df = df[df.index.second == 5]
+        df = df[df.index.minute % 5 == 0]
+
+        # unpivot and rename
         if self.options['data'] == 'gen':
             df.rename(columns=self.fuels, inplace=True)
             df = self.unpivot(df)
@@ -59,25 +64,17 @@ class SVERIClient(BaseClient):
             df.rename(columns={"Load Aggregate (MW)": "load_MW"}, inplace=True)
 
         df.index.names = ['timestamp']
+
+        # change timestamps to utc and slice
         df.index = self.utcify_index(df.index)
         sliced = self.slice_times(df)
         return sliced
 
-    def date_parser(self, ts_str):
-        TZINFOS = {
-            'MST': pytz.timezone(self.TZ_NAME),
-        }
-
-        return dateutil_parse(ts_str, tzinfos=TZINFOS)
-
-    def no_forecast_warn(self):
-        if not self.options['latest'] and self.options['start_at'] >= pytz.utc.localize(datetime.utcnow()):
-            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
-
     def _clean_and_serialize(self, df):
-        df = df[df.index.second == 5]
-        df = df[df.index.minute % 5 == 0]
+        # clean
         cleaned_df = self.clean_df(df)
+
+        # serialize
         extras = {
             'ba_name': self.NAME,
             'market': self.MARKET_CHOICES.fivemin,
@@ -91,14 +88,20 @@ class SVERIClient(BaseClient):
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
         self.no_forecast_warn()
+
+        # fetch data
         payloads = self.get_gen_payloads()
         response = self.request(self.BASE_URL, params=payloads[0])
         response2 = self.request(self.BASE_URL, params=payloads[1])
         if not response or not response2:
             return []
+
+        # parse
         df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
         df2 = self.parse_to_df(response2.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
         df = pd.concat([df, df2], axis=1, join='inner')
+        
+        # clean and serialize
         return self._clean_and_serialize(df)
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
@@ -106,9 +109,26 @@ class SVERIClient(BaseClient):
         self.handle_options(data='load', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
         self.no_forecast_warn()
+
+        # fetch data
         payload = self.get_load_payload()
         response = self.request(self.BASE_URL, params=payload)
         if not response:
             return []
+
+        # parse
         df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
+
+        # clean and serialize
         return self._clean_and_serialize(df)
+
+    def date_parser(self, ts_str):
+        TZINFOS = {
+            'MST': pytz.timezone(self.TZ_NAME),
+        }
+
+        return dateutil_parse(ts_str, tzinfos=TZINFOS)
+
+    def no_forecast_warn(self):
+        if not self.options['latest'] and self.options['start_at'] >= pytz.utc.localize(datetime.utcnow()):
+            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
