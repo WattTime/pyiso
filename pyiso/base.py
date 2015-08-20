@@ -11,7 +11,7 @@ from StringIO import StringIO
 
 
 # named tuple for time period interval labels
-IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
+IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam', 'onemin'])
 
 # list of fuel choices
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
@@ -28,8 +28,8 @@ class BaseClient(object):
     logger = logging.getLogger(__name__)
 
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
-    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR', onemin='RT1M')
+    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr', onemin='1m')
 
     # timezone
     TZ_NAME = 'UTC'
