@@ -11,13 +11,13 @@ from StringIO import StringIO
 
 
 # named tuple for time period interval labels
-IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam', 'onemin'])
+IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
 
 # list of fuel choices
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
-                'solarth', 'thermal', 'wind']
+                'solarth', 'thermal', 'wind', 'fossil']
 
 
 class BaseClient(object):
@@ -28,8 +28,8 @@ class BaseClient(object):
     logger = logging.getLogger(__name__)
 
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR', onemin='RT1M')
-    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr', onemin='1m')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
+    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
 
     # timezone
     TZ_NAME = 'UTC'
@@ -370,6 +370,13 @@ class BaseClient(object):
             data.append(dp)
 
         return data
+
+    def serialize_faster(self, df, extras={}):
+        """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW). Index and columns are already properly named."""
+        df = df.reset_index()
+        for key in extras:
+            df[key] = extras[key]
+        return df.to_dict(orient='records')
 
     def dates(self):
         """Returns a list of dates in local time"""
