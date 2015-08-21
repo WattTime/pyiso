@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase, skip
 import pytz
@@ -15,10 +15,7 @@ class TestBaseGenMix(TestCase):
 
         # set up other expected values
         self.FUEL_CHOICES = FUEL_CHOICES
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
-                           'BPA', 'CAISO', 'ERCOT',
-                           'PJM', 'NYISO', 'NEVP',
-                           'SPPC', 'SVERI']
+        self.BA_CHOICES = BALANCING_AUTHORITIES.keys()
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -352,9 +349,21 @@ class TestSPPCGenMix(TestBaseGenMix):
 
 
 class TestSVERIGenMix(TestBaseGenMix):
-    def test_sveri_latest(self):
+    def setUp(self):
+        super(TestSVERIGenMix, self).setUp()
+        self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
+
+    def test_latest_all(self):
+        for ba in self.bas:
+            self._test_latest(ba)
+
+    def test_date_range_all(self):
+        for ba in self.bas:
+            self._test_date_range(ba)
+
+    def _test_latest(self, ba):
         # basic test
-        data = self._run_test('SVERI', latest=True)
+        data = self._run_test(ba, latest=True)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -371,10 +380,10 @@ class TestSVERIGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
-    def test_sveri_date_range(self):
+    def _test_date_range(self, ba):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('SVERI', start_at=today - timedelta(days=3),
+        data = self._run_test(ba, start_at=today - timedelta(days=3),
                               end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
 
         # test timestamps are different

@@ -7,7 +7,7 @@ import pytz
 
 class TestSVERI(TestCase):
     def setUp(self):
-        self.c = client_factory('SVERI')
+        self.c = client_factory('AZPS')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
         self.c.logger.setLevel(logging.INFO)

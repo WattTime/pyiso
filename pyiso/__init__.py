@@ -6,16 +6,27 @@ __version__ = '0.2.8'
 
 
 BALANCING_AUTHORITIES = {
+    'AZPS': {'module': 'sveri', 'class': 'SVERIClient'},
     'BPA': {'module': 'bpa', 'class': 'BPAClient'},
     'CAISO': {'module': 'caiso', 'class': 'CAISOClient'},
+    'DEAA': {'module': 'sveri', 'class': 'SVERIClient'},
+    'EPE': {'module': 'sveri', 'class': 'SVERIClient'},
     'ERCOT': {'module': 'ercot', 'class': 'ERCOTClient'},
+    'HGMA': {'module': 'sveri', 'class': 'SVERIClient'},
+    'IID': {'module': 'sveri', 'class': 'SVERIClient'},
     'ISONE': {'module': 'isone', 'class': 'ISONEClient'},
+    'GRF': {'module': 'sveri', 'class': 'SVERIClient'},
+    'GRMA': {'module': 'sveri', 'class': 'SVERIClient'},
     'MISO': {'module': 'miso', 'class': 'MISOClient'},
     'NEVP': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
     'NYISO': {'module': 'nyiso', 'class': 'NYISOClient'},
     'PJM': {'module': 'pjm', 'class': 'PJMClient'},
+    'PNM': {'module': 'sveri', 'class': 'SVERIClient'},
     'SPPC': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
     'SPP': {'module': 'spp', 'class': 'SPPClient'},
+    'SRP': {'module': 'sveri', 'class': 'SVERIClient'},
+    'TEPC': {'module': 'sveri', 'class': 'SVERIClient'},
+    'WALC': {'module': 'sveri', 'class': 'SVERIClient'},
 }
 
 
