@@ -19,7 +19,7 @@ class SVERIClient(BaseClient):
     fuels = {
         'Solar Aggregate (MW)': 'solar',
         'Wind Aggregate (MW)': 'wind',
-        'Other Renewables Aggregate (MW)': 'renewables',
+        'Other Renewables Aggregate (MW)': 'renewable',
         'Hydro Aggregate (MW)': 'hydro',
         'Coal Aggregate (MW)': 'coal',
         'Gas Aggregate (MW)': 'natgas',
@@ -100,7 +100,7 @@ class SVERIClient(BaseClient):
         df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
         df2 = self.parse_to_df(response2.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
         df = pd.concat([df, df2], axis=1, join='inner')
-        
+
         # clean and serialize
         return self._clean_and_serialize(df)
 
