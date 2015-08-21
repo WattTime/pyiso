@@ -25,4 +25,6 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``NYISO.get_trade``       yes         yes                                no            no
 ``PJM.get_generation``    yes         no                                 no            no
 ``PJM.get_load``          yes         no                                 no            no
+``SVERI.get_generation``  yes         yes                                no            no
+``SVERI.get_load``        yes         yes                                no            no
 ======================== ========== =================================== ============== ============
