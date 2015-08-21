@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase, skip
 import pytz
@@ -15,9 +15,7 @@ class TestBaseGenMix(TestCase):
 
         # set up other expected values
         self.FUEL_CHOICES = FUEL_CHOICES
-        self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
-                           'BPA', 'CAISO', 'ERCOT',
-                           'PJM', 'NYISO', 'NEVP', 'SPPC']
+        self.BA_CHOICES = BALANCING_AUTHORITIES.keys()
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -121,8 +119,8 @@ class TestSPPGenMix(TestBaseGenMix):
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
                               market=self.MARKET_CHOICES.hourly)
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -149,8 +147,8 @@ class TestSPPGenMix(TestBaseGenMix):
     def test_spp_yesterday_5min(self):
         # basic test
         data = self._run_test('SPP', yesterday=True, market=self.MARKET_CHOICES.fivemin)
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -185,8 +183,8 @@ class TestBPAGenMix(TestBaseGenMix):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -195,8 +193,8 @@ class TestBPAGenMix(TestBaseGenMix):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -208,7 +206,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
                               end_at=today-timedelta(days=2), market=self.MARKET_CHOICES.hourly)
 
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -227,8 +225,8 @@ class TestCAISOGenMix(TestBaseGenMix):
     def test_caiso_yesterday(self):
         # basic test
         data = self._run_test('CAISO', yesterday=True, market=self.MARKET_CHOICES.hourly)
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -268,8 +266,8 @@ class TestCAISOGenMix(TestBaseGenMix):
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
                               end_at=now+timedelta(hours=12))
-
-        # test all timestamps are equal
+        
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -348,3 +346,57 @@ class TestNEVPGenMix(TestBaseGenMix):
 class TestSPPCGenMix(TestBaseGenMix):
     def test_failing(self):
         self._run_notimplemented_test('SPPC')
+
+
+class TestSVERIGenMix(TestBaseGenMix):
+    def setUp(self):
+        super(TestSVERIGenMix, self).setUp()
+        self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
+
+    def test_latest_all(self):
+        for ba in self.bas:
+            self._test_latest(ba)
+
+    def test_date_range_all(self):
+        for ba in self.bas:
+            self._test_date_range(ba)
+
+    def _test_latest(self, ba):
+        # basic test
+        data = self._run_test(ba, latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+
+    def _test_date_range(self, ba):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test(ba, start_at=today - timedelta(days=3),
+                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)

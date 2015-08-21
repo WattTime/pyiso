@@ -20,7 +20,7 @@ IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
-                'solarth', 'thermal', 'wind']
+                'solarth', 'thermal', 'wind', 'fossil']
 
 
 class BaseClient(object):
@@ -389,6 +389,13 @@ class BaseClient(object):
             data.append(dp)
 
         return data
+
+    def serialize_faster(self, df, extras={}):
+        """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW). Index and columns are already properly named."""
+        df = df.reset_index()
+        for key in extras:
+            df[key] = extras[key]
+        return df.to_dict(orient='records')
 
     def dates(self):
         """Returns a list of dates in local time"""
