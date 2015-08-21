@@ -117,7 +117,7 @@ class BaseClient(object):
         self.options.update(kwargs)
 
         # check start_at and end_at args
-        if self.options.get('start_at', None) or self.options.get('end_at', None):
+        if self.options.get('start_at', None) and self.options.get('end_at', None):
             assert self.options['start_at'] < self.options['end_at']
             self.options['start_at'] = self.utcify(self.options['start_at'])
             self.options['end_at'] = self.utcify(self.options['end_at'])
