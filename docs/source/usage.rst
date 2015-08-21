@@ -12,9 +12,8 @@ Clients
 .. py:currentmodule:: pyiso.base
 
 First, create a client using the ``client_factory(ba_name)`` function.
-``ba_name`` should be taken from this list of abbreviated names for available balancing authorities:
-``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'NVEnergy', 'NYISO', 'MISO', 'PJM', 'SVERI']``.
-(See the :doc:`intro` for background about the ISOs and balancing authorities.)
+``ba_name`` should be taken from this list of abbreviated names for available balancing authorities
+listed on the :doc:`intro` page.
 For example::
 
    >>> from pyiso import client_factory
