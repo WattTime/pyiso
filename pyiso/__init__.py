@@ -2,7 +2,7 @@ import imp
 import os.path
 
 
-__version__ = '0.2.8'
+__version__ = '0.2.9'
 
 
 BALANCING_AUTHORITIES = {
@@ -10,13 +10,12 @@ BALANCING_AUTHORITIES = {
     'BPA': {'module': 'bpa', 'class': 'BPAClient'},
     'CAISO': {'module': 'caiso', 'class': 'CAISOClient'},
     'DEAA': {'module': 'sveri', 'class': 'SVERIClient'},
-    'EPE': {'module': 'sveri', 'class': 'SVERIClient'},
+    'ELE': {'module': 'sveri', 'class': 'SVERIClient'},
     'ERCOT': {'module': 'ercot', 'class': 'ERCOTClient'},
     'HGMA': {'module': 'sveri', 'class': 'SVERIClient'},
     'IID': {'module': 'sveri', 'class': 'SVERIClient'},
     'ISONE': {'module': 'isone', 'class': 'ISONEClient'},
-    'GRF': {'module': 'sveri', 'class': 'SVERIClient'},
-    'GRMA': {'module': 'sveri', 'class': 'SVERIClient'},
+    'GRIF': {'module': 'sveri', 'class': 'SVERIClient'},
     'MISO': {'module': 'miso', 'class': 'MISOClient'},
     'NEVP': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
     'NYISO': {'module': 'nyiso', 'class': 'NYISOClient'},
