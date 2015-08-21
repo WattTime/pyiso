@@ -120,7 +120,7 @@ class TestSPPGenMix(TestBaseGenMix):
                               end_at=today-timedelta(days=1),
                                 market=self.MARKET_CHOICES.hourly)
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
@@ -148,7 +148,7 @@ class TestSPPGenMix(TestBaseGenMix):
         # basic test
         data = self._run_test('SPP', yesterday=True, market=self.MARKET_CHOICES.fivemin)
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
@@ -184,7 +184,7 @@ class TestBPAGenMix(TestBaseGenMix):
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
@@ -194,7 +194,7 @@ class TestBPAGenMix(TestBaseGenMix):
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
@@ -206,7 +206,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
                               end_at=today-timedelta(days=2), market=self.MARKET_CHOICES.hourly)
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
@@ -226,7 +226,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         # basic test
         data = self._run_test('CAISO', yesterday=True, market=self.MARKET_CHOICES.hourly)
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
@@ -267,7 +267,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
                               end_at=now+timedelta(hours=12))
         
-        # test all timestamps are equal
+        # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         
