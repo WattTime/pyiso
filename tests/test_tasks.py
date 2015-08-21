@@ -48,6 +48,11 @@ class TestGenerationTask(TestCase):
                 self.assertEqual(expected[i]['gen_MW'], received[i]['gen_MW'])
                 self.assertEqual(expected[i]['fuel_name'], received[i]['fuel_name'])
 
+    def test_sveri_latest(self):
+        expected = client_factory('SVERI').get_generation(**self.latest_kwargs)
+        received = tasks.get_generation('SVERI', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
 
 class TestLoadTask(TestCase):
     def setUp(self):
@@ -93,6 +98,11 @@ class TestLoadTask(TestCase):
     def test_nyiso_latest(self):
         expected = client_factory('NYISO').get_load(**self.latest_kwargs)
         received = tasks.get_load('NYISO', **self.latest_kwargs)
+        self.assertEqual(expected, received)
+
+    def test_sveri_latest(self):
+        expected = client_factory('SVERI').get_load(**self.latest_kwargs)
+        received = tasks.get_load('SVERI', **self.latest_kwargs)
         self.assertEqual(expected, received)
 
 

@@ -16,7 +16,8 @@ class TestBaseLoad(TestCase):
         # set up other expected values
         self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
                            'BPA', 'CAISO', 'ERCOT',
-                           'PJM', 'NYISO', 'NEVP', 'SPPC']
+                           'PJM', 'NYISO', 'NEVP',
+                           'SPPC', 'SVERI']
 
     def create_client(self, ba_name):
         # set up client with logging
@@ -301,3 +302,31 @@ class TestSPPCLoad(TestBaseLoad):
                               end_at=today-timedelta(days=33),
                               expect_data=False)
 
+class TestSVERILoad(TestBaseLoad):
+    def test_sveri_latest(self):
+        # basic test
+        data = self._run_test('SVERI', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_sveri_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('SVERI', start_at=today - timedelta(days=3),
+                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
