@@ -13,7 +13,7 @@ Clients
 
 First, create a client using the ``client_factory(ba_name)`` function.
 ``ba_name`` should be taken from this list of abbreviated names for ISO balancing authorities:
-``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'MISO', 'PJM', 'SPP']``.
+``['BPA', 'CAISO', 'ERCOT', 'ISONE', 'MISO', 'PJM', 'SPP', 'SVERI']``.
 (See the :doc:`intro` for background about the ISOs.)
 For example::
 
