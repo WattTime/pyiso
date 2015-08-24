@@ -27,9 +27,6 @@ class BaseClient(object):
     """
     Base class for scraper/parser clients.
     """
-    # logger
-    logger = logging.getLogger(__name__)
-
     # choices for market and frequency interval labels
     MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
     FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
@@ -45,6 +42,11 @@ class BaseClient(object):
 
     def __init__(self):
         self.options = {}
+
+        # logger
+        self.logger = logging.getLogger(__name__)
+        handler = logging.StreamHandler()
+        self.logger.addHandler(handler)
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """

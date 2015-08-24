@@ -5,12 +5,8 @@ try:
     from urllib2 import HTTPError
 except ImportError:
     from urllib.error import HTTPError
-import logging
 import pytz
 import calendar
-
-
-logger = logging.getLogger(__name__)
 
 
 class NVEnergyClient(BaseClient):
@@ -42,14 +38,14 @@ class NVEnergyClient(BaseClient):
             try:
                 df, mode = self.fetch_df(this_date)
             except (HTTPError, ValueError):
-                logger.warn('No data available in NVEnergy at %s' % this_date)
+                self.logger.warn('No data available in NVEnergy at %s' % this_date)
                 continue
 
             # store
             try:
                 parsed_data += self.parse_load(df, this_date, mode)
             except KeyError:
-                logger.warn('Unparseable data available in NVEnergy at %s for mode %s: %s' % (this_date, mode, df))
+                self.logger.warn('Unparseable data available in NVEnergy at %s for mode %s: %s' % (this_date, mode, df))
                 continue
 
         # return
@@ -70,14 +66,14 @@ class NVEnergyClient(BaseClient):
             try:
                 df, mode = self.fetch_df(this_date)
             except (HTTPError, ValueError):
-                logger.warn('No data available in NVEnergy at %s' % this_date)
+                self.logger.warn('No data available in NVEnergy at %s' % this_date)
                 continue
 
             # store
             try:
                 parsed_data += self.parse_trade(df, this_date, mode)
             except KeyError:
-                logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
+                self.logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
                 continue
 
         # return

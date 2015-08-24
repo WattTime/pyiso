@@ -1,12 +1,7 @@
 from pyiso.base import BaseClient
 from os import environ
-from datetime import datetime, timedelta
-from dateutil import parser
+from datetime import datetime
 import pytz
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 
 class ISONEClient(BaseClient):
@@ -99,7 +94,7 @@ class ISONEClient(BaseClient):
             try:
                 raw_data += self.parse_json_load_data(data)
             except ValueError as e:
-                logger.warn(e)
+                self.logger.warn(e)
                 continue
 
         # parse data
@@ -242,7 +237,7 @@ class ISONEClient(BaseClient):
             try:
                 raw_data += self.parse_json_lmp_data(data)
             except ValueError as e:
-                logger.warn(e)
+                self.logger.warn(e)
                 continue
 
         # parse data
