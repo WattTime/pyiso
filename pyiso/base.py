@@ -56,10 +56,10 @@ class BaseClient(object):
            Available for all regions.
         :param bool yesterday: If True, get the generation mix for every time point yesterday.
            Not available for all regions.
-        :param datetime start_at: A timezone-aware datetime. The timestamp of all returned data points will be greater than or equal to this value.
+        :param datetime start_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
-        :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
+        :param datetime end_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
@@ -77,10 +77,10 @@ class BaseClient(object):
            Available for all regions.
         :param bool yesterday: If True, get the load for every time point yesterday.
            Not available for all regions.
-        :param datetime start_at: A timezone-aware datetime. The timestamp of all returned data points will be greater than or equal to this value.
+        :param datetime start_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
-        :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
+        :param datetime end_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
@@ -99,10 +99,10 @@ class BaseClient(object):
            Available for all regions.
         :param bool yesterday: If True, get the trade for every time point yesterday.
            Not available for all regions.
-        :param datetime start_at: A timezone-aware datetime. The timestamp of all returned data points will be greater than or equal to this value.
+        :param datetime start_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
-        :param datetime end_at: A timezone-aware datetime. The timestamp of all returned data points will be less than or equal to this value.
+        :param datetime end_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
            If using, must provide both ``start_at`` and ``end_at`` parameters.
            Not available for all regions.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, net_exp_MW]``.
