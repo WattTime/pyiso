@@ -211,7 +211,7 @@ class CAISOClient(BaseClient):
                             market_run_id=market_run_id,
                             **kwargs)
 
-        if latest:
+        if self.options['latest']:
             queryname = 'PRC_CURR_LMP'
         else:
             queryname = self.LMP_MARKETS[market_run_id]

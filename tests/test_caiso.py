@@ -651,6 +651,25 @@ class TestCAISOBase(TestCase):
         self.assertIn('timestamp', lmps[0].keys())
         self.assertIn('market_run_id', lmps[0].keys())
 
+    def test_get_lmp_forecast(self):
+        c = self.create_client('CAISO')
+        ts = pytz.utc.localize(datetime.utcnow())
+        start = ts + timedelta(hours=2)
+        end = ts + timedelta(hours=12)
+        lmps = c.get_lmp('SLAP_PGP2-APND', start_at=start, end_at=end, market_run_id='DAM')
+
+        self.assertEqual(len(lmps), 10)
+
+        self.assertGreaterEqual(min([a['timestamp'] for a in lmps]), start)
+        self.assertLessEqual(max([a['timestamp'] for a in lmps]), end)
+
+        self.assertGreaterEqual(min([a['lmp'] for a in lmps]), -300)
+        self.assertLess(max([a['lmp'] for a in lmps]), 1500)
+
+        self.assertIn('lmp', lmps[0].keys())
+        self.assertIn('timestamp', lmps[0].keys())
+        self.assertIn('market_run_id', lmps[0].keys())
+
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')
         d = c.get_lmp('badnode', latest=True)
