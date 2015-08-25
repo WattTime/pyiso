@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.10: Fixed bug in CAISO LMP DAM.
 * 0.2.9: Added load and generation mix for SVERI (AZPS, DEAA, ELE, HGMA, IID, GRIF, PNM, SRP, TEPC, WALC)
 * 0.2.8: Added lmp in ISONE. Also, made a backward-incompatible change to the data structure that's returned from `get_lmp` in CAISO.
 * 0.2.7: Added load and trade in Nevada Energy (NEVP and SPPC)
