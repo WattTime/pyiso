@@ -631,7 +631,7 @@ class TestCAISOBase(TestCase):
 
         self.assertIn('lmp', lmp[0].keys())
         self.assertIn('timestamp', lmp[0].keys())
-        self.assertIn('market_run_id', lmp[0].keys())
+        self.assertIn('market', lmp[0].keys())
 
     def test_get_lmp_hist(self):
         c = self.create_client('CAISO')
@@ -649,7 +649,7 @@ class TestCAISOBase(TestCase):
 
         self.assertIn('lmp', lmps[0].keys())
         self.assertIn('timestamp', lmps[0].keys())
-        self.assertIn('market_run_id', lmps[0].keys())
+        self.assertIn('market', lmps[0].keys())
 
     def test_get_lmp_forecast(self):
         c = self.create_client('CAISO')
@@ -668,7 +668,7 @@ class TestCAISOBase(TestCase):
 
         self.assertIn('lmp', lmps[0].keys())
         self.assertIn('timestamp', lmps[0].keys())
-        self.assertIn('market_run_id', lmps[0].keys())
+        self.assertIn('market', lmps[0].keys())
 
     def test_get_lmp_badnode(self):
         c = self.create_client('CAISO')

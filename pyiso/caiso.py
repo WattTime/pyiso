@@ -168,7 +168,7 @@ class CAISOClient(BaseClient):
             # return all data
             return parsed_data
 
-    def get_lmp(self, node_id, **kwargs):
+    def get_lmp(self, node_id=None, **kwargs):
         """
         Returns a dictionary with keys of datetime.datetime objects
         Values holds $/MW float
@@ -183,13 +183,13 @@ class CAISOClient(BaseClient):
             dp = {
                      'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
                      'lmp': row['LMP_PRC'],
-                     'zone_name': row['NODE'],
+                     'node_id': row['NODE'],
                      'ba_name': 'CAISO',
                      'lmp_type': row['LMP_TYPE'],
                  }
 
             # Add other items`
-            for item in ['market', 'market_run_id', 'freq']:
+            for item in ['market', 'freq']:
                 value = self.options.get(item, False)
                 if value:
                     dp[item] = value
@@ -198,7 +198,7 @@ class CAISOClient(BaseClient):
         return return_list
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
-                             market_run_id='RTM', lmp_only=True, **kwargs):
+                             market_run_id='RTM', freq='RT5M', lmp_only=True, **kwargs):
         """
         Returns a pandas DataFrame with columns
         INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others.
@@ -210,6 +210,7 @@ class CAISOClient(BaseClient):
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
+                            freq=freq,
                             **kwargs)
 
         if self.options['latest']:
@@ -344,7 +345,7 @@ class CAISOClient(BaseClient):
             a = df.ix[i]
             dp = {
                      'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
-                     'market_run_id': a['MARKET_RUN_ID'],
+                     'market': a['MARKET_RUN_ID'],
                      'zone_name': a['ANC_REGION'],
                      'ba_name': 'CAISO',
                  }
@@ -373,6 +374,7 @@ class CAISOClient(BaseClient):
         # get market id
         try:
             market_run_id = self.options['market_run_id']
+            self.options['market'] = market_run_id
         except KeyError:
             market_run_id = self.oasis_markets[self.options['market']]
 
