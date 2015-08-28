@@ -497,7 +497,7 @@ class CAISOClient(BaseClient):
             return default_return_val
 
         # load xml into soup
-        soup = BeautifulSoup(content[0])  # Check the first file for errors
+        soup = BeautifulSoup(content[0], 'lxml')  # Check the first file for errors
 
         # check xml content
         error = soup.find('m:error')
