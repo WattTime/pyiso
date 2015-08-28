@@ -680,7 +680,8 @@ class TestCAISOBase(TestCase):
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=start, end_at=ts, market_run_id='DAM')
+        as_prc = c.get_AS_dataframe(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
+                                    market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 288)
         self.assertAlmostEqual(as_prc['MW'].mean(), 1.528506944444443)
@@ -704,21 +705,28 @@ class TestCAISOBase(TestCase):
         c = self.create_client('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
-        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
+        as_prc = c.get_AS_dataframe(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
                                     market_run_id='DAM', anc_type='RU')
         self.assertTrue(as_prc.empty)
+
+    def test_get_AS_dataframe_latest(self):
+        c = self.create_client('CAISO')
+        as_prc = c.get_AS_dataframe()
+        self.assertEqual(len(as_prc), 24*6)  # 24 hours, 6 types of AS
 
     def test_get_ancillary_services(self):
         c = self.create_client('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
                                           market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 48)
-        self.assertGreaterEqual(min(as_prc.keys()), start - timedelta(minutes=5))
-        self.assertLessEqual(max(as_prc.keys()), ts + timedelta(minutes=5))
+        self.assertGreaterEqual(min([i['timestamp'] for i in as_prc]),
+                                start - timedelta(minutes=5))
+        self.assertLessEqual(max([i['timestamp'] for i in as_prc]),
+                             ts + timedelta(minutes=5))
 
         means = {
             'SR': 1.685417,
@@ -728,47 +736,32 @@ class TestCAISOBase(TestCase):
             'RD': 3.901667,
             'NR': 9.000000e-02,
         }
-        actual_values = {
-            'SR': [],
-            'RU': [],
-            'RMU': [],
-            'RMD': [],
-            'RD': [],
-            'NR': [],
-        }
-
-        for time in as_prc:
-            for column in as_prc[time]:
-                actual_values[column].append(as_prc[time][column])
 
         for anc_type in means:
-            self.assertAlmostEqual(numpy.mean(actual_values[anc_type]), means[anc_type], places=6)
+            dp = [i[anc_type] for i in as_prc]
+            self.assertAlmostEqual(numpy.mean(dp), means[anc_type], places=6)
 
     def test_get_ancillary_services_RU(self):
         c = self.create_client('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
                                           market_run_id='DAM', anc_type='RU')
 
         self.assertEqual(len(as_prc), 48)
-        self.assertEqual(len(as_prc[max(as_prc)].keys()), 1)
-        self.assertGreaterEqual(min(as_prc.keys()), start - timedelta(minutes=5))
-        self.assertLessEqual(max(as_prc.keys()), ts + timedelta(minutes=5))
+        self.assertGreaterEqual(min([i['timestamp'] for i in as_prc]),
+                                start - timedelta(minutes=5))
+        self.assertLessEqual(max([i['timestamp'] for i in as_prc]),
+                             ts + timedelta(minutes=5))
 
-        values = []
-        for time in as_prc:
-            self.assertEqual(type(time), type(ts))
-            values.append(as_prc[time]['RU'])
-
-        self.assertAlmostEqual(numpy.mean(values), 3.074583, places=6)
+        self.assertAlmostEqual(numpy.mean([i['RU'] for i in as_prc]), 3.074583, places=6)
 
     def test_get_AS_empty(self):
         """No AS data available 2 days in future"""
         c = self.create_client('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
-        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=st, end_at=et,
+        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
                                           market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})

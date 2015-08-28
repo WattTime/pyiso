@@ -5,6 +5,7 @@ import re
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 import pandas
+import pytz
 
 
 class CAISOClient(BaseClient):
@@ -39,7 +40,7 @@ class CAISOClient(BaseClient):
     }
 
     oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
-        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
+        BaseClient.MARKET_CHOICES.hourly: 'HASP',
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
@@ -274,7 +275,7 @@ class CAISOClient(BaseClient):
 
         return df
 
-    def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
+    def get_AS_dataframe(self, node_id='AS_CAISO_EXP', latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
         """
         Returns a pandas DataFrame with columns
@@ -283,7 +284,24 @@ class CAISOClient(BaseClient):
         MW columns holds $/MW float.
         If no data, returns an empty dataframe.
         """
-        # set args
+        # set args, handle latest differently than LMP b/c daily publication schedule
+        if latest and not start_at:
+            pst = pytz.timezone('US/Pacific')
+            n = datetime.now(pst)
+            # Check if tomorrows AS prices have been posted
+            if n.hour > 13:
+                offset = 1
+            else:
+                offset = 0
+
+            # Beginning of day in PST
+            start_at = datetime(n.year, n.month, n.day, 0, 0, tzinfo=n.tzinfo)
+
+            # Convert to UTC, and add offset
+            start_at = (start_at + timedelta(days=offset)).astimezone(pytz.UTC)
+            end_at = start_at + timedelta(days=1)
+            latest = False
+
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
@@ -293,7 +311,7 @@ class CAISOClient(BaseClient):
 
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
-                                               anc_region=anc_region)
+                                               anc_region=node_id)
         payload.update(kwargs)
 
         # Fetch data
@@ -303,7 +321,6 @@ class CAISOClient(BaseClient):
             return pandas.DataFrame()
 
         # Turn into pandas Dataframe
-        #str_data = StringIO.StringIO(data)
         try:
             str_data = BytesIO(data)    # Changed from StringIO.StringIO() for Python 3.4
         except TypeError:
@@ -322,44 +339,38 @@ class CAISOClient(BaseClient):
 
         return df
 
-    def get_ancillary_services(self, node_id, **kwargs):
+    def get_ancillary_services(self, **kwargs):
         """
-        Returns dict of dicts
-        Top-level key is period start time as datetime.datetime object, tzinfo=pytz.utc
-        Top-level value is a dictionary with keys ['RU', 'RD', 'NR', 'SR', 'RMU', 'RMD']
-        Second-level value is $/MW float
+        Returns list of dicts
+
         If no data, returns an empty dict
         """
-        df = self.get_AS_dataframe(node_id, **kwargs)
+        df = self.get_AS_dataframe(**kwargs)
         if df.empty:
             return {}
 
-        # parse
-        grouped = df.groupby('ANC_TYPE')
-        re = lambda s: {'MW': s}
-        i = ['MW']
-        a = pandas.DataFrame
+        ret_list = []
 
-        # merge dataframes
-        firsttime = True
-        for name, group in grouped:
-            if firsttime:
-                a = group[i].rename(columns=re(name))
-                firsttime = False
+        # loop through start_times, returns DataFrame rows are RU/RD/etc...
+        for i in df.index.unique():
+            a = df.ix[i]
+            dp = {
+                     'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
+                     'market_run_id': a['MARKET_RUN_ID'],
+                     'zone_name': a['ANC_REGION'],
+                     'ba_name': 'CAISO',
+                 }
+            # Loop through types of ancillary services, or if only 1 append it
+            if isinstance(a['ANC_TYPE'], str):
+                # a has only one ANC_TYPE
+                dp[a['ANC_TYPE']] = a['MW']
             else:
-                a = pandas.merge(a, group[i].rename(columns=re(name)),
-                                left_index=True, right_index=True, how='outer')
+                for i, row in a.iterrows():
+                    dp[row['ANC_TYPE']] = row['MW']
 
-        pandas.set_option('display.width', 200)
+            ret_list.append(dp)
 
-        lmp_dict = {}
-
-        # loop through start_times
-        for i, row in a.iterrows():
-            lmp_dict[i.to_pydatetime()] = {}
-            for column in row.keys():
-                lmp_dict[i.to_pydatetime()][column] = row[column]
-        return lmp_dict
+        return ret_list
 
     def construct_oasis_payload(self, queryname, **kwargs):
         # get start and end times
