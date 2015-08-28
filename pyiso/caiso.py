@@ -286,20 +286,8 @@ class CAISOClient(BaseClient):
         """
         # set args, handle latest differently than LMP b/c daily publication schedule
         if latest and not start_at:
-            pst = pytz.timezone('US/Pacific')
-            n = datetime.now(pst)
-            # Check if tomorrows AS prices have been posted
-            if n.hour > 13:
-                offset = 1
-            else:
-                offset = 0
-
-            # Beginning of day in PST
-            start_at = datetime(n.year, n.month, n.day, 0, 0, tzinfo=n.tzinfo)
-
-            # Convert to UTC, and add offset
-            start_at = (start_at + timedelta(days=offset)).astimezone(pytz.UTC)
-            end_at = start_at + timedelta(days=1)
+            end_at = datetime.now(pytz.utc)
+            start_at = end_at - timedelta(minutes=61)
             latest = False
 
         self.handle_options(data='lmp', latest=latest,

@@ -712,7 +712,10 @@ class TestCAISOBase(TestCase):
     def test_get_AS_dataframe_latest(self):
         c = self.create_client('CAISO')
         as_prc = c.get_AS_dataframe('AS_CAISO_EXP')
-        self.assertEqual(len(as_prc), 24*6)  # 24 hours, 6 types of AS
+
+        # Could be 1 or 2 prices in last 61 minutes
+        self.assertLessEqual(len(as_prc), 12)
+        self.assertGreaterEqual(len(as_prc), 6)
 
     def test_get_ancillary_services(self):
         c = self.create_client('CAISO')
