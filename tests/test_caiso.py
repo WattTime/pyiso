@@ -705,13 +705,13 @@ class TestCAISOBase(TestCase):
         c = self.create_client('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
-        as_prc = c.get_AS_dataframe(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
+        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
                                     market_run_id='DAM', anc_type='RU')
         self.assertTrue(as_prc.empty)
 
     def test_get_AS_dataframe_latest(self):
         c = self.create_client('CAISO')
-        as_prc = c.get_AS_dataframe()
+        as_prc = c.get_AS_dataframe('AS_CAISO_EXP')
         self.assertEqual(len(as_prc), 24*6)  # 24 hours, 6 types of AS
 
     def test_get_ancillary_services(self):
@@ -719,7 +719,7 @@ class TestCAISOBase(TestCase):
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
                                           market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 48)
@@ -746,7 +746,7 @@ class TestCAISOBase(TestCase):
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
+        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
                                           market_run_id='DAM', anc_type='RU')
 
         self.assertEqual(len(as_prc), 48)

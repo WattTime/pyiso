@@ -339,13 +339,13 @@ class CAISOClient(BaseClient):
 
         return df
 
-    def get_ancillary_services(self, **kwargs):
+    def get_ancillary_services(self, node_id, **kwargs):
         """
         Returns list of dicts
 
         If no data, returns an empty dict
         """
-        df = self.get_AS_dataframe(**kwargs)
+        df = self.get_AS_dataframe(node_id=node_id, **kwargs)
         if df.empty:
             return {}
 
