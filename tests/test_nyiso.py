@@ -2,7 +2,8 @@ from pyiso import client_factory
 from unittest import TestCase
 import logging
 from io import StringIO
-from datetime import date
+from datetime import date, datetime
+import pytz
 
 
 class TestNYISOBase(TestCase):
@@ -171,10 +172,14 @@ class TestNYISOBase(TestCase):
 
     def test_fetch_csv_load(self):
         c = self.create_client('NYISO')
-        content = c.fetch_csv(date.today(), 'pal')
+        now = pytz.utc.localize(datetime.utcnow())
+        today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
+        content = c.fetch_csv(today, 'pal')
         self.assertEqual(content.split('\r\n')[0], '"Time Stamp","Time Zone","Name","PTID","Load"')
 
     def test_fetch_csv_trade(self):
         c = self.create_client('NYISO')
-        content = c.fetch_csv(date.today(), 'ExternalLimitsFlows')
+        now = pytz.utc.localize(datetime.utcnow())
+        today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
+        content = c.fetch_csv(today, 'ExternalLimitsFlows')
         self.assertEqual(content.split('\r\n')[0], 'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)')
