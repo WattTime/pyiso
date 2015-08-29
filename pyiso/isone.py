@@ -213,16 +213,16 @@ class ISONEClient(BaseClient):
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE lmp data %s' % data)
 
-    def get_lmp(self, zone_name, latest=True, start_at=False, end_at=False, **kwargs):
+    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
 
         # get location id
         try:
-            locationid = self.locations[zone_name.upper()]
+            locationid = self.locations[node_id.upper()]
         except KeyError:
-            raise ValueError('No LMP data available for location %s' % zone_name)
+            raise ValueError('No LMP data available for location %s' % node_id)
 
         # set up storage
         raw_data = []
@@ -251,7 +251,8 @@ class ISONEClient(BaseClient):
             parsed_dp['ba_name'] = self.NAME
             parsed_dp['market'] = self.options['market']
             parsed_dp['freq'] = self.options['frequency']
-            parsed_dp['zone_name'] = zone_name
+            parsed_dp['node_id'] = node_id
+            parsed_dp['lmp_type'] = 'energy'
 
             # add to full storage
             to_store = True

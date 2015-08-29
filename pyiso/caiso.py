@@ -5,6 +5,7 @@ import re
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 import pandas
+import pytz
 
 
 class CAISOClient(BaseClient):
@@ -38,8 +39,8 @@ class CAISOClient(BaseClient):
         'HYDRO': 'hydro',
     }
 
-    oasis_markets = {                               # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
-        BaseClient.MARKET_CHOICES.hourly: 'HASP', 
+    oasis_markets = {  # {'RT5M': 'RTM', 'DAHR': 'DAM', 'RTHR': 'HASP'}
+        BaseClient.MARKET_CHOICES.hourly: 'HASP',
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
     }
@@ -47,18 +48,22 @@ class CAISOClient(BaseClient):
         'RTM': 'PRC_INTVL_LMP',
         'DAM': 'PRC_LMP',
         'HASP': 'PRC_HASP_LMP',
+        BaseClient.MARKET_CHOICES.fivemin: 'PRC_INTVL_LMP',
+        BaseClient.MARKET_CHOICES.dam: 'PRC_LMP',
+        BaseClient.MARKET_CHOICES.hourly: 'PRC_HASP_LMP',
     }
     AS_MARKETS = {
         'RTM': 'PRC_INTVL_AS',
         'DAM': 'PRC_AS',
         'HASP': 'PRC_AS',
+        BaseClient.MARKET_CHOICES.fivemin: 'PRC_INTVL_AS',
+        BaseClient.MARKET_CHOICES.dam: 'PRC_AS',
+        BaseClient.MARKET_CHOICES.hourly: 'PRC_AS',
     }
 
-    def get_generation(self, latest=False, yesterday=False,
-                       start_at=False, end_at=False, **kwargs):
-        # set args
-        self.handle_options(data='gen', latest=latest, yesterday=yesterday,
-                            start_at=start_at, end_at=end_at, **kwargs)
+    def handle_options(self, **kwargs):
+        # regular handle options
+        super(CAISOClient, self).handle_options(**kwargs)
 
         # ensure market and freq are set
         if 'market' not in self.options:
@@ -72,7 +77,13 @@ class CAISOClient(BaseClient):
             else:
                 self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
 
-        if latest:
+    def get_generation(self, latest=False, yesterday=False,
+                       start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', latest=latest, yesterday=yesterday,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        if self.options['latest']:
             return self._generation_latest()
         elif self.options['forecast']:
             return self._generation_forecast()
@@ -84,18 +95,6 @@ class CAISOClient(BaseClient):
         # set args
         self.handle_options(data='load', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
-
-        # ensure market and freq are set
-        if 'market' not in self.options:
-            if self.options['forecast']:
-                self.options['market'] = self.MARKET_CHOICES.dam
-            else:
-                self.options['market'] = self.MARKET_CHOICES.fivemin
-        if 'freq' not in self.options:
-            if self.options['forecast']:
-                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
-            else:
-                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
 
         # construct and execute OASIS request
         payload = self.construct_oasis_payload('SLD_FCST')
@@ -129,18 +128,6 @@ class CAISOClient(BaseClient):
         self.handle_options(data='trade', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
 
-        # ensure market and freq are set
-        if 'market' not in self.options:
-            if self.options['forecast']:
-                self.options['market'] = self.MARKET_CHOICES.dam
-            else:
-                self.options['market'] = self.MARKET_CHOICES.fivemin
-        if 'freq' not in self.options:
-            if self.options['forecast']:
-                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
-            else:
-                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
-
         # construct and execute OASIS request
         payload = self.construct_oasis_payload('ENE_SLRS')
         oasis_data = self.fetch_oasis(payload=payload)
@@ -167,7 +154,7 @@ class CAISOClient(BaseClient):
             # return all data
             return parsed_data
 
-    def get_lmp(self, node_id, **kwargs):
+    def get_lmp(self, node_id=None, **kwargs):
         """
         Returns a dictionary with keys of datetime.datetime objects
         Values holds $/MW float
@@ -175,29 +162,25 @@ class CAISOClient(BaseClient):
         """
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
         if df.empty:
-            return {}
+            return []
 
         return_list = []
         for i, row in df.iterrows():
             dp = {
-                     'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
-                     'lmp': row['LMP_PRC'],
-                     'zone_name': row['NODE'],
-                     'ba_name': 'CAISO',
-                     'lmp_type': row['LMP_TYPE'],
-                 }
-
-            # Add other items`
-            for item in ['market', 'market_run_id', 'freq']:
-                value = self.options.get(item, False)
-                if value:
-                    dp[item] = value
+                'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
+                'lmp': row['LMP_PRC'],
+                'node_id': row['NODE'],
+                'ba_name': 'CAISO',
+                'lmp_type': row['LMP_TYPE'],
+                'market': self.options['market'],
+                'freq': self.options['freq'],
+            }
 
             return_list.append(dp)
         return return_list
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
-                             market_run_id='RTM', lmp_only=True, **kwargs):
+                             lmp_only=True, **kwargs):
         """
         Returns a pandas DataFrame with columns
         INTERVALSTARTTIME_GMT, MW, XML_DATA_ITEM, LMP_TYPE and others.
@@ -208,13 +191,12 @@ class CAISOClient(BaseClient):
         # set args
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
-                            market_run_id=market_run_id,
                             **kwargs)
 
         if self.options['latest']:
             queryname = 'PRC_CURR_LMP'
         else:
-            queryname = self.LMP_MARKETS[market_run_id]
+            queryname = self.LMP_MARKETS[self.options['market']]
 
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
@@ -274,7 +256,7 @@ class CAISOClient(BaseClient):
 
         return df
 
-    def get_AS_dataframe(self, anc_region, latest=True, start_at=False, end_at=False,
+    def get_AS_dataframe(self, node_id='AS_CAISO_EXP', latest=True, start_at=False, end_at=False,
                          market_run_id='DAM', **kwargs):
         """
         Returns a pandas DataFrame with columns
@@ -283,7 +265,12 @@ class CAISOClient(BaseClient):
         MW columns holds $/MW float.
         If no data, returns an empty dataframe.
         """
-        # set args
+        # set args, handle latest differently than LMP b/c daily publication schedule
+        if latest and not start_at:
+            end_at = datetime.now(pytz.utc)
+            start_at = end_at - timedelta(minutes=61)
+            latest = False
+
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
                             market_run_id=market_run_id,
@@ -293,8 +280,8 @@ class CAISOClient(BaseClient):
 
         payload = self.construct_oasis_payload(queryname,
                                                resultformat=6,  # csv
-                                               anc_region=anc_region)
-        payload.update(kwargs)
+                                               anc_region=node_id,
+                                               **kwargs)
 
         # Fetch data
         data = self.fetch_oasis(payload=payload)
@@ -303,7 +290,6 @@ class CAISOClient(BaseClient):
             return pandas.DataFrame()
 
         # Turn into pandas Dataframe
-        #str_data = StringIO.StringIO(data)
         try:
             str_data = BytesIO(data)    # Changed from StringIO.StringIO() for Python 3.4
         except TypeError:
@@ -324,42 +310,36 @@ class CAISOClient(BaseClient):
 
     def get_ancillary_services(self, node_id, **kwargs):
         """
-        Returns dict of dicts
-        Top-level key is period start time as datetime.datetime object, tzinfo=pytz.utc
-        Top-level value is a dictionary with keys ['RU', 'RD', 'NR', 'SR', 'RMU', 'RMD']
-        Second-level value is $/MW float
+        Returns list of dicts
+
         If no data, returns an empty dict
         """
-        df = self.get_AS_dataframe(node_id, **kwargs)
+        df = self.get_AS_dataframe(node_id=node_id, **kwargs)
         if df.empty:
             return {}
 
-        # parse
-        grouped = df.groupby('ANC_TYPE')
-        re = lambda s: {'MW': s}
-        i = ['MW']
-        a = pandas.DataFrame
+        ret_list = []
 
-        # merge dataframes
-        firsttime = True
-        for name, group in grouped:
-            if firsttime:
-                a = group[i].rename(columns=re(name))
-                firsttime = False
+        # loop through start_times, returns DataFrame rows are RU/RD/etc...
+        for i in df.index.unique():
+            a = df.ix[i]
+            dp = {
+                'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
+                'market': a['MARKET_RUN_ID'],
+                'zone_name': a['ANC_REGION'],
+                'ba_name': 'CAISO',
+            }
+            # Loop through types of ancillary services, or if only 1 append it
+            if isinstance(a['ANC_TYPE'], str):
+                # a has only one ANC_TYPE
+                dp[a['ANC_TYPE']] = a['MW']
             else:
-                a = pandas.merge(a, group[i].rename(columns=re(name)),
-                                left_index=True, right_index=True, how='outer')
+                for i, row in a.iterrows():
+                    dp[row['ANC_TYPE']] = row['MW']
 
-        pandas.set_option('display.width', 200)
+            ret_list.append(dp)
 
-        lmp_dict = {}
-
-        # loop through start_times
-        for i, row in a.iterrows():
-            lmp_dict[i.to_pydatetime()] = {}
-            for column in row.keys():
-                lmp_dict[i.to_pydatetime()][column] = row[column]
-        return lmp_dict
+        return ret_list
 
     def construct_oasis_payload(self, queryname, **kwargs):
         # get start and end times
@@ -378,11 +358,12 @@ class CAISOClient(BaseClient):
             market_run_id = self.oasis_markets[self.options['market']]
 
         # construct payload
-        payload = {'queryname': queryname,
-                   'market_run_id': market_run_id,
-                   'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
-                   'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
-                  }
+        payload = {
+            'queryname': queryname,
+            'market_run_id': market_run_id,
+            'startdatetime': (startdatetime).strftime(self.oasis_request_time_format),
+            'enddatetime': (enddatetime).strftime(self.oasis_request_time_format),
+        }
         payload.update(self.base_payload)
         payload.update(kwargs)
 
@@ -486,7 +467,7 @@ class CAISOClient(BaseClient):
             return default_return_val
 
         # load xml into soup
-        soup = BeautifulSoup(content[0])  # Check the first file for errors
+        soup = BeautifulSoup(content[0], 'lxml')  # Check the first file for errors
 
         # check xml content
         error = soup.find('m:error')
@@ -661,23 +642,22 @@ class CAISOClient(BaseClient):
         # set up storage
         parsed_data = []
 
-        freq = self.options.get('freq', self.FREQUENCY_CHOICES.tenmin)
-        market = self.options.get('market', self.MARKET_CHOICES.tenmin)
-
         # get all renewables values
         for (id_name, fuel_name) in [('totalrenewables', 'renewable'),
-                                        ('currentsolar', 'solar'),
-                                        ('currentwind', 'wind')]:
+                                     ('currentsolar', 'solar'),
+                                     ('currentwind', 'wind')]:
             resource_soup = soup.find(id=id_name)
             if resource_soup:
                 match = re.search('(?P<val>\d+.?\d+)\s+MW', resource_soup.string)
                 if match:
-                    parsed_dp = {'timestamp': ts,
-                                  'freq': freq,
-                                  'market': market,
-                                  'ba_name': self.NAME}
-                    parsed_dp['gen_MW'] = float(match.group('val'))
-                    parsed_dp['fuel_name'] = fuel_name
+                    parsed_dp = {
+                        'timestamp': ts,
+                        'freq': self.FREQUENCY_CHOICES.tenmin,
+                        'market': self.MARKET_CHOICES.tenmin,
+                        'ba_name': self.NAME,
+                        'gen_MW': float(match.group('val')),
+                        'fuel_name': fuel_name,
+                    }
                     parsed_data.append(parsed_dp)
 
         # actual 'renewable' value should be only renewables that aren't accounted for in other categories
