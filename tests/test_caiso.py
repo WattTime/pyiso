@@ -617,64 +617,6 @@ class TestCAISOBase(TestCase):
         df = c.get_lmp_as_dataframe('badnode')
         self.assertTrue(df.empty)
 
-    def test_get_lmp_latest(self):
-        c = self.create_client('CAISO')
-        ts = pytz.utc.localize(datetime.utcnow())
-        lmp = c.get_lmp('SLAP_PGP2-APND')
-        self.assertEqual(len(lmp), 1)
-
-        self.assertGreaterEqual(min([a['timestamp'] for a in lmp]), ts - timedelta(minutes=5))
-        self.assertLessEqual(max([a['timestamp'] for a in lmp]), ts + timedelta(minutes=5))
-
-        self.assertGreaterEqual(min([a['lmp'] for a in lmp]), -300)
-        self.assertLess(max([a['lmp'] for a in lmp]), 1500)
-
-        self.assertIn('lmp', lmp[0].keys())
-        self.assertIn('timestamp', lmp[0].keys())
-        self.assertIn('market', lmp[0].keys())
-
-    def test_get_lmp_hist(self):
-        c = self.create_client('CAISO')
-        ts = pytz.utc.localize(datetime(2015, 3, 1, 11, 0, 0))
-        start = ts - timedelta(hours=2)
-        lmps = c.get_lmp('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
-
-        self.assertEqual(len(lmps), 24)
-
-        self.assertGreaterEqual(min([a['timestamp'] for a in lmps]), start)
-        self.assertLessEqual(max([a['timestamp'] for a in lmps]), ts)
-
-        self.assertGreaterEqual(min([a['lmp'] for a in lmps]), -300)
-        self.assertLess(max([a['lmp'] for a in lmps]), 1500)
-
-        self.assertIn('lmp', lmps[0].keys())
-        self.assertIn('timestamp', lmps[0].keys())
-        self.assertIn('market', lmps[0].keys())
-
-    def test_get_lmp_forecast(self):
-        c = self.create_client('CAISO')
-        ts = pytz.utc.localize(datetime.utcnow())
-        start = ts + timedelta(hours=2)
-        end = ts + timedelta(hours=12)
-        lmps = c.get_lmp('SLAP_PGP2-APND', start_at=start, end_at=end, market_run_id='DAM')
-
-        self.assertEqual(len(lmps), 10)
-
-        self.assertGreaterEqual(min([a['timestamp'] for a in lmps]), start)
-        self.assertLessEqual(max([a['timestamp'] for a in lmps]), end)
-
-        self.assertGreaterEqual(min([a['lmp'] for a in lmps]), -300)
-        self.assertLess(max([a['lmp'] for a in lmps]), 1500)
-
-        self.assertIn('lmp', lmps[0].keys())
-        self.assertIn('timestamp', lmps[0].keys())
-        self.assertIn('market', lmps[0].keys())
-
-    def test_get_lmp_badnode(self):
-        c = self.create_client('CAISO')
-        d = c.get_lmp('badnode', latest=True)
-        self.assertEqual(d, {})
-
     def test_get_AS_dataframe(self):
         c = self.create_client('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)

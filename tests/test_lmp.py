@@ -52,10 +52,15 @@ class TestBaseLMP(TestCase):
             self.assertGreaterEqual(dp['lmp']+1, dp['lmp'])
 
             # test correct temporal relationship to now
+            now = pytz.utc.localize(datetime.utcnow())
             if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertGreaterEqual(dp['timestamp'], now)
+            elif c.options['latest']:
+                # within 5 min
+                delta = now - dp['timestamp']
+                self.assertLess(abs(delta.total_seconds()), 5*60)
             else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertLess(dp['timestamp'], now)
 
         # return
         return data
@@ -94,6 +99,21 @@ class TestCAISOLMP(TestBaseLMP):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    def test_forecast(self):
+        # basic test
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
+                              start_at=now+timedelta(hours=20),
+                              end_at=now+timedelta(days=2),
+                              market=self.MARKET_CHOICES.dam)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_bad_node(self):
+        self._run_test('CAISO', node_id='badnode', expect_data=False, latest=True)
+
 
 class TestISONELMP(TestBaseLMP):
     def test_latest(self):
@@ -120,4 +140,3 @@ class TestISONELMP(TestBaseLMP):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
-
