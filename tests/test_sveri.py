@@ -13,7 +13,8 @@ class TestSVERI(TestCase):
         self.c.logger.setLevel(logging.INFO)
         self.TZ_NAME = 'America/Phoenix'
 
-        self.today = datetime.combine(date.today(), time())
+        self.now = datetime.now(pytz.timezone(self.TZ_NAME))
+        self.today = datetime.combine(self.now.date(), time())
         self.yesterday = self.today - timedelta(days=1)
         self.tomorrow = self.today + timedelta(days=1)
         self.last_month = self.today - timedelta(days=32)
