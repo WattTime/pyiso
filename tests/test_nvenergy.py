@@ -1941,11 +1941,11 @@ one_month = StringIO(u"""
                                                 <td align="right"   class="RegularFS BlackFC  ">
                                                             7653
                                                 </td>
-                                    </tr>
-                        </table>
-                    </div>
-                    <div class="dataDiv">
-                        <table ID="dataTable" class="dataTable">
+                                        </tr>
+                                        <tr>
+                                            <td colspan="27" style="height: 20px;">
+                                            </td>
+                                        </tr>
                                         <tr class="newsection">
                                             <td colspan="27" class="sectioninfo1">
                                                 2015-07-02
@@ -2860,11 +2860,11 @@ one_month = StringIO(u"""
                                                 <td align="right"   class="RegularFS BlackFC  ">
                                                             7653
                                                 </td>
-                                    </tr>
-                        </table>
-                    </div>
-                    <div class="dataDiv">
-                        <table ID="dataTable" class="dataTable">
+                                        </tr>
+                                        <tr>
+                                            <td colspan="27" style="height: 20px;">
+                                            </td>
+                                        </tr>
                                         <tr class="newsection">
                                             <td colspan="27" class="sectioninfo1">
                                                 2015-07-31

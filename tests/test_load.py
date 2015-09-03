@@ -219,8 +219,7 @@ class TestNEVPLoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NEVP', start_at=today-timedelta(days=35),
-                              end_at=today-timedelta(days=33),
-                              expect_data=False)
+                              end_at=today-timedelta(days=33))
 
 
 class TestNYISOLoad(TestBaseLoad):
@@ -296,8 +295,7 @@ class TestSPPCLoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('SPPC', start_at=today-timedelta(days=35),
-                              end_at=today-timedelta(days=33),
-                              expect_data=False)
+                              end_at=today-timedelta(days=33))
 
 
 class TestSVERILoad(TestBaseLoad):
