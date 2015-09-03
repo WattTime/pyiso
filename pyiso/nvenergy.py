@@ -1,5 +1,6 @@
 from pyiso.base import BaseClient
 import pandas as pd
+import numpy as np
 from datetime import time, datetime, timedelta
 try:
     from urllib2 import HTTPError
@@ -134,16 +135,10 @@ class NVEnergyClient(BaseClient):
             except AttributeError:  # already date not datetime, assume local
                 datestr = this_date.strftime('%Y-%m-%d')
 
-            # choose based on date string
-            df = None
-            for xdf in dfs[1:]:
-                if xdf.index[0] == datestr:
-                    df = xdf
-                    break
-
-            # if no df, no data in range
-            if df is None:
-                raise ValueError('No data available in NVEnergy at %s' % this_date)
+            # pull one day of data out of full df
+            full_df = dfs[1]
+            date_row_idx = np.where(full_df.index == datestr)[0][0]
+            df = full_df.iloc[date_row_idx:date_row_idx+13]
 
         # set and slice header
         df.columns = df.iloc[1]
