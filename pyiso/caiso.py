@@ -609,9 +609,9 @@ class CAISOClient(BaseClient):
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
-                              'freq': freq,
-                              'market': market,
-                              'ba_name': self.NAME}
+                             'freq': freq,
+                             'market': market,
+                             'ba_name': self.NAME}
 
                 # store generation value
                 parsed_dp['load_MW'] = float(raw_soup_dp.find('value').string)
