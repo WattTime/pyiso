@@ -26,6 +26,7 @@ BALANCING_AUTHORITIES = {
     'SRP': {'module': 'sveri', 'class': 'SVERIClient'},
     'TEPC': {'module': 'sveri', 'class': 'SVERIClient'},
     'WALC': {'module': 'sveri', 'class': 'SVERIClient'},
+    'EU': {'module': 'eu', 'class': 'EUClient'},
 }
 
 
