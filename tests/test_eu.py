@@ -18,14 +18,14 @@ class TestEU(TestCase):
     def test_get_load(self):
         r = self.c.get_load('CTA|IT', start_at=datetime(2015, 9, 6, 0, tzinfo=pytz.utc),
                             end_at=datetime(2015, 9, 7, 0, tzinfo=pytz.utc))
-        self.assertEqual(len(r), 96)
+        self.assertEqual(len(r), 24)
 
-        self.assertEqual(r[12]['load_MW'], 632)
+        self.assertEqual(r[12]['load_MW'], 26745)
 
     def test_get_forecast_load(self):
         r = self.c.get_load('CTA|IT', forecast=True,
                             start_at=datetime(2015, 9, 6, 0, tzinfo=pytz.utc),
                             end_at=datetime(2015, 9, 7, 0, tzinfo=pytz.utc),)
-        self.assertEqual(len(r), 96)
+        self.assertEqual(len(r), 24)
 
-        self.assertEqual(r[12]['load_MW'], 574)
+        self.assertEqual(r[12]['load_MW'], 27780)

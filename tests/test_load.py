@@ -1,6 +1,6 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
-from pyiso.eu import control_area
+from pyiso.eu import control_areas
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
@@ -131,7 +131,7 @@ class TestCAISOLoad(TestBaseLoad):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(hours=20),
+        data = self._run_test('CAISO', start_at=today,
                               end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
@@ -343,8 +343,8 @@ class TestSVERILoad(TestBaseLoad):
 
 class TestEULoad(TestBaseLoad):
     def setUp(self):
-        self.BA_CHOICES = self.BA_CHOICES + control_area
-        print self.BA_CHOICES
+        super(TestEULoad, self).setUp()
+        self.BA_CHOICES = [i['Code'] for i in control_areas]
 
     def test_latest(self):
         # basic test
@@ -363,7 +363,7 @@ class TestEULoad(TestBaseLoad):
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today-timedelta(days=2),
+        data = self._run_test('EU', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
 
         # test timestamps are not equal
@@ -373,8 +373,8 @@ class TestEULoad(TestBaseLoad):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(hours=20),
-                              end_at=today+timedelta(days=2))
+        data = self._run_test('EU', start_at=today+timedelta(hours=20),
+                              end_at=today+timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

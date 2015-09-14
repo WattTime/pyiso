@@ -5,6 +5,7 @@ from io import StringIO
 from time import sleep
 from datetime import datetime, timedelta
 import pytz
+from os import environ
 
 
 class EUClient(BaseClient):
@@ -31,8 +32,8 @@ class EUClient(BaseClient):
 
     def auth(self):
         self.session = requests.Session()
-        payload = {'j_username': 'bowdrill@gmail.com',
-                   'j_password': 'jibbooms'}
+        payload = {'j_username': environ['ENTSOe_USERNAME'],
+                   'j_password': environ['ENTSOe_PASSWORD']}
 
         # Fake an ajax login to get the cookie
         r = self.session.post(self.base_url + 'j_spring_security_check', params=payload,
@@ -69,15 +70,17 @@ class EUClient(BaseClient):
     def construct_payload(self):
         format_str = '%d.%m.%Y'
         date_str = self.options['start_at'].strftime(format_str) + ' 00:00|UTC|DAY'
-        (ENTSOe_ID, ) = [i for i in control_areas if i['Code'] == self.options['control_area']]
+        (TSO_ID, ) = [
+            i['ENTSOe_ID'] for i in control_areas if i['Code'] == self.options['control_area']]
+
         payload = {
             'name': '',
             'defaultValue': 'false',
             'viewType': 'TABLE',
-            'areaType': 'BZN',
+            'areaType': 'CTA',
             'atch': 'false',
             'dateTime.dateTime': date_str,
-            'biddingZone.values': ENTSOe_ID,
+            'biddingZone.values': TSO_ID,
             'dateTime.timezone': 'UTC',
             'dateTime.timezone_input': 'UTC',
             'exportType': 'CSV',
@@ -95,7 +98,7 @@ class EUClient(BaseClient):
 
         # Why do these methods only work on Index and not Series?
         df.set_index(df.START_TIME_UTC, inplace=True)
-        df.index = pd.to_datetime(df.index, utc=True)
+        df.index = pd.to_datetime(df.index, utc=True, format='%d.%m.%Y %H:%M ')
         df.START_TIME_UTC = df.index.to_pydatetime()
 
         # find column name and choose which to return and which to drop
@@ -104,6 +107,9 @@ class EUClient(BaseClient):
         if self.options['forecast']:
             load_col = forecast_load_col
             drop_load_col = actual_load_col
+
+            # drop extra columns
+            df = df[self.options['start_at']:self.options['end_at']]
         else:
             load_col = actual_load_col
             drop_load_col = forecast_load_col
@@ -116,10 +122,19 @@ class EUClient(BaseClient):
         drop_col = ['Time (UTC)', 'END_TIME_UTC', drop_load_col]
         df.drop(drop_col, axis=1, inplace=True)
 
+        # drop nan rows
+        df.dropna(subset=['load_MW'], inplace=True)
+
         # Add columns
         df['ba_name'] = self.options['control_area']
-        df['freq'] = 'freq'
-        df['market'] = 'market'
+        df['freq'] = '1hr'
+        df['market'] = 'RTHR'  # not necessarily appropriate terminology
+
+        if self.options['latest']:
+            # drop all but the latest record not in the future
+            now = datetime.now(pytz.utc)
+            df = df[:now].iloc[-1]
+            return [df.to_dict()]
 
         return df.to_dict('records')
 
@@ -127,7 +142,6 @@ class EUClient(BaseClient):
                  forecast=False, **kwargs):
         self.handle_options(data='load', start_at=start_at, end_at=end_at, forecast=forecast,
                             latest=latest, control_area=control_area, **kwargs)
-        print self.options['forecast']
 
         payload = self.construct_payload()
         url = self.base_url + self.export_endpoint
