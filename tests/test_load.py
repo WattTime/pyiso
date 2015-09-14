@@ -1,5 +1,6 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
+from pyiso.eu import control_area
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
@@ -338,3 +339,45 @@ class TestSVERILoad(TestBaseLoad):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+
+class TestEULoad(TestBaseLoad):
+    def setUp(self):
+        self.BA_CHOICES = self.BA_CHOICES + control_area
+        print self.BA_CHOICES
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('EU', latest=True, market=self.MARKET_CHOICES.hourly,
+                              control_area='CTA|IT')
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=today+timedelta(hours=20),
+                              end_at=today+timedelta(days=2))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+
