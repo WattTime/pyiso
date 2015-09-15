@@ -1,9 +1,10 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import pytz
 import logging
+from os import environ
 
 
 class TestPJM(TestCase):
@@ -27,7 +28,7 @@ class TestPJM(TestCase):
         self.c = client_factory('PJM')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.INFO)
+        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_utcify_pjmlike(self):
         ts_str = '04/13/14 21:45 EDT'

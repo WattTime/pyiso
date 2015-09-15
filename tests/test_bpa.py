@@ -1,9 +1,10 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 import pytz
 from datetime import datetime
 import logging
 from io import StringIO
+from os import environ
 
 
 class TestBPABase(TestCase):
@@ -78,7 +79,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def test_request_latest(self):
@@ -163,7 +164,6 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
                            index_col=0, parse_dates=True,
                            parse_cols=[0, 2, 4, 5], header_names=['Wind', 'Hydro', 'Thermal']
                            )
-
         self.assertEqual(list(df.columns), ['Wind', 'Hydro', 'Thermal'])
         self.assertGreater(len(df), 0)
         self.assertEqual(df.iloc[0].name, datetime(2014, 1, 1))

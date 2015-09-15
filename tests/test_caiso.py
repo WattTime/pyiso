@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 import logging
 from io import StringIO
@@ -7,7 +7,6 @@ import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 import numpy
-
 
 class TestCAISOBase(TestCase):
     def setUp(self):
@@ -320,7 +319,7 @@ class TestCAISOBase(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def test_request_renewable_report(self):

@@ -8,7 +8,8 @@ class TestGenerationTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
         now = pytz.utc.localize(datetime.utcnow())
-        self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
+        self.forecast_kwargs = {'start_at': now + timedelta(minutes=20),
+                                'end_at': now + timedelta(days=1)}
 
     def test_bpa_latest(self):
         expected = client_factory('BPA').get_generation(**self.latest_kwargs)

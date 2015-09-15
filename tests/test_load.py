@@ -1,4 +1,4 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES
+from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
 from pyiso.base import BaseClient
 from pyiso.eu import control_areas
 from unittest import TestCase
@@ -22,7 +22,7 @@ class TestBaseLoad(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def _run_test(self, ba_name, expect_data=True, **kwargs):
@@ -364,7 +364,8 @@ class TestEULoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('EU', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(days=1),
+                              control_area='CTA|IT')
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -374,7 +375,8 @@ class TestEULoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('EU', start_at=today+timedelta(hours=20),
-                              end_at=today+timedelta(days=1))
+                              end_at=today+timedelta(days=1),
+                              control_area='CTA|IT')
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

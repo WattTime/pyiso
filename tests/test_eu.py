@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 from datetime import datetime
 import mock
@@ -11,7 +11,7 @@ class TestEU(TestCase):
         self.c = client_factory('EU')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.INFO)
+        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_auth(self):
         self.assertTrue(self.c.auth())
@@ -87,5 +87,4 @@ class TestEU(TestCase):
         r = self.c.get_load('CTA|IT', latest=True)
         self.assertEqual(len(r), 1)
         self.assertGreater(r[0]['load_MW'], 0)
-
 

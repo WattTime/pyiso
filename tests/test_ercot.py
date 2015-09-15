@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 import pytz
 import logging
@@ -11,7 +11,7 @@ class TestERCOT(TestCase):
         self.c = client_factory('ERCOT')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.DEBUG)
+        self.c.logger.setLevel(LOG_LEVEL)
 
         self.load_html = StringIO(u'<html>\n\
 <body class="bodyStyle">\n\
