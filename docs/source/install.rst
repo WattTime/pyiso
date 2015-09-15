@@ -35,6 +35,14 @@ Then, set your username and password as environment variables::
 	export ISONE_USERNAME=myusername
 	export ISONE_PASSWORD=mysecret
 
+The EU requires a registered user to download machine readable files.  Register for an account
+at https://transparency.entsoe.eu/
+
+Then set your username and password as environment variables:
+
+        export ENTSOe_USERNAME=myusername
+        export ENTSOe_PASSWORD=mypassword
+
 All other ISOs allow unauthenticated users to collect data, so no other credentials are needed.
 
 
