@@ -31,7 +31,9 @@ class EUClient(BaseClient):
             self.options['forecast'] = True
 
     def auth(self):
-        self.session = requests.Session()
+        if not getattr(self, 'session', None):
+            self.session = requests.Session()
+
         payload = {'j_username': environ['ENTSOe_USERNAME'],
                    'j_password': environ['ENTSOe_PASSWORD']}
 
@@ -52,18 +54,21 @@ class EUClient(BaseClient):
         else:
             return 'Unknown error:' + str(msg)
 
-    def fetch_entsoe(self, url, payload):
+    def fetch_entsoe(self, url, payload, count=0):
         if not getattr(self, 'session', None):
             self.auth()
 
         r = self.session.get(url, params=payload)
         # TODO error checking
         if len(r.text) == 0:
-            print 'throttled?'
+            if count > 3:  # try 3 times to get response
+                self.logger.warn('Request failed, no response found after %i attempts' % count)
+                return False
+            # throttled
             sleep(5)
-            return self.fetch_entsoe(url, payload)
+            return self.fetch_entsoe(url, payload, count + 1)
         if 'UNKNOWN_EXCEPTION' in r.text:
-            print 'UNKNOWN EXCEPTION'
+            self.logger.warn('UNKNOWN EXCEPTION')
             return False
         return r.text
 
