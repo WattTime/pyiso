@@ -131,7 +131,7 @@ class TestCAISOLoad(TestBaseLoad):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today,
+        data = self._run_test('CAISO', start_at=today + timedelta(hours=20),
                               end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
