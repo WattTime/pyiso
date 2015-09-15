@@ -3,18 +3,20 @@ import os.path
 from os import environ
 from logging import DEBUG, INFO
 
+__version__ = '0.2.11'
+
 #########################################
 # For Testing Purposes
 # Add caching to unittesting
 # Print every time the testing hits the cache successfully
-import requests
-import requests_cache
-requests_cache.install_cache(expire_after=60*10)
+if environ.get('DEBUG', False):
 
-__version__ = '0.2.11'
-
-log_dict = {'True': DEBUG, False: INFO}
-LOG_LEVEL = log_dict[environ.get('DEBUG', False)]
+    import requests
+    import requests_cache
+    requests_cache.install_cache(expire_after=60*10)
+    LOG_LEVEL = DEBUG
+else:
+    LOG_LEVEL = INFO
 
 BALANCING_AUTHORITIES = {
     'AZPS': {'module': 'sveri', 'class': 'SVERIClient'},
