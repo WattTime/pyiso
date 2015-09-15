@@ -58,7 +58,7 @@ class EUClient(BaseClient):
         if not getattr(self, 'session', None):
             self.auth()
 
-        r = self.session.get(url, params=payload)
+        r = self.request(url, params=payload)
         # TODO error checking
         if len(r.text) == 0:
             if count > 3:  # try 3 times to get response
