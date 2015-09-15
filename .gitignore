@@ -44,6 +44,7 @@ nosetests.xml
 # database files
 *.csv
 *.dump
+*.sqlite
 
 # coverage files
 htmlcov
