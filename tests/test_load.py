@@ -1,6 +1,6 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
 from pyiso.base import BaseClient
-from pyiso.eu import control_areas
+from pyiso.eu import EUClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
@@ -344,12 +344,12 @@ class TestSVERILoad(TestBaseLoad):
 class TestEULoad(TestBaseLoad):
     def setUp(self):
         super(TestEULoad, self).setUp()
-        self.BA_CHOICES = [i['Code'] for i in control_areas]
+        self.BA_CHOICES = EUClient.CONTROL_AREAS.keys()
 
     def test_latest(self):
         # basic test
         data = self._run_test('EU', latest=True, market=self.MARKET_CHOICES.hourly,
-                              control_area='CTA|IT')
+                              control_area='IT')
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -365,7 +365,7 @@ class TestEULoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('EU', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
-                              control_area='CTA|IT')
+                              control_area='IT')
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -376,10 +376,8 @@ class TestEULoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('EU', start_at=today+timedelta(hours=20),
                               end_at=today+timedelta(days=1),
-                              control_area='CTA|IT')
+                              control_area='IT')
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
-
-
