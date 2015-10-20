@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
@@ -23,7 +23,7 @@ class TestBaseTrade(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def _run_net_test(self, ba_name, **kwargs):

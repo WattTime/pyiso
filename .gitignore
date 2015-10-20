@@ -4,6 +4,7 @@
 *.db
 celerybeat-schedule
 .env
+env.sh
 
 # C extensions
 *.so
@@ -39,3 +40,11 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# database files
+*.csv
+*.dump
+*.sqlite
+
+# coverage files
+htmlcov

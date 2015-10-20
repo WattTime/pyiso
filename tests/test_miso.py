@@ -1,7 +1,8 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 import pytz
 import logging
+from os import environ
 
 
 class TestMISO(TestCase):
@@ -9,7 +10,7 @@ class TestMISO(TestCase):
         self.c = client_factory('MISO')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.INFO)
+        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_utcify(self):
         ts_str = '2014-05-03T01:45:00'

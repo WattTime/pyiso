@@ -1,14 +1,13 @@
 from pyiso import client_factory
 from unittest import TestCase
 import logging
-
+from os import environ
 
 # class TestSPP(TestCase):
 #     def setUp(self):
 #         self.c = client_factory('SPP')
 #         handler = logging.StreamHandler()
 #         self.c.logger.addHandler(handler)
-#         self.c.logger.setLevel(logging.DEBUG)
 
 #     def test_auth_keys(self):
 #         auth, idstr, headers = self.c.auth_keys()

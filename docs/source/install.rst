@@ -25,15 +25,15 @@ Windows Users: If you are unable to setup pyiso due to issues with installing or
 Accounts
 --------
 
-ISONE requires a username and password to use their API to collect data.
-To use the ISONE client, you must register an account with them
-by following the instructions here:
-http://www.iso-ne.com/participate/applications-status-changes/access-software-systems#data-feeds
+ISONE and the EU each require a username and password to collect data.
+You can register for an ISONE account here (http://www.iso-ne.com/participate/applications-status-changes/access-software-systems#data-feeds) and an EU ENTSOe account here (https://transparency.entsoe.eu/).
 
 Then, set your username and password as environment variables::
 
-	export ISONE_USERNAME=myusername
-	export ISONE_PASSWORD=mysecret
+	export ISONE_USERNAME=myusername1
+	export ISONE_PASSWORD=mysecret1
+    export ENTSOe_USERNAME=myusername2
+    export ENTSOe_PASSWORD=mypassword2
 
 All other ISOs allow unauthenticated users to collect data, so no other credentials are needed.
 

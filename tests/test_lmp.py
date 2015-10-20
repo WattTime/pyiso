@@ -1,4 +1,4 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES
+from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
 from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
@@ -21,7 +21,7 @@ class TestBaseLMP(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def _run_test(self, ba_name, expect_data=True, **kwargs):

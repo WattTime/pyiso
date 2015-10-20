@@ -47,6 +47,7 @@ class BaseClient(object):
         self.logger = logging.getLogger(__name__)
         handler = logging.StreamHandler()
         self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
@@ -230,7 +231,9 @@ class BaseClient(object):
 
         # carry out request
         try:
-            response = getattr(session, mode)(url, verify=False, timeout=self.TIMEOUT_SECONDS, **kwargs)
+            response = getattr(session, mode)(url, verify=False,
+                                              timeout=self.TIMEOUT_SECONDS,
+                                              **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
@@ -247,9 +250,11 @@ class BaseClient(object):
         #     return None
 
         if response.status_code == 200:
-            self.logger.debug('%s: request success for %s, %s' % (self.NAME, url, kwargs))
+            self.logger.debug('%s: request success for %s, %s with cache hit %s' % (
+                self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
         else:
-            self.logger.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
+            self.logger.error('%s: request failure with code %s for %s, %s' % (
+                self.NAME, response.status_code, url, kwargs))
 
         return response
 
@@ -309,7 +314,7 @@ class BaseClient(object):
                 filelike.closed
             except AttributeError:  # string, unicode, etc
                 try:
-                    filelike = BytesIO(filelike)  # This was changed from StringIO to work in Python 3.x
+                    filelike = BytesIO(filelike)  # This was changed from StringIO for Python 3.x
                 except TypeError:
                     filelike = StringIO(filelike)
 
@@ -337,7 +342,8 @@ class BaseClient(object):
         Convert a DateTimeIndex to UTC.
 
         :param DateTimeIndex local_index: The local DateTimeIndex to be converted.
-        :param string tz_name: If local_ts is naive, it is assumed to be in timezone tz. If tz is not provided, the client's default timezone is used.
+        :param string tz_name: If local_ts is naive, it is assumed to be in timezone tz.
+            If tz is not provided, the client's default timezone is used.
         :return: DatetimeIndex in UTC.
         :rtype: DatetimeIndex
         """
@@ -393,7 +399,8 @@ class BaseClient(object):
         return data
 
     def serialize_faster(self, df, extras={}):
-        """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW). Index and columns are already properly named."""
+        """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW).
+        Index and columns are already properly named."""
         df = df.reset_index()
         for key in extras:
             df[key] = extras[key]
@@ -422,7 +429,8 @@ class BaseClient(object):
 
         # have to have some sort of dates
         else:
-            raise ValueError('Either latest must be True, or start_at and end_at must both be provided.')
+            raise ValueError(
+                'Either latest must be True, or start_at and end_at must both be provided.')
 
         # return
         return dates

@@ -1,9 +1,22 @@
 import imp
 import os.path
-
+from os import environ
+from logging import DEBUG, INFO
 
 __version__ = '0.2.11'
 
+#########################################
+# For Testing Purposes
+# Add caching to unittesting
+# Print every time the testing hits the cache successfully
+if environ.get('DEBUG', False):
+
+    import requests
+    import requests_cache
+    requests_cache.install_cache(expire_after=60*10)
+    LOG_LEVEL = DEBUG
+else:
+    LOG_LEVEL = INFO
 
 BALANCING_AUTHORITIES = {
     'AZPS': {'module': 'sveri', 'class': 'SVERIClient'},
@@ -26,6 +39,7 @@ BALANCING_AUTHORITIES = {
     'SRP': {'module': 'sveri', 'class': 'SVERIClient'},
     'TEPC': {'module': 'sveri', 'class': 'SVERIClient'},
     'WALC': {'module': 'sveri', 'class': 'SVERIClient'},
+    'EU': {'module': 'eu', 'class': 'EUClient'},
 }
 
 
@@ -40,6 +54,7 @@ def client_factory(client_name, **kwargs):
     try:
         client_vals = BALANCING_AUTHORITIES[client_key]
         module_name = client_vals['module']
+
         class_name = client_vals['class']
     except KeyError:
         raise ValueError(error_msg)
