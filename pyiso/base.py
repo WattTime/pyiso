@@ -7,6 +7,7 @@ import requests
 import pandas as pd
 import zipfile
 from io import StringIO, BytesIO
+from time import sleep
 
 try:
     from urllib2 import urlopen
@@ -211,7 +212,7 @@ class BaseClient(object):
         xd = pd.ExcelFile(socket)
         return xd
 
-    def request(self, url, mode='get', **kwargs):
+    def request(self, url, mode='get', retry_sec=5, **kwargs):
         """
         Get or post to a URL with the provided kwargs.
         Returns the response, or None if an error was encountered.
@@ -250,11 +251,18 @@ class BaseClient(object):
         #     return None
 
         if response.status_code == 200:
-            self.logger.debug('%s: request success for %s, %s with cache hit %s' % (
-                self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
+            # success
+            self.logger.debug('%s: request success for %s, %s with cache hit %s' % (self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
+
+        elif response.status_code == 429:
+            # retry on throttle
+            self.logger.warn('%s: retrying in %d seconds, throttled for %s, %s' % (self.NAME, retry_sec, url, kwargs))
+            sleep(retry_sec)
+            return self.request(url, mode=mode, retry_sec=retry_sec, **kwargs)
+
         else:
-            self.logger.error('%s: request failure with code %s for %s, %s' % (
-                self.NAME, response.status_code, url, kwargs))
+            # non-throttle error
+            self.logger.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
 
         return response
 
