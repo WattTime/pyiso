@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 from datetime import date, time, datetime, timedelta
 import logging
@@ -10,7 +10,7 @@ class TestSVERI(TestCase):
         self.c = client_factory('AZPS')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.INFO)
+        self.c.logger.setLevel(LOG_LEVEL)
         self.TZ_NAME = 'America/Phoenix'
 
         self.now = datetime.now(pytz.timezone(self.TZ_NAME))

@@ -1,0 +1,16 @@
+# .coveragerc to control coverage.py
+[run]
+source=
+    .
+omit=
+    */tests/*
+    */tests.py
+    *__init__.py
+    *.virtualenvs*
+    *script.py
+
+[report]
+#CLI report config
+
+[html]
+#html report config

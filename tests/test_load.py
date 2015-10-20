@@ -1,5 +1,6 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES
+from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
 from pyiso.base import BaseClient
+from pyiso.eu import EUClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
@@ -21,7 +22,7 @@ class TestBaseLoad(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def _run_test(self, ba_name, expect_data=True, **kwargs):
@@ -130,7 +131,7 @@ class TestCAISOLoad(TestBaseLoad):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(hours=20),
+        data = self._run_test('CAISO', start_at=today + timedelta(hours=20),
                               end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
@@ -338,3 +339,45 @@ class TestSVERILoad(TestBaseLoad):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+
+class TestEULoad(TestBaseLoad):
+    def setUp(self):
+        super(TestEULoad, self).setUp()
+        self.BA_CHOICES = EUClient.CONTROL_AREAS.keys()
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('EU', latest=True, market=self.MARKET_CHOICES.hourly,
+                              control_area='IT')
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('EU', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1),
+                              control_area='IT')
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('EU', start_at=today+timedelta(hours=20),
+                              end_at=today+timedelta(days=1),
+                              control_area='IT')
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)

@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 from datetime import datetime, timedelta
 import pytz
@@ -11,7 +11,7 @@ class TestISONE(TestCase):
         self.c = client_factory('ISONE')
         handler = logging.StreamHandler()
         self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(logging.INFO)
+        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_auth(self):
         """Auth info should be set up from env during init"""

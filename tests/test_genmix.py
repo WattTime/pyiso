@@ -1,4 +1,4 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES
+from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
 from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase, skip
 import pytz
@@ -22,7 +22,7 @@ class TestBaseGenMix(TestCase):
         c = client_factory(ba_name)
         handler = logging.StreamHandler()
         c.logger.addHandler(handler)
-        c.logger.setLevel(logging.INFO)
+        c.logger.setLevel(LOG_LEVEL)
         return c
 
     def _run_test(self, ba_name, **kwargs):
@@ -119,7 +119,7 @@ class TestSPPGenMix(TestBaseGenMix):
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
                               market=self.MARKET_CHOICES.hourly)
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -147,7 +147,7 @@ class TestSPPGenMix(TestBaseGenMix):
     def test_spp_yesterday_5min(self):
         # basic test
         data = self._run_test('SPP', yesterday=True, market=self.MARKET_CHOICES.fivemin)
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -183,7 +183,7 @@ class TestBPAGenMix(TestBaseGenMix):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -193,7 +193,7 @@ class TestBPAGenMix(TestBaseGenMix):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -225,7 +225,7 @@ class TestCAISOGenMix(TestBaseGenMix):
     def test_caiso_yesterday(self):
         # basic test
         data = self._run_test('CAISO', yesterday=True, market=self.MARKET_CHOICES.hourly)
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
@@ -266,7 +266,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
                               end_at=now+timedelta(hours=12))
-        
+
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)

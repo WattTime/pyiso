@@ -30,7 +30,7 @@ See the :doc:`usage` page for instructions on how to get started.
 Specifically, here are the included balancing authorities and their respective data sources:
 
 ============================= ======================================== ============
-balancing authority abbbrev.  balancing authority name/region          data source
+balancing authority abbrev.    balancing authority name/region          data source
 ============================= ======================================== ============
     AZPS                      Arizona Public Service                   SVERI
     BPA                       Bonneville Power Administration (Pac NW) BPA
@@ -38,6 +38,7 @@ balancing authority abbbrev.  balancing authority name/region          data sour
     DEAA                      DECA Arlington Valley (AZ)               SVERI
     ELE                       El Paso Electric                         SVERI
     ERCOT                     Texas                                    ERCOT
+    EU                        European Union                           ENTSO
     HGMA                      Harquahala Generation Maricopa Arizona   SVERI
     IID                       Imperial Irrigation District (CA)        SVERI
     ISONE                     ISO New England                          ISONE
@@ -52,3 +53,57 @@ balancing authority abbbrev.  balancing authority name/region          data sour
     TEPC                      Tuscon Electric Power Co                 SVERI
     WALC                      WAPA Desert Southwest (NV, AZ)           SVERI
 ============================= ======================================== ============
+
+
+For European data, you also need to specify a "control area". The available control areas are:
+
+===================== ========================================
+control area abbrev.   control area country/provider    
+===================== ========================================
+AL                      Albania
+AT                      Austria
+BA                      Bosnia and Herzegovina
+BE                      Belgium
+BG                      Bulgaria
+CH                      Switzerland
+CY                      Cyprus
+CZ                      Czech Republic
+DE(50HzT)               Germany (50 HzT)
+DE(Amprion)             Germany (Amprion)
+DE(TenneT GER)          Germany (TenneT)
+DE(TransnetBW)          Germany (Transnet)
+DK                      Denmark
+EE                      Estonia
+ES                      Spain
+FI                      Finland
+FR                      France
+GR                      Greece
+HR                      Croatia
+HU                      Hungary
+IE                      Ireland
+IT                      Italy
+LT                      Lithuania
+LU                      Luxembourg
+LV                      Latvia
+MD                      Moldavia
+ME                      Montenegro
+MK                      Macedonia
+MT                      Malta
+NIE                     UK (NIE)
+NL                      Netherlands
+NO                      Norway
+National Grid           UK (National Grid)
+PL                      Poland
+PL-CZ                   Czech Republic/Poland
+PT                      Portugal
+RO                      Romania
+RS                      Serbia
+RU                      Russia
+RU-KGD                  Russia (KGD)
+SE                      Sweden
+SI                      Slovenia
+SK                      Slovakia
+TR                      Turkey
+UA                      Ukraine
+UA-WEPS                 Ukraine (WEPS)
+===================== ========================================
