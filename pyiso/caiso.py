@@ -457,19 +457,18 @@ class CAISOClient(BaseClient):
             default_return_val = ''
 
         # try get
-        response = self.request(self.base_url_oasis, params=payload) # have request
+        response = self.request(self.base_url_oasis, params=payload)
         if not response:
             return default_return_val
 
         # read data from zip
-        content = self.unzip(response.content) # This will be an array of content if successful, and None if unsuccessful
+        # This will be an array of content if successful, and None if unsuccessful
+        content = self.unzip(response.content)
         if not content:
             return default_return_val
 
-        # load xml into soup
-        soup = BeautifulSoup(content[0], 'lxml')  # Check the first file for errors
-
-        # check xml content
+        # check xml content for errors
+        soup = BeautifulSoup(content[0], 'lxml')
         error = soup.find('m:error')
         if error:
             code = error.find('m:err_code')
@@ -477,19 +476,22 @@ class CAISOClient(BaseClient):
             msg = 'XML error for CAISO OASIS with payload %s: %s %s' % (payload, code, desc)
             self.logger.error(msg)
             return default_return_val
+
+        # return xml or csv data
+        if payload.get('resultformat', False) == 6:
+            # If we requested CSV files
+            if return_all_files:
+                return content
+            else:
+                return content[0]
         else:
-            if payload.get('resultformat', False) == 6:  # If we requested CSV files
-                if return_all_files==True:
-                    return content
-                else:
-                    return content[0]
-            else:                                       # Return XML content
-                if return_all_files == True:
-                    raw_data = [BeautifulSoup(thisfile).find_all('report_data') for thisfile in content]
-                    return raw_data
-                else:
-                    raw_data = soup.find_all('report_data')
-                    return raw_data
+            # Return XML content
+            if return_all_files:
+                raw_data = [BeautifulSoup(thisfile).find_all('report_data') for thisfile in content]
+                return raw_data
+            else:
+                raw_data = soup.find_all('report_data')
+                return raw_data
 
     def parse_oasis_renewable(self, raw_data):
         """Parse raw data output of fetch_oasis for renewables."""
