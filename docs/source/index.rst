@@ -16,6 +16,7 @@ Contents:
    usage
    options
    contributing
+   supporting
 
 
 Indices and tables
