@@ -1,10 +1,8 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import pytz
-import logging
-from os import environ
 
 
 class TestPJM(TestCase):
@@ -26,9 +24,6 @@ class TestPJM(TestCase):
         Telemetry time: <span class=\"ts\">05/02/14 19:15 EDT</span><br/><br/><table><tr><th align=\"center\"> Tie Flow </th><th align=\"center\"> MW </th></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99068\" class=\"\">PJM RTO</a></td><td class=\"value_num\">2,140</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99033\" class=\"\">ALTE</a></td><td class=\"value_num\">-790</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99031\" class=\"\">ALTW</a></td><td class=\"value_num\">166</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99073\" class=\"\">AMIL</a></td><td class=\"value_num\">636</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99048\" class=\"\">CIN</a></td><td class=\"value_num\">-246</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99052\" class=\"\">CPLE</a></td><td class=\"value_num\">1,076</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99054\" class=\"\">CPLW</a></td><td class=\"value_num\">-83</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99070\" class=\"\">CWLP</a></td><td class=\"value_num\">15</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99056\" class=\"\">DUKE</a></td><td class=\"value_num\">333</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99082\" class=\"\">HTP</a></td><td class=\"value_num\">0</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99058\" class=\"\">IPL</a></td><td class=\"value_num\">414</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99066\" class=\"\">LGEE</a></td><td class=\"value_num\">292</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99077\" class=\"\">LINDEN</a></td><td class=\"value_num\">-2</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99029\" class=\"\">MEC</a></td><td class=\"value_num\">295</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99060\" class=\"\">MECS</a></td><td class=\"value_num\">-1,970</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99075\" class=\"\">SAYR</a></td><td class=\"value_num\">0</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99021\" class=\"\">NIPS</a></td><td class=\"value_num\">-660</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=2556\" class=\"\">NYIS</a></td><td class=\"value_num\">-560</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99062\" class=\"\">OVEC</a></td><td class=\"value_num\">326</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99064\" class=\"\">TVA</a></td><td class=\"value_num\">1,377</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99035\" class=\"\">WEC</a></td><td class=\"value_num\">973</td></tr><tr><td><a href=\"./SessionManager?a=tieFlowHistory&amp;id=99087\" class=\"\">PJM MISO</a></td><td class=\"value_num\">550</td></tr></table><body_footer/></body><page_footer/></w_page></html>"
 
         self.c = client_factory('PJM')
-        handler = logging.StreamHandler()
-        self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_utcify_pjmlike(self):
         ts_str = '04/13/14 21:45 EDT'

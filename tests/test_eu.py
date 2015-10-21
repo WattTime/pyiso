@@ -1,17 +1,13 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 from datetime import datetime
 import mock
 import pytz
-import logging
 
 
 class TestEU(TestCase):
     def setUp(self):
         self.c = client_factory('EU')
-        handler = logging.StreamHandler()
-        self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(LOG_LEVEL)
 
     def test_auth(self):
         self.assertTrue(self.c.auth())
@@ -50,23 +46,19 @@ class TestEU(TestCase):
 
     def test_throttled(self):
         self.c.session = mock.MagicMock()
-        self.c.logger = mock.MagicMock()
         response = mock.MagicMock()
         response.text = ''
         self.c.session.get.return_value = response
         r = self.c.fetch_entsoe('url', 'payload')
         self.assertFalse(r)
-        self.assertEqual(self.c.logger.warn.call_count, 1)
 
     def test_unknownexception(self):
         self.c.session = mock.MagicMock()
-        self.c.logger = mock.MagicMock()
         response = mock.MagicMock()
         response.text = 'UNKNOWN_EXCEPTION'
         self.c.session.get.return_value = response
         r = self.c.fetch_entsoe('url', 'payload')
         self.assertFalse(r)
-        self.assertEqual(self.c.logger.warn.call_count, 1)
 
     def test_bad_control_area(self):
         self.assertRaises(ValueError, self.c.get_load, 'not-a-cta', latest=True)

@@ -1,6 +1,5 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
-import logging
 from io import StringIO
 from datetime import date, datetime
 import pytz
@@ -135,16 +134,8 @@ class TestNYISOBase(TestCase):
 09/10/2014 19:55,SPR/DUN-SOUTH,23320,2380.44,4350,-9999\n\
 ')
 
-    def create_client(self, ba_name):
-        # set up client with logging
-        c = client_factory(ba_name)
-        handler = logging.StreamHandler()
-        c.logger.addHandler(handler)
-        c.logger.setLevel(LOG_LEVEL)
-        return c
-
     def test_parse_load(self):
-        c = self.create_client('NYISO')
+        c = client_factory('NYISO')
         data = c.parse_load(self.load_csv)
         expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
         for dp in data:
@@ -157,7 +148,7 @@ class TestNYISOBase(TestCase):
         self.assertEqual(len(data), 4)
 
     def test_parse_trade(self):
-        c = self.create_client('NYISO')
+        c = client_factory('NYISO')
         data = c.parse_trade(self.trade_csv)
         expected_keys = ['timestamp', 'ba_name', 'freq', 'market', 'net_exp_MW']
         for dp in data:
@@ -171,14 +162,14 @@ class TestNYISOBase(TestCase):
         self.assertEqual(len(data), 4)
 
     def test_fetch_csv_load(self):
-        c = self.create_client('NYISO')
+        c = client_factory('NYISO')
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content = c.fetch_csv(today, 'pal')
         self.assertEqual(content.split('\r\n')[0], '"Time Stamp","Time Zone","Name","PTID","Load"')
 
     def test_fetch_csv_trade(self):
-        c = self.create_client('NYISO')
+        c = client_factory('NYISO')
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content = c.fetch_csv(today, 'ExternalLimitsFlows')

@@ -1,7 +1,6 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 import pytz
-import logging
 from io import StringIO
 from datetime import datetime
 
@@ -9,9 +8,6 @@ from datetime import datetime
 class TestERCOT(TestCase):
     def setUp(self):
         self.c = client_factory('ERCOT')
-        handler = logging.StreamHandler()
-        self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(LOG_LEVEL)
 
         self.load_html = StringIO(u'<html>\n\
 <body class="bodyStyle">\n\
