@@ -1,4 +1,5 @@
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 import pandas as pd
@@ -131,4 +132,4 @@ class SVERIClient(BaseClient):
 
     def no_forecast_warn(self):
         if not self.options['latest'] and self.options['start_at'] >= pytz.utc.localize(datetime.utcnow()):
-            self.logger.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")
+            LOGGER.warn("SVERI does not have forecast data. There will be no data for the chosen time frame.")

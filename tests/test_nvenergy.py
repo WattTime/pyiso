@@ -1,4 +1,4 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 from io import StringIO
 from datetime import datetime, timedelta
@@ -6,9 +6,7 @@ try:
     from urllib2 import HTTPError
 except ImportError:
     from urllib.error import HTTPError
-import logging
 import pytz
-from os import environ
 
 
 one_day = StringIO(u"""
@@ -3792,9 +3790,6 @@ one_month = StringIO(u"""
 class TestNVEnergy(TestCase):
     def setUp(self):
         self.c = client_factory('NEVP')
-        handler = logging.StreamHandler()
-        self.c.logger.addHandler(handler)
-        self.c.logger.setLevel(LOG_LEVEL)
 
         self.today = datetime(2015, 8, 2, 12, 34)
         self.tomorrow = datetime(2015, 8, 3, 12, 34)

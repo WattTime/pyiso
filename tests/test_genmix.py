@@ -1,9 +1,8 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES, LOG_LEVEL
+from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase, skip
 import pytz
 from datetime import datetime, timedelta
-import logging
 
 
 class TestBaseGenMix(TestCase):
@@ -17,17 +16,9 @@ class TestBaseGenMix(TestCase):
         self.FUEL_CHOICES = FUEL_CHOICES
         self.BA_CHOICES = BALANCING_AUTHORITIES.keys()
 
-    def create_client(self, ba_name):
-        # set up client with logging
-        c = client_factory(ba_name)
-        handler = logging.StreamHandler()
-        c.logger.addHandler(handler)
-        c.logger.setLevel(LOG_LEVEL)
-        return c
-
     def _run_test(self, ba_name, **kwargs):
         # set up
-        c = self.create_client(ba_name)
+        c = client_factory(ba_name)
 
         # get data
         data = c.get_generation(**kwargs)
@@ -61,7 +52,7 @@ class TestBaseGenMix(TestCase):
 
     def _run_notimplemented_test(self, ba_name, **kwargs):
         # set up
-        c = self.create_client(ba_name)
+        c = client_factory(ba_name)
 
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_generation)

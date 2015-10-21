@@ -22,22 +22,6 @@ Pyiso depends on pandas so be prepared for a large install.
 Windows Users: If you are unable to setup pyiso due to issues with installing or using numpy, a dependent package of pyiso, try installing a precompiled version of numpy found here: http://www.lfd.uci.edu/~gohlke/pythonlibs/
 
 
-Accounts
---------
-
-ISONE and the EU each require a username and password to collect data.
-You can register for an ISONE account here (http://www.iso-ne.com/participate/applications-status-changes/access-software-systems#data-feeds) and an EU ENTSOe account here (https://transparency.entsoe.eu/).
-
-Then, set your username and password as environment variables::
-
-	export ISONE_USERNAME=myusername1
-	export ISONE_PASSWORD=mysecret1
-    export ENTSOe_USERNAME=myusername2
-    export ENTSOe_PASSWORD=mypassword2
-
-All other ISOs allow unauthenticated users to collect data, so no other credentials are needed.
-
-
 Uninstall
 ---------
 

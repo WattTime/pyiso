@@ -1,22 +1,29 @@
 import imp
 import os.path
 from os import environ
-from logging import DEBUG, INFO
+import logging
 
 __version__ = '0.2.11'
 
-#########################################
-# For Testing Purposes
-# Add caching to unittesting
-# Print every time the testing hits the cache successfully
-if environ.get('DEBUG', False):
 
-    import requests
+if environ.get('DEBUG', False):
+    # For Testing Purposes
+    # Add caching to unittesting
+    # Print every time the testing hits the cache successfully
     import requests_cache
     requests_cache.install_cache(expire_after=60*10)
-    LOG_LEVEL = DEBUG
+    LOG_LEVEL = logging.DEBUG
 else:
-    LOG_LEVEL = INFO
+    # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
+    LOG_LEVEL = int(environ.get('LOG_LEVEL', logging.INFO))
+
+
+# logger: create here to only add the handler once!
+LOGGER = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+LOGGER.addHandler(handler)
+LOGGER.setLevel(LOG_LEVEL)
+
 
 BALANCING_AUTHORITIES = {
     'AZPS': {'module': 'sveri', 'class': 'SVERIClient'},

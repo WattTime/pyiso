@@ -13,6 +13,7 @@ Contents:
 
    intro
    install
+   configuration
    usage
    options
    contributing

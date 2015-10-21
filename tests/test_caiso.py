@@ -1,12 +1,12 @@
 from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
-import logging
 from io import StringIO
 import pandas as pd
 import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 import numpy
+
 
 class TestCAISOBase(TestCase):
     def setUp(self):
@@ -314,21 +314,13 @@ class TestCAISOBase(TestCase):
 \n\
 ")
 
-    def create_client(self, ba_name):
-        # set up client with logging
-        c = client_factory(ba_name)
-        handler = logging.StreamHandler()
-        c.logger.addHandler(handler)
-        c.logger.setLevel(LOG_LEVEL)
-        return c
-
     def test_request_renewable_report(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         response = c.request('http://content.caiso.com/green/renewrpt/20140312_DailyRenewablesWatch.txt')
         self.assertIn('Hourly Breakdown of Renewable Resources (MW)', response.text)
 
     def test_parse_ren_report_both(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
 
         # top half
         top_df = c.parse_to_df(self.ren_report_tsv,
@@ -345,7 +337,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(len(bot_df), 24)
 
     def test_parse_ren_report_bot(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
 
         # bottom half
         bot_df = c.parse_to_df(self.ren_report_tsv,
@@ -355,7 +347,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(len(bot_df), 24)
 
     def test_dt_index(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         df = c.parse_to_df(self.ren_report_tsv,
                            skiprows=1, nrows=24, header=0,
                            delimiter='\t+', engine='python')
@@ -364,7 +356,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(indexed.index[0].hour, 7)
 
     def test_pivot(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         df = c.parse_to_df(self.ren_report_tsv,
                            skiprows=1, nrows=24, header=0,
                            delimiter='\t+', engine='python')
@@ -380,7 +372,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(len(pivoted), 24*len(indexed.columns))
 
     def test_oasis_payload(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         c.handle_options(start_at='2014-01-01', end_at='2014-02-01',
                          market=c.MARKET_CHOICES.fivemin)
         constructed = c.construct_oasis_payload('SLD_FCST')
@@ -393,7 +385,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(constructed, expected)
 
     def test_fetch_oasis_demand_rtm(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
                    'market_run_id': 'RTM',
@@ -414,7 +406,7 @@ class TestCAISOBase(TestCase):
 </report_data>')
 
     def test_fetch_oasis_csv(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
                    'market_run_id': 'RTM',
@@ -429,7 +421,7 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         soup = BeautifulSoup(self.sld_fcst_xml)
         data = soup.find_all('report_data')
 
@@ -447,7 +439,7 @@ class TestCAISOBase(TestCase):
 
     def test_parse_todays_outlook_renwables(self):
         # set up soup and ts
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         soup = BeautifulSoup(self.todays_outlook_renewables)
         ts = c.utcify('2014-05-08 12:00')
 
@@ -467,7 +459,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(parsed_data, expected)
 
     def test_fetch_oasis_demand_dam(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
                    'market_run_id': 'DAM',
@@ -488,7 +480,7 @@ class TestCAISOBase(TestCase):
 </report_data>')
 
     def test_fetch_oasis_slrs_dam(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'ENE_SLRS',
                    'market_run_id': 'DAM',
@@ -509,7 +501,7 @@ class TestCAISOBase(TestCase):
 </report_data>')
 
     def test_fetch_oasis_ren_dam(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_REN_FCST',
                    'market_run_id': 'DAM',
@@ -532,7 +524,7 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         soup = BeautifulSoup(self.ene_slrs_xml)
         data = soup.find_all('report_data')
 
@@ -550,7 +542,7 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_slrs_trade_dam(self):
         # set up list of data
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         soup = BeautifulSoup(self.ene_slrs_xml)
         data = soup.find_all('report_data')
 
@@ -568,7 +560,7 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_renewables_dam(self):
         # set up list of data
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         soup = BeautifulSoup(self.sld_ren_fcst_xml)
         data = soup.find_all('report_data')
 
@@ -585,7 +577,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(expected, parsed_data[0])
 
     def test_get_lmp_dataframe_latest(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime.utcnow())
         lmp = c.get_lmp_as_dataframe('SLAP_PGP2-APND')
         self.assertEqual(len(lmp), 1)
@@ -598,7 +590,7 @@ class TestCAISOBase(TestCase):
         self.assertLess(lmp.iloc[0].name, ts + timedelta(minutes=5))
 
     def test_get_lmp_dataframe_hist(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
@@ -612,12 +604,12 @@ class TestCAISOBase(TestCase):
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
 
     def test_get_lmp_dataframe_badnode(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         df = c.get_lmp_as_dataframe('badnode')
         self.assertTrue(df.empty)
 
     def test_get_AS_dataframe(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
@@ -643,7 +635,7 @@ class TestCAISOBase(TestCase):
             self.assertEqual(len(grouped.get_group(group)), 48)
 
     def test_get_AS_dataframe_empty(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
         as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
@@ -651,7 +643,7 @@ class TestCAISOBase(TestCase):
         self.assertTrue(as_prc.empty)
 
     def test_get_AS_dataframe_latest(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         as_prc = c.get_AS_dataframe('AS_CAISO_EXP')
 
         # Could be 1 or 2 prices in last 61 minutes
@@ -659,7 +651,7 @@ class TestCAISOBase(TestCase):
         self.assertGreaterEqual(len(as_prc), 6)
 
     def test_get_ancillary_services(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
@@ -686,7 +678,7 @@ class TestCAISOBase(TestCase):
             self.assertAlmostEqual(numpy.mean(dp), means[anc_type], places=6)
 
     def test_get_ancillary_services_RU(self):
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
@@ -703,7 +695,7 @@ class TestCAISOBase(TestCase):
 
     def test_get_AS_empty(self):
         """No AS data available 2 days in future"""
-        c = self.create_client('CAISO')
+        c = client_factory('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
         as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=st, end_at=et,

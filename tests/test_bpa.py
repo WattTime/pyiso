@@ -2,7 +2,6 @@ from pyiso import client_factory, LOG_LEVEL
 from unittest import TestCase
 import pytz
 from datetime import datetime
-import logging
 from io import StringIO
 from os import environ
 
@@ -74,21 +73,13 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
 01/01/14 01:25\t93\t27\t5852\t5042\t3658\t2676\n\
 ")
 
-    def create_client(self, ba_name):
-        # set up client with logging
-        c = client_factory(ba_name)
-        handler = logging.StreamHandler()
-        c.logger.addHandler(handler)
-        c.logger.setLevel(LOG_LEVEL)
-        return c
-
     def test_request_latest(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         response = c.request('http://transmission.bpa.gov/business/operations/wind/baltwg.txt')
         self.assertIn('BPA Balancing Authority Load & Total Wind Generation', response.text)
 
     def test_parse_to_df(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True)
 
@@ -100,12 +91,12 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
 
     def test_utcify(self):
         ts_str = '04/15/2014 10:10'
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         ts = c.utcify(ts_str)
         self.assertEqual(ts, datetime(2014, 4, 15, 10+7, 10, tzinfo=pytz.utc))
 
     def test_utcify_index(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True)
         utc_index = c.utcify_index(df.index)
@@ -113,7 +104,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         self.assertEqual(len(df), len(utc_index))
 
     def test_slice_latest(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True)
         df.index = c.utcify_index(df.index)
@@ -123,7 +114,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         self.assertEqual(list(sliced.values[0]), [6464, 3688, 10662, 1601])
 
     def test_slice_startend(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True)
         df.index = c.utcify_index(df.index)
@@ -134,7 +125,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         self.assertEqual(list(sliced.iloc[0].values), [6537, 3684, 11281, 1601])
 
     def test_serialize_gen(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True, usecols=[0, 2, 3, 4])
         df.index = c.utcify_index(df.index)
@@ -146,7 +137,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         self.assertEqual(data[0], {'timestamp': datetime(2014, 4, 15, 17, 10, tzinfo=pytz.utc), 'gen_MW': 3732.0, 'fuel_name': 'wind'})
 
     def test_serialize_load(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         df = c.parse_to_df(self.wind_tsv, skiprows=6, header=0, delimiter='\t',
                            index_col=0, parse_dates=True, usecols=[0, 1])
         df.index = c.utcify_index(df.index)
@@ -156,7 +147,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
         self.assertEqual(data[0], {'timestamp': datetime(2014, 4, 15, 17, 10, tzinfo=pytz.utc), 'load_MW': 6553.0})
 
     def test_parse_xls(self):
-        c = self.create_client('BPA')
+        c = client_factory('BPA')
         xd = c.fetch_xls(c.base_url + 'wind/WindGenTotalLoadYTD_2014.xls')
 
         # parse xls

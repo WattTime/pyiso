@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, time
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import copy
 import re
 from bs4 import BeautifulSoup
@@ -474,7 +475,7 @@ class CAISOClient(BaseClient):
             code = error.find('m:err_code')
             desc = error.find('m:err_desc')
             msg = 'XML error for CAISO OASIS with payload %s: %s %s' % (payload, code, desc)
-            self.logger.error(msg)
+            LOGGER.error(msg)
             return default_return_val
 
         # return xml or csv data
@@ -512,7 +513,7 @@ class CAISOClient(BaseClient):
                 gen_MW = float(raw_soup_dp.find('value').string)
                 preparsed_data[ts][fuel_name] += gen_MW
             except TypeError:
-                self.logger.error('Error in schema for CAISO OASIS result %s' % raw_soup_dp.prettify())
+                LOGGER.error('Error in schema for CAISO OASIS result %s' % raw_soup_dp.prettify())
                 continue
 
         # collect values into dps

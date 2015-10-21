@@ -1,6 +1,5 @@
 from unittest import TestCase
 from pyiso.base import BaseClient
-import logging
 from datetime import datetime, timedelta
 import pytz
 
@@ -11,18 +10,6 @@ class TestBaseClient(TestCase):
         bc = BaseClient()
         self.assertIsNotNone(bc)
         self.assertEqual(len(bc.options.keys()), 0)
-
-    def test_has_logger(self):
-        """BaseClient has logger attribute that acts like logger"""
-        bc = BaseClient()
-
-        # attribute exists
-        logger = getattr(bc, 'logger', None)
-        self.assertIsNotNone(logger)
-
-        # can accept handler
-        handler = logging.StreamHandler()
-        logger.addHandler(handler)
 
     def test_market_choices(self):
         """Market choices have expected values."""

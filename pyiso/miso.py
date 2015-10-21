@@ -1,5 +1,6 @@
 import copy
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import pytz
 
 
@@ -54,7 +55,7 @@ class MISOClient(BaseClient):
 
             # test for valid content
             if 'The page cannot be displayed' in response.text:
-                self.logger.error('MISO: Error in source data for generation')
+                LOGGER.error('MISO: Error in source data for generation')
                 return parsed_data
 
             # preliminary parsing

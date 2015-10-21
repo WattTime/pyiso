@@ -1,4 +1,5 @@
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import pandas as pd
 import numpy as np
 from datetime import time, datetime, timedelta
@@ -39,14 +40,14 @@ class NVEnergyClient(BaseClient):
             try:
                 df, mode = self.fetch_df(this_date)
             except (HTTPError, ValueError):
-                self.logger.warn('No data available in NVEnergy at %s' % this_date)
+                LOGGER.warn('No data available in NVEnergy at %s' % this_date)
                 continue
 
             # store
             try:
                 parsed_data += self.parse_load(df, this_date, mode)
             except KeyError:
-                self.logger.warn('Unparseable data available in NVEnergy at %s for mode %s: %s' % (this_date, mode, df))
+                LOGGER.warn('Unparseable data available in NVEnergy at %s for mode %s: %s' % (this_date, mode, df))
                 continue
 
         # return
@@ -67,14 +68,14 @@ class NVEnergyClient(BaseClient):
             try:
                 df, mode = self.fetch_df(this_date)
             except (HTTPError, ValueError):
-                self.logger.warn('No data available in NVEnergy at %s' % this_date)
+                LOGGER.warn('No data available in NVEnergy at %s' % this_date)
                 continue
 
             # store
             try:
                 parsed_data += self.parse_trade(df, this_date, mode)
             except KeyError:
-                self.logger.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
+                LOGGER.warn('Unparseable data available in NVEnergy at %s: %s' % (this_date, df))
                 continue
 
         # return

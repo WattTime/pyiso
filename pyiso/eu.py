@@ -1,4 +1,5 @@
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import requests
 import pandas as pd
 from io import StringIO
@@ -165,13 +166,13 @@ class EUClient(BaseClient):
         # TODO error checking
         if len(r.text) == 0:
             if count > 3:  # try 3 times to get response
-                self.logger.warn('Request failed, no response found after %i attempts' % count)
+                LOGGER.warn('Request failed, no response found after %i attempts' % count)
                 return False
             # throttled
             sleep(5)
             return self.fetch_entsoe(url, payload, count + 1)
         if 'UNKNOWN_EXCEPTION' in r.text:
-            self.logger.warn('UNKNOWN EXCEPTION')
+            LOGGER.warn('UNKNOWN EXCEPTION')
             return False
         return r.text
 

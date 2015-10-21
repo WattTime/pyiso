@@ -2,6 +2,7 @@ from datetime import timedelta
 import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import re
 
 
@@ -87,7 +88,7 @@ class ERCOTClient(BaseClient):
                     wind_gen = float(wind_dp['ACTUAL_SYSTEM_WIDE'])
                 except ValueError:  # empty string
                     wind_gen = None
-                    self.logger.error('No wind data available at %s in ERCOT' % (raw_ts))
+                    LOGGER.error('No wind data available at %s in ERCOT' % (raw_ts))
                 break
 
         # set up storage

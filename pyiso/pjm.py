@@ -1,6 +1,7 @@
 import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 
 
 class PJMClient(BaseClient):
@@ -15,7 +16,7 @@ class PJMClient(BaseClient):
         """
         ts_elt = soup.find(class_='ts')
         if not ts_elt:
-            self.logger.error('PJM: Timestamp not found in soup:\n%s' % soup)
+            LOGGER.error('PJM: Timestamp not found in soup:\n%s' % soup)
             return None
         return self.utcify(ts_elt.string)
 
@@ -34,7 +35,7 @@ class PJMClient(BaseClient):
                 continue
 
         # no value found
-        self.logger.error('PJM: Value for %s not found in soup:\n%s' % (key, soup))
+        LOGGER.error('PJM: Value for %s not found in soup:\n%s' % (key, soup))
         return None
 
     def fetch_edata(self, data_type, key):
@@ -67,7 +68,7 @@ class PJMClient(BaseClient):
             total_gen = load_val - imports_val
             nonwind_gen = total_gen - wind_gen
         except TypeError:  # value was None
-            self.logger.error('PJM: No timestamps found for options %s' % str(self.options))
+            LOGGER.error('PJM: No timestamps found for options %s' % str(self.options))
             return []
 
         # choose best time to use
@@ -78,7 +79,7 @@ class PJMClient(BaseClient):
         elif wind_ts:
             ts = wind_ts
         else:
-            self.logger.error('PJM: No timestamps found for options %s' % str(self.options))
+            LOGGER.error('PJM: No timestamps found for options %s' % str(self.options))
             return []
 
         # set up storage

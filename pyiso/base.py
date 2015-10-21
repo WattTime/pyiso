@@ -1,4 +1,3 @@
-import logging
 from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
@@ -8,6 +7,7 @@ import pandas as pd
 import zipfile
 from io import StringIO, BytesIO
 from time import sleep
+from pyiso import LOGGER
 
 try:
     from urllib2 import urlopen
@@ -43,12 +43,6 @@ class BaseClient(object):
 
     def __init__(self):
         self.options = {}
-
-        # logger
-        self.logger = logging.getLogger(__name__)
-        handler = logging.StreamHandler()
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
@@ -238,31 +232,31 @@ class BaseClient(object):
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
         #     msg = '%s: chunked encoding error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-        #     self.logger.error(msg)
+        #     LOGGER.error(msg)
         #     return None
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # eg max retries exceeded
             msg = '%s: connection error for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-            self.logger.error(msg)
+            LOGGER.error(msg)
             return None
         # except requests.exceptions.RequestException:
         #     msg = '%s: request exception for %s, %s:\n%s' % (self.NAME, url, kwargs, e)
-        #     self.logger.error(msg)
+        #     LOGGER.error(msg)
         #     return None
 
         if response.status_code == 200:
             # success
-            self.logger.debug('%s: request success for %s, %s with cache hit %s' % (self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
+            LOGGER.debug('%s: request success for %s, %s with cache hit %s' % (self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
 
         elif response.status_code == 429:
             # retry on throttle
-            self.logger.warn('%s: retrying in %d seconds, throttled for %s, %s' % (self.NAME, retry_sec, url, kwargs))
+            LOGGER.warn('%s: retrying in %d seconds, throttled for %s, %s' % (self.NAME, retry_sec, url, kwargs))
             sleep(retry_sec)
             return self.request(url, mode=mode, retry_sec=retry_sec, **kwargs)
 
         else:
             # non-throttle error
-            self.logger.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
+            LOGGER.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
 
         return response
 
@@ -283,7 +277,7 @@ class BaseClient(object):
             # have zipfile
             z = zipfile.ZipFile(filecontent)
         except zipfile.BadZipfile:
-            self.logger.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
+            LOGGER.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
             return None
 
         # have unzipped content
@@ -363,7 +357,7 @@ class BaseClient(object):
         try:
             aware_local_index = local_index.tz_localize(tz_name)
         except Exception as e:
-            self.logger.debug(e)  # already aware
+            LOGGER.debug(e)  # already aware
             aware_local_index = local_index
 
         # convert to utc
