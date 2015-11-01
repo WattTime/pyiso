@@ -99,7 +99,7 @@ class NVEnergyClient(BaseClient):
         elif mode == 'alternate':
             url_file = ts.strftime('native_system_load_and_ties_Y_for_%m_%d_%Y_.html')
             mode = 'recent'
-        elif ts.month == today.month and ts.year == today.year:
+        elif (ts.month == today.month and ts.year == today.year) or (today-this_day).days < 2:
             url_file = ts.strftime('native_system_load_and_ties_for_%m_%d_%Y_.html')
             mode = 'recent'
         else:
