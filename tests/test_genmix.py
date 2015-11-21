@@ -293,15 +293,6 @@ class TestERCOTGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
-    def test_request_report(self):
-        # get data
-        c = client_factory('ERCOT')
-        result = c._request_report('gen_hrly')
-
-        # should be a list containing 1 dict
-        self.assertEqual(len(result), 1)
-        self.assertIn('SE_MW', result[0].keys())
-
 
 class TestPJMGenMix(TestBaseGenMix):
     def test_pjm_latest(self):

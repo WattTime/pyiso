@@ -91,18 +91,27 @@ class TestERCOT(TestCase):
 
     def test_request_report_gen_hrly(self):
         # get data as list of dicts
-        data = self.c._request_report('gen_hrly')
+        df = self.c._request_report('gen_hrly')
 
         # test for expected data
-        self.assertEqual(len(data), 1)
+        self.assertEqual(len(df), 1)
         for key in ['SE_EXE_TIME_DST', 'SE_EXE_TIME', 'SE_MW']:
-            self.assertIn(key, data[0].keys())
+            self.assertIn(key, df.columns)
 
     def test_request_report_wind_hrly(self):
         # get data as list of dicts
-        data = self.c._request_report('wind_hrly')
+        df = self.c._request_report('wind_hrly')
 
         # test for expected data
-        self.assertEqual(len(data), 95)
+        self.assertLessEqual(len(df), 96)
         for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_BEGINNING']:
-            self.assertIn(key, data[0].keys())
+            self.assertIn(key, df.columns)
+
+    def test_request_report_load_7day(self):
+        # get data as list of dicts
+        df = self.c._request_report('load_7day')
+
+        # test for expected data
+        self.assertEqual(len(df), 8*24)
+        for key in ['SystemTotal', 'HourEnding', 'DSTFlag', 'DeliveryDate']:
+            self.assertIn(key, df.columns)

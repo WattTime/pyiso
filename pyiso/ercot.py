@@ -3,6 +3,8 @@ import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 from pyiso import LOGGER
+import pandas as pd
+from io import StringIO
 import re
 
 
@@ -14,14 +16,18 @@ class ERCOTClient(BaseClient):
         'wind_5min': '13071',
         'wind_hrly': '13028',
         'gen_hrly': '12358',
+        'load_7day': '12311',
     }
 
     TZ_NAME = 'US/Central'
 
-    def utcify(self, local_ts, **kwargs):
+    def utcify(self, local_ts, hour_ending=True, **kwargs):
         # ERCOT is hour ending, want hour beginning
         utc_ts = super(ERCOTClient, self).utcify(local_ts, **kwargs)
-        return utc_ts - timedelta(hours=1)
+        if hour_ending:
+            return utc_ts - timedelta(hours=1)
+        else:
+            return utc_ts
 
     def _request_report(self, report_type):
         # request reports list
@@ -51,21 +57,20 @@ class ERCOTClient(BaseClient):
             return []
 
         # parse csv
-        rows = content[0].decode('unicode_escape').split('\n')
-        header = rows[0].split(',')
-        raw_data = [dict(zip(header, self.parse_row(row))) for row in rows[1:-1]]
+        df = pd.read_csv(StringIO(content[0].decode('unicode_escape')))
+        df.columns = [x.strip() for x in df.columns]
+        df = df.dropna(axis=0)
 
         # return
-        return raw_data
+        return df
 
     def is_dst(self, val, standard):
         return val != standard
 
     def get_generation(self, latest=False, **kwargs):
         # get nonwind gen data
-        raw_gen_data = self._request_report('gen_hrly')
-        assert len(raw_gen_data) == 1
-        total_dp = raw_gen_data[0]
+        raw_gen_df = self._request_report('gen_hrly')
+        total_dp = raw_gen_df.iloc[0]
         total_gen = float(total_dp['SE_MW'])
 
         # get timestamp on hour
@@ -80,8 +85,10 @@ class ERCOTClient(BaseClient):
 
         # process wind data
         wind_gen = None
-        for wind_dp in self._request_report('wind_hrly'):
+        wind_df = self._request_report('wind_hrly')
+        for irow, wind_dp in wind_df.iterrows():
             wind_ts = self.utcify(wind_dp['HOUR_BEGINNING'],
+                                  hour_ending=False,
                                   is_dst=self.is_dst(wind_dp['DSTFlag'], 'N'))
             if wind_ts == ts_hour_rounded_down:
                 try:
@@ -113,15 +120,18 @@ class ERCOTClient(BaseClient):
         # set args
         self.handle_options(data='load', latest=latest, **kwargs)
 
-        # only can get latest load
-        if not self.options['latest']:
-            raise ValueError('Load only available for latest in ERCOT')
+        if self.options['latest']:
+            # get latest load site
+            response = self.request('http://www.ercot.com/content/cdr/html/real_time_system_conditions.html')
 
-        # get load site
-        response = self.request('http://www.ercot.com/content/cdr/html/real_time_system_conditions.html')
+            # parse load from response
+            data = self.parse_load(response.text)
 
-        # parse load from response
-        data = self.parse_load(response.text)
+        elif self.options['forecast']:
+            pass
+
+        else:
+            raise ValueError('Load only available for latest or forecast in ERCOT')
 
         # return
         return data
