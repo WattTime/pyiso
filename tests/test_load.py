@@ -253,6 +253,20 @@ class TestPJMLoad(TestBaseLoad):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('PJM', start_at=today + timedelta(hours=20),
+                              end_at=today+timedelta(days=2))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test timestamps in range
+        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=20))
+        self.assertLessEqual(min(timestamps), today+timedelta(days=2))
+
 
 class TestSPPLoad(TestBaseLoad):
     def test_failing(self):
