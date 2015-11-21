@@ -82,7 +82,7 @@ class TestERCOT(TestCase):
         self.assertEqual(ts.tzinfo, pytz.utc)
 
     def test_parse_load(self):
-        data = self.c.parse_load(self.load_html)
+        data = self.c.parse_rtm_load(self.load_html)
         self.assertEqual(len(data), 1)
         expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
         self.assertEqual(sorted(data[0].keys()), sorted(expected_keys))

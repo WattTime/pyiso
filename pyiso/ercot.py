@@ -21,13 +21,14 @@ class ERCOTClient(BaseClient):
 
     TZ_NAME = 'US/Central'
 
-    def utcify(self, local_ts, hour_ending=True, **kwargs):
+    def utcify(self, local_ts, hour_ending=False, **kwargs):
         # ERCOT is hour ending, want hour beginning
-        utc_ts = super(ERCOTClient, self).utcify(local_ts, **kwargs)
         if hour_ending:
-            return utc_ts - timedelta(hours=1)
+            hour_beginning_ts = local_ts - timedelta(hours=1)
         else:
-            return utc_ts
+            hour_beginning_ts = local_ts
+
+        return super(ERCOTClient, self).utcify(hour_beginning_ts, **kwargs)
 
     def _request_report(self, report_type):
         # request reports list
@@ -54,7 +55,7 @@ class ERCOTClient(BaseClient):
         if r:
             content = self.unzip(r.content)
         else:
-            return []
+            return pd.DataFrame()
 
         # parse csv
         df = pd.read_csv(StringIO(content[0].decode('unicode_escape')))
@@ -76,6 +77,7 @@ class ERCOTClient(BaseClient):
         # get timestamp on hour
         # TODO is this what this timestamp means??
         raw_ts = self.utcify(total_dp['SE_EXE_TIME'],
+                             hour_ending=True,
                              is_dst=self.is_dst(total_dp['SE_EXE_TIME_DST'], 's'))
         ts_hour_rounded_down = raw_ts.replace(minute=0, second=0, microsecond=0)
       #  if raw_ts.minute > 30:
@@ -125,10 +127,37 @@ class ERCOTClient(BaseClient):
             response = self.request('http://www.ercot.com/content/cdr/html/real_time_system_conditions.html')
 
             # parse load from response
-            data = self.parse_load(response.text)
+            data = self.parse_rtm_load(response.text)
 
         elif self.options['forecast']:
-            pass
+            # get 7 day forecast load
+            df = self._request_report('load_7day')
+
+            # convert column of hour ending (1:00-24:00) to hour beginning (0:00-23:00)
+            df['HourBeginning'] = df.apply(lambda dp: int(dp['HourEnding'].split(':')[0])-1,
+                                           axis=1)
+
+            # create datetime index of hour beginning
+            df.index = df.apply(lambda dp: self.utcify(pd.to_datetime('%s %d:00' % (dp['DeliveryDate'], dp['HourBeginning'])),
+                                                       hour_ending=False,
+                                                       is_dst=self.is_dst(dp['DSTFlag'], 'N')),
+                                axis=1)
+
+            # slice times
+            sliced = self.slice_times(df)
+
+            # pull out total load series
+            series = sliced['SystemTotal']
+            series.name = 'load_MW'
+            series.index.set_names(['timestamp'], inplace=True)
+
+            # slice and format
+            extras = {
+                'ba_name': self.NAME,
+                'market': self.MARKET_CHOICES.dam,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+            }
+            data = self.serialize_faster(series, extras=extras)
 
         else:
             raise ValueError('Load only available for latest or forecast in ERCOT')
@@ -136,7 +165,7 @@ class ERCOTClient(BaseClient):
         # return
         return data
 
-    def parse_load(self, content):
+    def parse_rtm_load(self, content):
         # make soup
         soup = BeautifulSoup(content)
 
