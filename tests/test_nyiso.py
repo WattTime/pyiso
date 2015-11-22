@@ -137,29 +137,28 @@ class TestNYISOBase(TestCase):
     def test_parse_load(self):
         c = client_factory('NYISO')
         data = c.parse_load(self.load_csv)
-        expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
-        for dp in data:
-            self.assertEqual(sorted(dp.keys()), sorted(expected_keys))
-            self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
-            self.assertGreater(dp['load_MW'], 15700)
-            self.assertLess(dp['load_MW'], 16100)
+        for idx, row in data.iterrows():
+            self.assertEqual(idx.date(), date(2014, 9, 10))
+            self.assertGreater(row['load_MW'], 15700)
+            self.assertLess(row['load_MW'], 16100)
 
         # should have 4 dps, even though file has 5 (last one has no data)
         self.assertEqual(len(data), 4)
 
     def test_parse_trade(self):
         c = client_factory('NYISO')
-        data = c.parse_trade(self.trade_csv)
-        expected_keys = ['timestamp', 'ba_name', 'freq', 'market', 'net_exp_MW']
-        for dp in data:
-            self.assertEqual(dp['timestamp'].date(), date(2014, 9, 10))
-            self.assertEqual(sorted(dp.keys()), sorted(expected_keys))
+        df = c.parse_trade(self.trade_csv)
 
-            self.assertLess(dp['net_exp_MW'], -1400)
-            self.assertGreater(dp['net_exp_MW'], -6300)
+        for idx, row in df.iterrows():
+            self.assertEqual(idx.date(), date(2014, 9, 10))
 
-        # should have 4 timestamps
-        self.assertEqual(len(data), 4)
+            self.assertLess(row['net_exp_MW'], -1400)
+            self.assertGreater(row['net_exp_MW'], -6300)
+
+        # should have 3 timestamps
+        self.assertEqual(len(df), 3)
+
+        self.assertEqual(df.index.name, 'timestamp')
 
     def test_fetch_csv_load(self):
         c = client_factory('NYISO')
@@ -167,6 +166,14 @@ class TestNYISOBase(TestCase):
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content = c.fetch_csv(today, 'pal')
         self.assertEqual(content.split('\r\n')[0], '"Time Stamp","Time Zone","Name","PTID","Load"')
+
+    def test_fetch_csv_load_forecast(self):
+        c = client_factory('NYISO')
+        now = pytz.utc.localize(datetime.utcnow())
+        today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
+        content = c.fetch_csv(today, 'isolf')
+        self.assertEqual(content.split('\n')[0],
+                         '"Time Stamp","Capitl","Centrl","Dunwod","Genese","Hud Vl","Longil","Mhk Vl","Millwd","N.Y.C.","North","West","NYISO"')
 
     def test_fetch_csv_trade(self):
         c = client_factory('NYISO')

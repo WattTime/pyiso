@@ -159,7 +159,6 @@ class TestERCOTLoad(TestBaseLoad):
         self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
 
-
 class TestISONELoad(TestBaseLoad):
     def test_latest(self):
         # basic test
