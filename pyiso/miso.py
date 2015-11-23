@@ -1,14 +1,16 @@
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
+from urllib2 import HTTPError
 from io import StringIO
+from datetime import datetime
 import pytz
 
 
 class MISOClient(BaseClient):
     NAME = 'MISO'
 
-    base_url = 'https://www.misoenergy.org/ria/'
+    base_url = 'https://www.misoenergy.org'
 
     fuels = {
         'Coal': 'coal',
@@ -39,15 +41,58 @@ class MISOClient(BaseClient):
                 'market': self.MARKET_CHOICES.fivemin,
                 'freq': self.FREQUENCY_CHOICES.fivemin,
             }
+        elif self.options['forecast']:
+            data = self.handle_forecast()
+            extras = {
+                'ba_name': self.NAME,
+                'market': self.MARKET_CHOICES.dam,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+            }
         else:
-            raise ValueError('latest must be True')
+            raise ValueError('Either latest or forecast must be True')
+
+        # return
+        return self.serialize_faster(data, extras=extras)
+
+    def get_load(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='load', latest=latest, **kwargs)
+
+        # get data
+        if self.options['forecast']:
+            data = self.handle_forecast()
+            extras = {
+                'ba_name': self.NAME,
+                'market': self.MARKET_CHOICES.dam,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+            }
+        else:
+            raise ValueError('forecast must be True')
+
+        # return
+        return self.serialize_faster(data, extras=extras)
+
+    def get_trade(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='trade', latest=latest, **kwargs)
+
+        # get data
+        if self.options['forecast']:
+            data = self.handle_forecast()
+            extras = {
+                'ba_name': self.NAME,
+                'market': self.MARKET_CHOICES.dam,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+            }
+        else:
+            raise ValueError('forecast must be True')
 
         # return
         return self.serialize_faster(data, extras=extras)
 
     def latest_fuel_mix(self):
         # set up request
-        url = self.base_url + 'FuelMix.aspx?CSV=True'
+        url = self.base_url + '/ria/FuelMix.aspx?CSV=True'
 
         # carry out request
         response = self.request(url)
@@ -72,3 +117,60 @@ class MISOClient(BaseClient):
 
         # return
         return df[['fuel_name', 'gen_MW']]
+
+    def handle_forecast(self):
+        dates_list = self.dates()
+        if min(dates_list) > self.local_now().date():
+            dates_list = [self.local_now().date()]
+        pieces = [self.fetch_forecast(date) for date in dates_list]
+        df = pd.concat(pieces)
+        return self.parse_forecast(df)
+
+    def fetch_forecast(self, date):
+        # construct url
+        datestr = date.strftime('%Y%m%d')
+        url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
+
+        # make request
+        try:
+            xls = pd.read_excel(url)
+        except HTTPError:
+            LOGGER.debug('No MISO forecast data available at %s' % datestr)
+            return pd.DataFrame()
+
+        # clean header
+        header_df = xls.iloc[:5]
+        df = xls.iloc[5:]
+        df.columns = ['hour_str'] + list(header_df.iloc[-1][1:])
+
+        # set index
+        idx = []
+        for hour_str in df['hour_str']:
+            # format like 'Hour 01' to 'Hour 24'
+            ihour = int(hour_str[5:]) - 1
+            local_ts = datetime(date.year, date.month, date.day, ihour)
+            idx.append(self.utcify(local_ts))
+        df.index = idx
+        df.index.set_names(['timestamp'], inplace=True)
+
+        # return
+        return df
+
+    def parse_forecast(self, df):
+        sliced = self.slice_times(df)
+
+        if self.options['data'] == 'gen':
+            sliced['gen_MW'] = sliced['Supply Cleared (GWh) - Total'] * 1000
+            sliced['fuel_name'] = 'other'
+            return sliced[['gen_MW', 'fuel_name']]
+
+        elif self.options['data'] == 'load':
+            sliced['load_MW'] = sliced['Demand Cleared (GWh) - Total'] * 1000
+            return sliced['load_MW']
+
+        elif self.options['data'] == 'trade':
+            sliced['net_exp_MW'] = sliced['Net Scheduled Imports (GWh)'] * -1000
+            return sliced['net_exp_MW']
+
+        else:
+            raise ValueError('Can only parse MISO forecast gen, load, or trade data, not %s' % self.options['data'])

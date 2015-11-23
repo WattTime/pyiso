@@ -210,8 +210,20 @@ class TestISONETrade(TestBaseTrade):
 
 
 class TestMISOTrade(TestBaseTrade):
-    def test_failing(self):
-        self._run_notimplemented_test('MISO')
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_net_test('MISO', start_at=today+timedelta(hours=10),
+                                  end_at=today+timedelta(days=2))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+       # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
 
 class TestNEVPTrade(TestBaseTrade):
