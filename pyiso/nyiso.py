@@ -32,14 +32,19 @@ class NYISOClient(BaseClient):
 
         # get data
         if self.options['forecast']:
-            df = self.get_any('isolf', self.parse_load)
+            # always include today
+            dates_list = self.dates() + [self.local_now().date()]
+
+            # get data
+            df = self.get_any('isolf', self.parse_load_forecast, dates_list=dates_list)
             extras = {
                 'ba_name': self.NAME,
                 'freq': self.FREQUENCY_CHOICES.hourly,
                 'market': self.MARKET_CHOICES.dam,
             }
         else:
-            df = self.get_any('pal', self.parse_load)
+            # get data
+            df = self.get_any('pal', self.parse_load_rtm)
             extras = {
                 'ba_name': self.NAME,
                 'freq': self.FREQUENCY_CHOICES.fivemin,
@@ -65,14 +70,21 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
-    def get_any(self, label, parser):
+    def get_any(self, label, parser, dates_list=None):
         # set up storage
         pieces = []
 
+        # get dates
+        if not dates_list:
+            dates_list = self.dates()
+
         # fetch and parse all csvs
-        for date in self.dates():
+        for date in dates_list:
             content = self.fetch_csv(date, label)
-            pieces.append(parser(content))
+            try:
+                pieces.append(parser(content))
+            except AttributeError:
+                pass
 
         # combine and slice
         df = pd.concat(pieces)
@@ -92,7 +104,7 @@ class NYISOClient(BaseClient):
         # return content
         return result.text
 
-    def parse_load(self, content):
+    def parse_load_rtm(self, content):
         # parse csv to df
         df = self.parse_to_df(content)
 
@@ -110,6 +122,20 @@ class NYISOClient(BaseClient):
         # pull out column
         series = total_loads['Load']
         final_df = pd.DataFrame({'load_MW': series})
+
+        # return
+        return final_df
+
+    def parse_load_forecast(self, content):
+        # parse csv to df
+        df = self.parse_to_df(content, index_col=0, header=0, parse_dates=True)
+
+        # set index
+        df.index.name = 'timestamp'
+        df.index = self.utcify_index(df.index)
+
+        # pull out column
+        final_df = pd.DataFrame({'load_MW': df['NYISO']})
 
         # return
         return final_df
