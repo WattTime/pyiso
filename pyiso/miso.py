@@ -1,6 +1,7 @@
-import copy
 from pyiso.base import BaseClient
 from pyiso import LOGGER
+import pandas as pd
+from io import StringIO
 import pytz
 
 
@@ -30,60 +31,44 @@ class MISOClient(BaseClient):
         # set args
         self.handle_options(data='gen', latest=latest, **kwargs)
 
-        # process args
-        request_urls = []
-        if latest:
-            request_urls.append('FuelMix.aspx?CSV=True')
-
+        # get data
+        if self.options['latest']:
+            data = self.latest_fuel_mix()
+            extras = {
+                'ba_name': self.NAME,
+                'market': self.MARKET_CHOICES.fivemin,
+                'freq': self.FREQUENCY_CHOICES.fivemin,
+            }
         else:
-            raise ValueError('Latest must be True.')
+            raise ValueError('latest must be True')
 
-        # set up storage
-        raw_data = []
-        parsed_data = []
+        # return
+        return self.serialize_faster(data, extras=extras)
 
-        # collect raw data
-        for request_url in request_urls:
-            # set up request
-            url = copy.deepcopy(self.base_url)
-            url += request_url
+    def latest_fuel_mix(self):
+        # set up request
+        url = self.base_url + 'FuelMix.aspx?CSV=True'
 
-            # carry out request
-            response = self.request(url)
-            if not response:
-                return parsed_data
+        # carry out request
+        response = self.request(url)
+        if not response:
+            return pd.DataFrame()
 
-            # test for valid content
-            if 'The page cannot be displayed' in response.text:
-                LOGGER.error('MISO: Error in source data for generation')
-                return parsed_data
+        # test for valid content
+        if 'The page cannot be displayed' in response.text:
+            LOGGER.error('MISO: Error in source data for generation')
+            return pd.DataFrame()
 
-            # preliminary parsing
-            rows = response.text.split('\n')
-            header = self.parse_row(rows[0])
-            for row in rows[1:]:
-                raw_data.append(dict(zip(header, self.parse_row(row))))
+        # preliminary parsing
+        df = pd.read_csv(StringIO(response.text), header=0, index_col=0, parse_dates=True)
 
-        # parse data
-        for raw_dp in raw_data:
-            # process timestamp
-            aware_utc_timestamp = self.utcify(raw_dp['INTERVALEST'])
+        # set index
+        df.index = self.utcify_index(df.index)
+        df.index.set_names(['timestamp'], inplace=True)
 
-            # set up storage
-            parsed_dp = {}
+        # set names and labels
+        df['fuel_name'] = df.apply(lambda x: self.fuels[x['CATEGORY']], axis=1)
+        df['gen_MW'] = df['ACT']
 
-            # add values
-            try:
-                parsed_dp['timestamp'] = aware_utc_timestamp
-                parsed_dp['gen_MW'] = float(raw_dp['ACT'])
-                parsed_dp['fuel_name'] = self.fuels[raw_dp['CATEGORY']]
-                parsed_dp['ba_name'] = self.NAME
-                parsed_dp['market'] = self.MARKET_CHOICES.fivemin
-                parsed_dp['freq'] = self.FREQUENCY_CHOICES.fivemin
-            except KeyError:  # blank last line
-                continue
-
-            # add to full storage
-            parsed_data.append(parsed_dp)
-
-        return parsed_data
+        # return
+        return df[['fuel_name', 'gen_MW']]
