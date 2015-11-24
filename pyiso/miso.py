@@ -160,16 +160,16 @@ class MISOClient(BaseClient):
         sliced = self.slice_times(df)
 
         if self.options['data'] == 'gen':
-            sliced['gen_MW'] = sliced['Supply Cleared (GWh) - Total'] * 1000
+            sliced['gen_MW'] = 1000.0 * sliced['Supply Cleared (GWh) - Physical']
             sliced['fuel_name'] = 'other'
             return sliced[['gen_MW', 'fuel_name']]
 
         elif self.options['data'] == 'load':
-            sliced['load_MW'] = sliced['Demand Cleared (GWh) - Total'] * 1000
+            sliced['load_MW'] = 1000.0 * (sliced['Demand Cleared (GWh) - Physical - Fixed'] + sliced['Demand Cleared (GWh) - Physical - Price Sen.'])
             return sliced['load_MW']
 
         elif self.options['data'] == 'trade':
-            sliced['net_exp_MW'] = sliced['Net Scheduled Imports (GWh)'] * -1000
+            sliced['net_exp_MW'] = -1000.0 * sliced['Net Scheduled Imports (GWh)']
             return sliced['net_exp_MW']
 
         else:
