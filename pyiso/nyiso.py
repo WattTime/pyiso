@@ -19,11 +19,21 @@ class NYISOClient(BaseClient):
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
         if freq == self.FREQUENCY_CHOICES.fivemin:
             ts -= timedelta(minutes=5)
-        else:
-            raise ValueError('Not sure whether this freq is allowed for')
 
         # return
         return ts
+
+    def utcify_index(self, *args, **kwargs):
+        # regular utcify
+        idx = super(NYISOClient, self).utcify_index(*args, **kwargs)
+
+        # timestamp is end of interval
+        freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
+        if freq == self.FREQUENCY_CHOICES.fivemin:
+            idx -= timedelta(minutes=5)
+
+        # return
+        return idx
 
     def get_load(self, latest=False, start_at=False, end_at=False, **kwargs):
         # set args
