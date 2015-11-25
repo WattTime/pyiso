@@ -8,6 +8,7 @@ import zipfile
 from io import StringIO, BytesIO
 from time import sleep
 from pyiso import LOGGER
+from pytz import AmbiguousTimeError
 
 try:
     from urllib2 import urlopen
@@ -356,9 +357,13 @@ class BaseClient(object):
         # localize
         try:
             aware_local_index = local_index.tz_localize(tz_name)
-        except Exception as e:
-            LOGGER.debug(e)  # already aware
-            aware_local_index = local_index
+        except AmbiguousTimeError as e:
+            LOGGER.debug(e)
+            aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
+        # except Exception as e:
+        #     LOGGER.debug(e)  # already aware
+        #     print e
+        #     aware_local_index = local_index
 
         # convert to utc
         aware_utc_index = aware_local_index.tz_convert('UTC')
