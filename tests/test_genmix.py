@@ -298,8 +298,8 @@ class TestERCOTGenMix(TestBaseGenMix):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
