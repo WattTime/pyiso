@@ -2,6 +2,7 @@ from pyiso.base import BaseClient
 from pyiso import LOGGER
 import requests
 import pandas as pd
+import numpy as np
 from io import StringIO
 from time import sleep
 from datetime import datetime, timedelta
@@ -115,11 +116,18 @@ class EUClient(BaseClient):
         self.handle_options(data='load', start_at=start_at, end_at=end_at, forecast=forecast,
                             latest=latest, control_area=control_area, **kwargs)
 
-        payload = self.construct_payload()
-        url = self.base_url + self.export_endpoint
-        response = self.fetch_entsoe(url, payload)
+        pieces = []
+        for date in self.dates():
+            payload = self.construct_payload(date)
+            url = self.base_url + self.export_endpoint
+            response = self.fetch_entsoe(url, payload)
+            day_df = self.parse_load_response(response)
+            pieces.append(day_df)
 
-        return self.parse_load_response(response)
+        df = pd.concat(pieces)
+        print df
+        sliced = self.slice_times(df)
+        return self.serialize_faster(sliced)
 
     def handle_options(self, **kwargs):
         # regular handle options
@@ -176,10 +184,10 @@ class EUClient(BaseClient):
             return False
         return r.text
 
-    def construct_payload(self):
+    def construct_payload(self, date):
         # format date
         format_str = '%d.%m.%Y'
-        date_str = self.options['start_at'].strftime(format_str) + ' 00:00|UTC|DAY'
+        date_str = date.strftime(format_str) + ' 00:00|UTC|DAY'
 
         # TSO ID from control area code
         try:
@@ -215,7 +223,7 @@ class EUClient(BaseClient):
         # Why do these methods only work on Index and not Series?
         df.set_index(df.START_TIME_UTC, inplace=True)
         df.index = pd.to_datetime(df.index, utc=True, format='%d.%m.%Y %H:%M ')
-        df.START_TIME_UTC = df.index.to_pydatetime()
+        df.index.set_names('timestamp', inplace=True)
 
         # find column name and choose which to return and which to drop
         (forecast_load_col, ) = [c for c in df.columns if 'Day-ahead Total Load Forecast [MW]' in c]
@@ -223,22 +231,18 @@ class EUClient(BaseClient):
         if self.options['forecast']:
             load_col = forecast_load_col
             drop_load_col = actual_load_col
-
-            # drop extra columns
-            df = df[self.options['start_at']:self.options['end_at']]
         else:
             load_col = actual_load_col
             drop_load_col = forecast_load_col
 
-        # rename columns for list of dicts return
-        rename_d = {load_col: 'load_MW',
-                    'START_TIME_UTC': 'timestamp',
-                    }
+        # rename columns for list of dicts
+        rename_d = {load_col: 'load_MW'}
         df.rename(columns=rename_d, inplace=True)
-        drop_col = ['Time (UTC)', 'END_TIME_UTC', drop_load_col]
+        drop_col = ['Time (UTC)', 'END_TIME_UTC', 'START_TIME_UTC', drop_load_col]
         df.drop(drop_col, axis=1, inplace=True)
 
         # drop nan rows
+        df.replace('-', np.nan, inplace=True)
         df.dropna(subset=['load_MW'], inplace=True)
 
         # Add columns
@@ -246,10 +250,4 @@ class EUClient(BaseClient):
         df['freq'] = '1hr'
         df['market'] = 'RTHR'  # not necessarily appropriate terminology
 
-        if self.options['latest']:
-            # drop all but the latest record not in the future
-            now = datetime.now(pytz.utc)
-            df = df[:now].iloc[-1]
-            return [df.to_dict()]
-
-        return df.to_dict('records')
+        return df

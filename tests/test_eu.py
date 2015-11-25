@@ -62,23 +62,3 @@ class TestEU(TestCase):
 
     def test_bad_control_area(self):
         self.assertRaises(ValueError, self.c.get_load, 'not-a-cta', latest=True)
-
-    def test_get_load(self):
-        r = self.c.get_load('IT', start_at=datetime(2015, 9, 6, 0, tzinfo=pytz.utc),
-                            end_at=datetime(2015, 9, 7, 0, tzinfo=pytz.utc))
-        self.assertEqual(len(r), 24)
-
-        self.assertEqual(r[12]['load_MW'], 26745)
-
-    def test_get_forecast_load(self):
-        r = self.c.get_load('IT', forecast=True,
-                            start_at=datetime(2015, 9, 6, 0, tzinfo=pytz.utc),
-                            end_at=datetime(2015, 9, 7, 0, tzinfo=pytz.utc),)
-        self.assertEqual(len(r), 24)
-
-        self.assertEqual(r[12]['load_MW'], 27780)
-
-    def test_latest(self):
-        r = self.c.get_load('IT', latest=True)
-        self.assertEqual(len(r), 1)
-        self.assertGreater(r[0]['load_MW'], 0)
