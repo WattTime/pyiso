@@ -1,4 +1,3 @@
-from datetime import timedelta
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 import pandas as pd
