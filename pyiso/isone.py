@@ -184,7 +184,10 @@ class ISONEClient(BaseClient):
     def fetch_data(self, endpoint, auth):
         url = self.base_url + endpoint
         response = self.request(url, auth=auth)
-        return response.json()
+        if response:
+            return response.json()
+        else:
+            return {}
 
     def parse_json_load_data(self, data):
         """

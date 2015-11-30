@@ -2,6 +2,7 @@ import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 from pyiso import LOGGER
+import pandas as pd
 
 
 class PJMClient(BaseClient):
@@ -38,7 +39,7 @@ class PJMClient(BaseClient):
         LOGGER.error('PJM: Value for %s not found in soup:\n%s' % (key, soup))
         return None
 
-    def fetch_edata(self, data_type, key):
+    def fetch_edata_point(self, data_type, key):
         # get request
         response = self.request(self.base_url, params={'a': data_type})
         if not response:
@@ -54,14 +55,28 @@ class PJMClient(BaseClient):
         # return
         return ts, val
 
+    def fetch_edata_series(self, data_type):
+        # get request
+        # TODO id is hardcoded hack
+        response = self.request(self.base_url, params={'a': data_type, 'id': 999000})
+        if not response:
+            return pd.Series()
+
+        # parse html to df
+        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=True)
+        df = self.utcify_index(dfs[1])
+
+        # return df
+        return df
+
     def get_generation(self, latest=False, **kwargs):
         # set args
         self.handle_options(data='gen', **kwargs)
 
         # get data
-        load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
-        imports_ts, imports_val = self.fetch_edata('tieFlow', 'PJM RTO')
-        wind_ts, wind_gen = self.fetch_edata('wind', 'RTO Wind Power')
+        load_ts, load_val = self.fetch_edata_point('instLoad', 'PJM RTO Total')
+        imports_ts, imports_val = self.fetch_edata_point('tieFlow', 'PJM RTO')
+        wind_ts, wind_gen = self.fetch_edata_point('wind', 'RTO Wind Power')
 
         # compute nonwind gen
         try:
@@ -102,16 +117,36 @@ class PJMClient(BaseClient):
         # set args
         self.handle_options(data='load', **kwargs)
 
-        # get data
-        load_ts, load_val = self.fetch_edata('instLoad', 'PJM RTO Total')
+        if self.options['forecast']:
+            # handle forecast
+            df = self.fetch_edata_series('forecastedLoadHistoryPJMRTOTotal')
+            sliced = self.slice_times(df)
+            sliced.columns = ['load_MW']
+            sliced.index.set_names(['timestamp'], inplace=True)
 
-        if load_ts and load_val:
-            return [{
-                    'timestamp': load_ts,
-                    'freq': self.FREQUENCY_CHOICES.fivemin,
-                    'market': self.MARKET_CHOICES.fivemin,
-                    'load_MW': load_val,
-                    'ba_name': self.NAME,
-                    }]
+            # format
+            extras = {
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.dam,
+                'ba_name': self.NAME,
+            }
+            data = self.serialize_faster(sliced, extras=extras)
+
+            # return
+            return data
+
         else:
-            return []
+            # handle real-time
+            load_ts, load_val = self.fetch_edata_point('instLoad', 'PJM RTO Total')
+
+            # format and return
+            if load_ts and load_val:
+                return [{
+                        'timestamp': load_ts,
+                        'freq': self.FREQUENCY_CHOICES.fivemin,
+                        'market': self.MARKET_CHOICES.fivemin,
+                        'load_MW': load_val,
+                        'ba_name': self.NAME,
+                        }]
+            else:
+                return []

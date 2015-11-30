@@ -103,17 +103,17 @@ class BPAClient(BaseClient):
         return fetcher
 
     def parse_generation(self, df):
+        # process times
+        df.index = self.utcify_index(df.index)
+        sliced = self.slice_times(df)
+
         # original header is fuel names
-        df.rename(columns=self.fuels, inplace=True)
-        pivoted = self.unpivot(df)
+        sliced.rename(columns=self.fuels, inplace=True)
+        pivoted = self.unpivot(sliced)
         pivoted.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
 
-        # process times
-        pivoted.index = self.utcify_index(pivoted.index)
-        sliced = self.slice_times(pivoted)
-
         # return
-        return sliced
+        return pivoted
 
     def handle_options(self, **kwargs):
         # default handler

@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.14: Major features: forecast load in ERCOT, MISO, NYISO, PJM; forecast genmix in MISO; forecast trade in MISO. Minor changes: fixed DST bug in BPA, refactored several to better use pandas.
 * 0.2.13: Minor bugfix: Better able to find recent data in NVEnergy.
 * 0.2.12: Major features: EU support, support for throttling in CAISO. Minor upgrades: Improve docs, dedup logging messages.
 * 0.2.11: Minor bugfixes. Also, made a backward-incompatible change to the data structure that's returned from `get_ancillary_services` in CAISO.

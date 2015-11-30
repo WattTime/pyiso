@@ -8,6 +8,7 @@ import zipfile
 from io import StringIO, BytesIO
 from time import sleep
 from pyiso import LOGGER
+from pytz import AmbiguousTimeError
 
 try:
     from urllib2 import urlopen
@@ -39,7 +40,7 @@ class BaseClient(object):
     NAME = ''
 
     # default connection timeout
-    TIMEOUT_SECONDS = 15
+    TIMEOUT_SECONDS = 20
 
     def __init__(self):
         self.options = {}
@@ -356,9 +357,13 @@ class BaseClient(object):
         # localize
         try:
             aware_local_index = local_index.tz_localize(tz_name)
-        except Exception as e:
-            LOGGER.debug(e)  # already aware
-            aware_local_index = local_index
+        except AmbiguousTimeError as e:
+            LOGGER.debug(e)
+            aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
+        # except Exception as e:
+        #     LOGGER.debug(e)  # already aware
+        #     print e
+        #     aware_local_index = local_index
 
         # convert to utc
         aware_utc_index = aware_local_index.tz_convert('UTC')
@@ -408,6 +413,10 @@ class BaseClient(object):
             df[key] = extras[key]
         return df.to_dict(orient='records')
 
+    def local_now(self):
+        """Returns a tz-aware datetime equal to the current moment, in the local timezone"""
+        return pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+
     def dates(self):
         """Returns a list of dates in local time"""
         # set up storage
@@ -415,7 +424,7 @@ class BaseClient(object):
 
         # if latest, use date in local time
         if self.options['latest']:
-            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+            local_now = self.local_now()
             if local_now.date() != (local_now - timedelta(minutes=30)).date():
                 dates.append((local_now - timedelta(minutes=30)).date())
             dates.append(local_now.date())

@@ -49,7 +49,7 @@ class TestBaseLMP(TestCase):
             elif c.options['latest']:
                 # within 5 min
                 delta = now - dp['timestamp']
-                self.assertLess(abs(delta.total_seconds()), 5*60)
+                self.assertLess(abs(delta.total_seconds()), 5.5*60)
             else:
                 self.assertLess(dp['timestamp'], now)
 

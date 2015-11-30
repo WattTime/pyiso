@@ -11,48 +11,37 @@ class TestGenerationTask(TestCase):
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20),
                                 'end_at': now + timedelta(days=1)}
 
-    def test_bpa_latest(self):
-        expected = client_factory('BPA').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('BPA', **self.latest_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_caiso_latest(self):
-        expected = client_factory('CAISO').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('CAISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_caiso_forecast(self):
-        expected = client_factory('CAISO').get_generation(**self.forecast_kwargs)
-        received = tasks.get_generation('CAISO', **self.forecast_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_ercot_latest(self):
-        expected = client_factory('ERCOT').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('ERCOT', **self.latest_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_isone_latest(self):
-        expected = client_factory('ISONE').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('ISONE', **self.latest_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_miso_latest(self):
-        expected = client_factory('MISO').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('MISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
-
-    def test_pjm_latest(self):
-        expected = client_factory('PJM').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('PJM', **self.latest_kwargs)
+    def _run_test(self, ba, kwargs):
+        expected = client_factory(ba).get_generation(**kwargs)
+        received = tasks.get_generation(ba, **kwargs)
         for i in range(len(expected)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
                 self.assertEqual(expected[i]['gen_MW'], received[i]['gen_MW'])
                 self.assertEqual(expected[i]['fuel_name'], received[i]['fuel_name'])
 
+    def test_bpa_latest(self):
+        self._run_test('BPA', self.latest_kwargs)
+
+    def test_caiso_latest(self):
+        self._run_test('CAISO', self.latest_kwargs)
+
+    def test_caiso_forecast(self):
+        self._run_test('CAISO', self.forecast_kwargs)
+
+    def test_ercot_latest(self):
+        self._run_test('ERCOT', self.latest_kwargs)
+
+    def test_isone_latest(self):
+        self._run_test('ISONE', self.latest_kwargs)
+
+    def test_miso_latest(self):
+        self._run_test('MISO', self.latest_kwargs)
+
+    def test_pjm_latest(self):
+        self._run_test('PJM', self.latest_kwargs)
+
     def test_sveri_latest(self):
-        expected = client_factory('AZPS').get_generation(**self.latest_kwargs)
-        received = tasks.get_generation('AZPS', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('AZPS', self.latest_kwargs)
 
 
 class TestLoadTask(TestCase):
@@ -61,50 +50,48 @@ class TestLoadTask(TestCase):
         now = pytz.utc.localize(datetime.utcnow())
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
 
+    def _run_test(self, ba, kwargs):
+        expected = client_factory(ba).get_load(**kwargs)
+        received = tasks.get_load(ba, **kwargs)
+        for i in range(len(expected)):
+            if expected[i]['timestamp'] == received[i]['timestamp']:
+                self.assertEqual(expected[i]['load_MW'], received[i]['load_MW'])
+
     def test_bpa_latest(self):
-        expected = client_factory('BPA').get_load(**self.latest_kwargs)
-        received = tasks.get_load('BPA', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('BPA', self.latest_kwargs)
 
     def test_caiso_latest(self):
-        expected = client_factory('CAISO').get_load(**self.latest_kwargs)
-        received = tasks.get_load('CAISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('CAISO', self.latest_kwargs)
 
     def test_caiso_forecast(self):
-        expected = client_factory('CAISO').get_load(**self.forecast_kwargs)
-        received = tasks.get_load('CAISO', **self.forecast_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('CAISO', self.forecast_kwargs)
 
     def test_isone_latest(self):
-        expected = client_factory('ISONE').get_load(**self.latest_kwargs)
-        received = tasks.get_load('ISONE', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('ISONE', self.latest_kwargs)
 
     def test_isone_forecast(self):
-        expected = client_factory('ISONE').get_load(**self.forecast_kwargs)
-        received = tasks.get_load('ISONE', **self.forecast_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('ISONE', self.forecast_kwargs)
 
     def test_pjm_latest(self):
-        expected = client_factory('PJM').get_load(**self.latest_kwargs)
-        received = tasks.get_load('PJM', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('PJM', self.latest_kwargs)
+
+    def test_pjm_forecast(self):
+        self._run_test('PJM', self.forecast_kwargs)
 
     def test_ercot_latest(self):
-        expected = client_factory('ERCOT').get_load(**self.latest_kwargs)
-        received = tasks.get_load('ERCOT', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('ERCOT', self.latest_kwargs)
+
+    def test_ercot_forecast(self):
+        self._run_test('ERCOT', self.forecast_kwargs)
 
     def test_nyiso_latest(self):
-        expected = client_factory('NYISO').get_load(**self.latest_kwargs)
-        received = tasks.get_load('NYISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('NYISO', self.latest_kwargs)
+
+    def test_nyiso_forecast(self):
+        self._run_test('NYISO', self.forecast_kwargs)
 
     def test_sveri_latest(self):
-        expected = client_factory('AZPS').get_load(**self.latest_kwargs)
-        received = tasks.get_load('AZPS', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('AZPS', self.latest_kwargs)
 
 
 class TestTradeTask(TestCase):
@@ -113,17 +100,21 @@ class TestTradeTask(TestCase):
         now = pytz.utc.localize(datetime.utcnow())
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
 
+    def _run_test(self, ba, kwargs):
+        expected = client_factory(ba).get_trade(**kwargs)
+        received = tasks.get_trade(ba, **kwargs)
+        for i in range(len(expected)):
+            if expected[i]['timestamp'] == received[i]['timestamp']:
+                self.assertEqual(expected[i]['net_exp_MW'], received[i]['net_exp_MW'])
+
     def test_caiso_latest(self):
-        expected = client_factory('CAISO').get_trade(**self.latest_kwargs)
-        received = tasks.get_trade('CAISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('CAISO', self.latest_kwargs)
 
     def test_caiso_forecast(self):
-        expected = client_factory('CAISO').get_trade(**self.forecast_kwargs)
-        received = tasks.get_trade('CAISO', **self.forecast_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('CAISO', self.forecast_kwargs)
 
     def test_nyiso_latest(self):
-        expected = client_factory('NYISO').get_trade(**self.latest_kwargs)
-        received = tasks.get_trade('NYISO', **self.latest_kwargs)
-        self.assertEqual(expected, received)
+        self._run_test('NYISO', self.latest_kwargs)
+
+    def test_miso_forecast(self):
+        self._run_test('MISO', self.forecast_kwargs)
