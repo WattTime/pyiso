@@ -125,7 +125,6 @@ class EUClient(BaseClient):
             pieces.append(day_df)
 
         df = pd.concat(pieces)
-        print df
         sliced = self.slice_times(df)
         return self.serialize_faster(sliced)
 
