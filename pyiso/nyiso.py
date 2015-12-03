@@ -128,6 +128,7 @@ class NYISOClient(BaseClient):
         total_loads['timestamp'] = total_loads.index.map(pd.to_datetime)
         total_loads.set_index('timestamp', inplace=True)
         total_loads.index = self.utcify_index(total_loads.index)
+        total_loads.index.set_names(['timestamp'], inplace=True)
 
         # pull out column
         series = total_loads['Load']
@@ -174,6 +175,7 @@ class NYISOClient(BaseClient):
         subsetted['timestamp'] = subsetted.index.map(pd.to_datetime)
         subsetted.set_index('timestamp', inplace=True)
         subsetted.index = self.utcify_index(subsetted.index)
+        subsetted.index.set_names(['timestamp'], inplace=True)
 
         # sum up
         cleaned = subsetted.dropna(axis=0)

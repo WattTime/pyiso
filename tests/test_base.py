@@ -2,6 +2,7 @@ from unittest import TestCase
 from pyiso.base import BaseClient
 from datetime import datetime, timedelta
 import pytz
+import pandas as pd
 
 
 class TestBaseClient(TestCase):
@@ -94,3 +95,9 @@ class TestBaseClient(TestCase):
         badzip = 'I am not a zipfile'
         result = bc.unzip(badzip)
         self.assertIsNone(result)
+
+    def test_slice_empty(self):
+        bc = BaseClient()
+        indf = pd.DataFrame()
+        outdf = bc.slice_times(indf, {'latest': True})
+        self.assertEqual(len(outdf), 0)
