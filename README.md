@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.15: Minor changes: enforce pandas 0.16.2 and change NYISO index labelling to fix NYISO regression in some environments.
 * 0.2.14: Major features: forecast load in ERCOT, MISO, NYISO, PJM; forecast genmix in MISO; forecast trade in MISO. Minor changes: fixed DST bug in BPA, refactored several to better use pandas.
 * 0.2.13: Minor bugfix: Better able to find recent data in NVEnergy.
 * 0.2.12: Major features: EU support, support for throttling in CAISO. Minor upgrades: Improve docs, dedup logging messages.
