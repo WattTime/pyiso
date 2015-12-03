@@ -375,6 +375,10 @@ class BaseClient(object):
         if options is None:
             options = self.options
 
+        if len(df) == 0:
+            # if empty, end here
+            return df
+
         if options.get('latest', None):
             start_at = df.iloc[-1].name
             end_at = start_at

@@ -245,6 +245,7 @@ class TestNYISOLoad(TestBaseLoad):
         data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
+        print data
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
