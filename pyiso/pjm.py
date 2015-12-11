@@ -104,3 +104,25 @@ class PJMClient(BaseClient):
                         }]
             else:
                 return []
+
+    def get_trade(self, latest=False, **kwargs):
+        # set args
+        self.handle_options(data='trade', latest=latest, **kwargs)
+
+        if not self.options['latest']:
+            raise ValueError('Only latest trade values available in PJM')
+
+        # handle real-time imports
+        ts, val = self.fetch_edata_point('TieFlows', 'PJM RTO', 'Actual (MW)')
+
+        # format and return
+        if ts and val:
+            return [{
+                    'timestamp': ts,
+                    'freq': self.FREQUENCY_CHOICES.fivemin,
+                    'market': self.MARKET_CHOICES.fivemin,
+                    'net_exp_MW': -val,
+                    'ba_name': self.NAME,
+                    }]
+        else:
+            return []

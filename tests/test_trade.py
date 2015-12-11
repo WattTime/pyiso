@@ -263,8 +263,18 @@ class TestNEVPTrade(TestBaseTrade):
 
 
 class TestPJMTrade(TestBaseTrade):
-    def test_failing(self):
-        self._run_notimplemented_test('PJM')
+    def test_latest(self):
+        # basic test
+        data = self._run_net_test('PJM', latest=True, market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
 
 class TestSPPTrade(TestBaseTrade):
