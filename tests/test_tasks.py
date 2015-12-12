@@ -37,9 +37,6 @@ class TestGenerationTask(TestCase):
     def test_miso_latest(self):
         self._run_test('MISO', self.latest_kwargs)
 
-    def test_pjm_latest(self):
-        self._run_test('PJM', self.latest_kwargs)
-
     def test_sveri_latest(self):
         self._run_test('AZPS', self.latest_kwargs)
 
@@ -115,6 +112,9 @@ class TestTradeTask(TestCase):
 
     def test_nyiso_latest(self):
         self._run_test('NYISO', self.latest_kwargs)
+
+    def test_pjm_latest(self):
+        self._run_test('PJM', self.latest_kwargs)
 
     def test_miso_forecast(self):
         self._run_test('MISO', self.forecast_kwargs)

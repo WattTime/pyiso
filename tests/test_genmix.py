@@ -309,24 +309,8 @@ class TestERCOTGenMix(TestBaseGenMix):
 
 
 class TestPJMGenMix(TestBaseGenMix):
-    def test_pjm_latest(self):
-        # basic test
-        data = self._run_test('PJM', latest=True)
-
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertEqual(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
-
-        # test fuel names
-        fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['wind', 'nonwind']
-        for expfuel in expected_fuels:
-            self.assertIn(expfuel, fuels)
+    def test_failing(self):
+        self._run_notimplemented_test('PJM')
 
 
 class TestNYISOGenMix(TestBaseGenMix):
