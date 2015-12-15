@@ -8,12 +8,54 @@ from time import sleep
 from datetime import datetime, timedelta
 import pytz
 from os import environ
+import xmltodict
+
+example_properties = [{
+        u'Name': 'DataItem', 
+        u'Value': 'CB_BALANCING_VOLUMES_OF_EXCHANGED'
+    },
+    {
+        'Name': 'TimeInterval',
+        'Value': '2015-03-08 00:00:00/2015-03-09 00:00:00'
+    },
+    {
+        'Name': 'AREA|MBA',
+        'Value': '10YFR-RTE------C'
+    },
+    {
+        'Name': 'AREA|MBA',
+        'Value': '10YES-REE------0'
+    }
+]
+
+MESSAGE_BODY = """
+<soap:Envelope xmlns:msg="http://iec.ch/TC57/2011/schema/message" xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+    <soap:Header/>
+        <soap:Body>
+            <msg:RequestMessage>
+                <msg:Header>
+                    <msg:Verb>{verb}</msg:Verb>
+                    <msg:Noun>{noun}</msg:Noun>
+                    <msg:Context>{context}</msg:Context>
+                    {properties}
+                </msg:Header>
+            </msg:RequestMessage>
+        </soap:Body>
+</soap:Envelope>
+"""
+MESSAGE_PROPERTIES = """
+                    <msg:Property>
+                        <msg:Name>{Name}</msg:Name>
+                        <msg:Value>{Value}</msg:Value>
+                    </msg:Property>
+"""
 
 
 class EUClient(BaseClient):
     NAME = 'EU'
     TZ_NAME = 'UTC'
-    base_url = 'https://transparency.entsoe.eu/'
+    base_url = 'https://transparency-ws.entsoe.eu/'
+    endpoint = 'data-receiver-ws/endpoints/DataService'
     export_endpoint = 'load-domain/r2/totalLoadR2/export'
 
     CONTROL_AREAS = {
@@ -111,6 +153,15 @@ class EUClient(BaseClient):
             'ENTSOe_ID': 'CTY|GB!CTA|10YGB----------A'},
         }
 
+    def construct_payload(self, prop_list,
+                     verb='get', noun='EnergyAccountReport', context='Testing'):
+        prop_xml = ''
+        for prop in prop_list:
+            prop_xml = prop_xml + MESSAGE_PROPERTIES.format(**prop)
+        msg = MESSAGE_BODY.format(verb=verb, noun=noun, context=context,
+                                  properties=prop_xml)
+        return msg
+
     def get_load(self, control_area=None, latest=False, start_at=None, end_at=None,
                  forecast=False, **kwargs):
         self.handle_options(data='load', start_at=start_at, end_at=end_at, forecast=forecast,
@@ -128,6 +179,27 @@ class EUClient(BaseClient):
         sliced = self.slice_times(df)
         return self.serialize_faster(sliced)
 
+    def temp_example(self):
+        payload = self.construct_payload(example_properties)
+        return self.fetch_entsoe(payload)
+
+    def temp_get_load(self, control_area=None):
+        area_A, area_B = self.CONTROL_AREAS[control_area]['ENTSOe_ID'].split('!')
+        prop_list = [{
+                u'Name': 'DataItem',
+                u'Value': 'ACTUAL_TOTAL_LOAD'},
+            {
+                'Name': 'TimeInterval',
+                'Value': '2015-03-08 00:00:00/2015-03-09 00:00:00'},
+             {
+                'Name': 'AREA|CTA',
+                'Value': area_B,
+            }]
+
+        payload = self.construct_payload(prop_list)
+        response = self.fetch_entsoe(payload)
+        return self.parse_load_response(response)
+
     def handle_options(self, **kwargs):
         # regular handle options
         super(EUClient, self).handle_options(**kwargs)
@@ -144,32 +216,16 @@ class EUClient(BaseClient):
     def auth(self):
         if not getattr(self, 'session', None):
             self.session = requests.Session()
+            self.session.headers.update({'content-type': 'application/soap+xml'})
+            self.session.cert = ('dataconsumer_cert.pem', 'dataconsumer_keyclear.pem')
 
-        payload = {'j_username': environ['ENTSOe_USERNAME'],
-                   'j_password': environ['ENTSOe_PASSWORD']}
-
-        # Fake an ajax login to get the cookie
-        r = self.session.post(self.base_url + 'j_spring_security_check', params=payload,
-                              headers={'X-Ajax-call': 'true'})
-
-        msg = r.text
-        if msg == 'ok':
-            return True
-        elif msg == 'non_exists_user_or_bad_password':
-            # TODO throw error
-            return 'Wrong email or password'
-        elif msg == 'not_human':
-            return 'This account is not allowed to access web portal'
-        elif msg == 'suspended_use':
-            return 'User is suspended'
-        else:
-            return 'Unknown error:' + str(msg)
-
-    def fetch_entsoe(self, url, payload, count=0):
+    def fetch_entsoe(self, payload, count=0):
         if not getattr(self, 'session', None):
-            self.auth()
+             self.auth()
 
-        r = self.request(url, params=payload)
+        url = self.base_url + self.endpoint
+        r = self.request(url, data=payload, mode='post')
+
         # TODO error checking
         if len(r.text) == 0:
             if count > 3:  # try 3 times to get response
@@ -178,75 +234,80 @@ class EUClient(BaseClient):
             # throttled
             sleep(5)
             return self.fetch_entsoe(url, payload, count + 1)
-        if 'UNKNOWN_EXCEPTION' in r.text:
-            LOGGER.warn('UNKNOWN EXCEPTION')
-            return False
         return r.text
 
-    def construct_payload(self, date):
-        # format date
-        format_str = '%d.%m.%Y'
-        date_str = date.strftime(format_str) + ' 00:00|UTC|DAY'
-
-        # TSO ID from control area code
-        try:
-            TSO_ID = self.CONTROL_AREAS[self.options['control_area']]['ENTSOe_ID']
-        except KeyError:
-            msg = 'Control area code not found for %s. Options are %s' % (self.options['control_area'],
-                                                                          sorted(self.CONTROL_AREAS.keys()))
-            raise ValueError(msg)
-
-        payload = {
-            'name': '',
-            'defaultValue': 'false',
-            'viewType': 'TABLE',
-            'areaType': 'CTA',
-            'atch': 'false',
-            'dateTime.dateTime': date_str,
-            'biddingZone.values': TSO_ID,
-            'dateTime.timezone': 'UTC',
-            'dateTime.timezone_input': 'UTC',
-            'exportType': 'CSV',
-            'dataItem': 'ALL',
-            'timeRange': 'DEFAULT',
-        }
-        return payload
 
     def parse_load_response(self, response):
-        df = pd.read_csv(StringIO(response))
+        full_dict = xmltodict.parse(response)
+        data_dict = full_dict['env:Envelope']['env:Body']['msg:ResponseMessage']['msg:Payload']\
+                ['GL_MarketDocument:GL_MarketDocument']['TimeSeries']['Period']['Point']
+        return data_dict
 
-        # get START_TIME_UTC as tz-aware datetime
-        df['START_TIME_UTC'], df['END_TIME_UTC'] = zip(
-            *df['Time (UTC)'].apply(lambda x: x.split('-')))
-
-        # Why do these methods only work on Index and not Series?
-        df.set_index(df.START_TIME_UTC, inplace=True)
-        df.index = pd.to_datetime(df.index, utc=True, format='%d.%m.%Y %H:%M ')
-        df.index.set_names('timestamp', inplace=True)
-
-        # find column name and choose which to return and which to drop
-        (forecast_load_col, ) = [c for c in df.columns if 'Day-ahead Total Load Forecast [MW]' in c]
-        (actual_load_col, ) = [c for c in df.columns if 'Actual Total Load [MW]' in c]
-        if self.options['forecast']:
-            load_col = forecast_load_col
-            drop_load_col = actual_load_col
-        else:
-            load_col = actual_load_col
-            drop_load_col = forecast_load_col
-
-        # rename columns for list of dicts
-        rename_d = {load_col: 'load_MW'}
-        df.rename(columns=rename_d, inplace=True)
-        drop_col = ['Time (UTC)', 'END_TIME_UTC', 'START_TIME_UTC', drop_load_col]
-        df.drop(drop_col, axis=1, inplace=True)
-
-        # drop nan rows
-        df.replace('-', np.nan, inplace=True)
-        df.dropna(subset=['load_MW'], inplace=True)
-
-        # Add columns
-        df['ba_name'] = self.options['control_area']
-        df['freq'] = '1hr'
-        df['market'] = 'RTHR'  # not necessarily appropriate terminology
-
-        return df
+#     def construct_payload(self, date):
+#         # format date
+#         format_str = '%d.%m.%Y'
+#         date_str = date.strftime(format_str) + ' 00:00|UTC|DAY'
+# 
+#         # TSO ID from control area code
+#         try:
+#             TSO_ID = self.CONTROL_AREAS[self.options['control_area']]['ENTSOe_ID']
+#         except KeyError:
+#             msg = 'Control area code not found for %s. Options are %s' % (self.options['control_area'],
+#                                                                           sorted(self.CONTROL_AREAS.keys()))
+#             raise ValueError(msg)
+# 
+#         payload = {
+#             'name': '',
+#             'defaultValue': 'false',
+#             'viewType': 'TABLE',
+#             'areaType': 'CTA',
+#             'atch': 'false',
+#             'dateTime.dateTime': date_str,
+#             'biddingZone.values': TSO_ID,
+#             'dateTime.timezone': 'UTC',
+#             'dateTime.timezone_input': 'UTC',
+#             'exportType': 'CSV',
+#             'dataItem': 'ALL',
+#             'timeRange': 'DEFAULT',
+#         }
+#         return payload
+# 
+#     def parse_load_response(self, response):
+#         df = pd.read_csv(StringIO(response))
+# 
+#         # get START_TIME_UTC as tz-aware datetime
+#         df['START_TIME_UTC'], df['END_TIME_UTC'] = zip(
+#             *df['Time (UTC)'].apply(lambda x: x.split('-')))
+# 
+#         # Why do these methods only work on Index and not Series?
+#         df.set_index(df.START_TIME_UTC, inplace=True)
+#         df.index = pd.to_datetime(df.index, utc=True, format='%d.%m.%Y %H:%M ')
+#         df.index.set_names('timestamp', inplace=True)
+# 
+#         # find column name and choose which to return and which to drop
+#         (forecast_load_col, ) = [c for c in df.columns if 'Day-ahead Total Load Forecast [MW]' in c]
+#         (actual_load_col, ) = [c for c in df.columns if 'Actual Total Load [MW]' in c]
+#         if self.options['forecast']:
+#             load_col = forecast_load_col
+#             drop_load_col = actual_load_col
+#         else:
+#             load_col = actual_load_col
+#             drop_load_col = forecast_load_col
+# 
+#         # rename columns for list of dicts
+#         rename_d = {load_col: 'load_MW'}
+#         df.rename(columns=rename_d, inplace=True)
+#         drop_col = ['Time (UTC)', 'END_TIME_UTC', 'START_TIME_UTC', drop_load_col]
+#         df.drop(drop_col, axis=1, inplace=True)
+# 
+#         # drop nan rows
+#         df.replace('-', np.nan, inplace=True)
+#         df.dropna(subset=['load_MW'], inplace=True)
+# 
+#         # Add columns
+#         df['ba_name'] = self.options['control_area']
+#         df['freq'] = '1hr'
+#         df['market'] = 'RTHR'  # not necessarily appropriate terminology
+# 
+#         return df
+# 

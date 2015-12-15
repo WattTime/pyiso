@@ -1,13 +1,32 @@
 from pyiso import client_factory
 from unittest import TestCase
 from datetime import datetime
-import mock
+import mock  # manually installed
 import pytz
+from pyiso.eu import example_properties
+
 
 
 class TestEU(TestCase):
     def setUp(self):
         self.c = client_factory('EU')
+
+    def test_payload(self):
+        p = self.c.construct_payload(example_properties)
+        self.assertIn('EnergyAccountReport', p)
+        self.assertIn('TimeInterval', p)
+        self.assertIn('2015-03-08 00:00:00/2015-03-09 00:00:00', p)
+        self.assertIn('10YES-REE------0</', p)
+        self.assertEqual(len(p), 1346)
+
+
+    def test_temp_example(self):
+        r = self.c.temp_example()
+        print r
+        
+    def test_temp_get_load(self):
+        r = self.c.temp_get_load(control_area='IT')
+        print r
 
     def test_auth(self):
         self.assertTrue(self.c.auth())
