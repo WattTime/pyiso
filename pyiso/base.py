@@ -207,7 +207,7 @@ class BaseClient(object):
         xd = pd.ExcelFile(socket)
         return xd
 
-    def request(self, url, mode='get', retry_sec=5, **kwargs):
+    def request(self, url, mode='get', retry_sec=5, retries_remaining=5, **kwargs):
         """
         Get or post to a URL with the provided kwargs.
         Returns the response, or None if an error was encountered.
@@ -250,10 +250,18 @@ class BaseClient(object):
             LOGGER.debug('%s: request success for %s, %s with cache hit %s' % (self.NAME, url, kwargs, getattr(response, 'from_cache', None)))
 
         elif response.status_code == 429:
-            # retry on throttle
-            LOGGER.warn('%s: retrying in %d seconds, throttled for %s, %s' % (self.NAME, retry_sec, url, kwargs))
-            sleep(retry_sec)
-            return self.request(url, mode=mode, retry_sec=retry_sec, **kwargs)
+            if retries_remaining > 0:
+                # retry on throttle
+                LOGGER.warn('%s: retrying in %d seconds (%d retries remaining), throttled for %s, %s' % (self.NAME, retry_sec, retries_remaining, url, kwargs))
+                sleep(retry_sec)
+                retries_remaining -= 1
+                return self.request(url, mode=mode,
+                                    retry_sec=retry_sec*2, retries_remaining=retries_remaining,
+                                    **kwargs)
+            else:
+                # exhausted retries
+                LOGGER.warn('%s: exhausted retries for %s, %s' % (self.NAME, url, kwargs))
+                return None
 
         else:
             # non-throttle error

@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.17: Minor change: Limit retries in `base.request`, and increase time between retries.
 * 0.2.16: Major fix: PJM deprecated the data source that was used in previous releases. This release uses a new data source that has load and tie flows, but not wind. So PJM generation mix has been deprecated for the moment--hopefully it will return in a future release.
 * 0.2.15: Minor changes: enforce pandas 0.16.2 and change NYISO index labelling to fix NYISO regression in some environments.
 * 0.2.14: Major features: forecast load in ERCOT, MISO, NYISO, PJM; forecast genmix in MISO; forecast trade in MISO. Minor changes: fixed DST bug in BPA, refactored several to better use pandas.

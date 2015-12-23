@@ -3,7 +3,7 @@ import os.path
 from os import environ
 import logging
 
-__version__ = '0.2.16'
+__version__ = '0.2.17'
 
 
 if environ.get('DEBUG', False):
