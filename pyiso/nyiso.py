@@ -155,19 +155,17 @@ class NYISOClient(BaseClient):
 
     def parse_load_rtm(self, content):
         # parse csv to df
-        df = self.parse_to_df(content)
+        df = self.parse_to_df(content, header=0, index_col=0, parse_dates=True)
+
+        # set index
+        df.index = self.utcify_index(df.index, tz_col=df['Time Zone'])
+        df['timestamp'] = df.index
 
         # total load grouped by timestamp
         try:
-            total_loads = df.groupby('Time Stamp').aggregate(np.sum)
+            total_loads = df.groupby('timestamp').aggregate(np.sum)
         except KeyError:
-            raise ValueError('Could not parse content:\n%s' % content)
-
-        # set index
-        total_loads['timestamp'] = total_loads.index.map(pd.to_datetime)
-        total_loads.set_index('timestamp', inplace=True)
-        total_loads.index = self.utcify_index(total_loads.index)
-        total_loads.index.set_names(['timestamp'], inplace=True)
+            raise ValueError('Could not parse content:\n%s' % str(content))
 
         # pull out column
         series = total_loads['Load']

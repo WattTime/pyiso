@@ -358,17 +358,26 @@ class BaseClient(object):
         :return: DatetimeIndex in UTC.
         :rtype: DatetimeIndex
         """
+        # set up tz
+        if tz_name is None:
+            tz_name = self.TZ_NAME
+
         # use tz col if given
         if tz_col is not None:
             # it seems like we shouldn't have to iterate, but all the smart ways aren't working
-            aware_local_list = [pytz.timezone(tz_col[i]).localize(local_index[i]) for i in range(len(local_index))]
+            aware_local_list = []
+            for i in range(len(local_index)):
+                try:
+                    aware_local_ts = pytz.timezone(tz_col[i]).localize(local_index[i])
+                except pytz.UnknownTimeZoneError:
+                    # fall back to local ts
+                    aware_local_ts = pytz.timezone(tz_name).localize(local_index[i])
+                aware_local_list.append(aware_local_ts)
+
+            # indexify
             aware_local_index = pd.DatetimeIndex(aware_local_list)
 
         else:
-            # set up tz
-            if tz_name is None:
-                tz_name = self.TZ_NAME
-
             # localize
             try:
                 aware_local_index = local_index.tz_localize(tz_name)
