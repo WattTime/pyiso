@@ -2,6 +2,7 @@ from pyiso.base import BaseClient
 import numpy as np
 import pandas as pd
 from datetime import timedelta
+import pytz
 
 
 class NYISOClient(BaseClient):
@@ -10,6 +11,16 @@ class NYISOClient(BaseClient):
     base_url = 'http://mis.nyiso.com/public/csv'
 
     TZ_NAME = 'America/New_York'
+
+    fuel_names = {
+        'Other Fossil Fuels': 'fossil',  # coal or oil
+        'Other Renewables': 'renewable',  # solar, methane, refuse, wood
+        'Hydro': 'hydro',  # including pumped storage
+        'Nuclear': 'nuclear',
+        'Natural Gas': 'natgas',  # not including dual fuel
+        'Wind': 'wind',
+        'Dual Fuel': 'fossil',  # nat gas and/or other fossil
+    }
 
     def utcify(self, *args, **kwargs):
         # regular utcify
@@ -80,6 +91,22 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
+    def get_generation(self, latest=False, start_at=False, end_at=False, **kwargs):
+        # set args
+        self.handle_options(data='gen', latest=latest,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # get data
+        df = self.get_any('rtfuelmix', self.parse_genmix)
+        extras = {
+            'ba_name': self.NAME,
+            'freq': self.FREQUENCY_CHOICES.fivemin,
+            'market': self.MARKET_CHOICES.fivemin,
+        }
+
+        # serialize and return
+        return self.serialize_faster(df, extras=extras)
+
     def get_any(self, label, parser, dates_list=None):
         # set up storage
         pieces = []
@@ -90,11 +117,11 @@ class NYISOClient(BaseClient):
 
         # fetch and parse all csvs
         for date in dates_list:
-            content = self.fetch_csv(date, label)
-            try:
-                pieces.append(parser(content))
-            except AttributeError:
-                pass
+            for csv in self.fetch_csvs(date, label):
+                try:
+                    pieces.append(parser(csv))
+                except AttributeError:
+                    pass
 
         # combine and slice
         df = pd.concat(pieces)
@@ -103,16 +130,28 @@ class NYISOClient(BaseClient):
         # return
         return sliced
 
-    def fetch_csv(self, date, label):
+    def fetch_csvs(self, date, label):
         # construct url
         datestr = date.strftime('%Y%m%d')
         url = '%s/%s/%s%s.csv' % (self.base_url, label, datestr, label)
 
         # make request
-        result = self.request(url)
+        response = self.request(url)
 
-        # return content
-        return result.text
+        # if 200, return
+        if response.status_code == 200:
+            return [response.text]
+
+        # if failure, try zipped monthly data
+        datestr = date.strftime('%Y%m01')
+        url = '%s/%s/%s%s_csv.zip' % (self.base_url, label, datestr, label)
+
+        # make request and unzip
+        response_zipped = self.request(url)
+        unzipped = self.unzip(response_zipped.content)
+
+        # return
+        return unzipped
 
     def parse_load_rtm(self, content):
         # parse csv to df
@@ -181,6 +220,24 @@ class NYISOClient(BaseClient):
         cleaned = subsetted.dropna(axis=0)
         series = cleaned.apply(lambda x: -1*np.sum(x), axis=1)
         final_df = pd.DataFrame({'net_exp_MW': series})
+
+        # return
+        return final_df
+
+    def parse_genmix(self, content):
+        # parse csv to df
+        df = self.parse_to_df(content, header=0, index_col=0, parse_dates=True)
+
+        # set index
+        df.index = self.utcify_index(df.index, tz_col=df['Time Zone'])
+        df.index.name = 'timestamp'
+
+        # convert fuel names
+        df['fuel_name'] = df.apply(lambda x: self.fuel_names[x['Fuel Category']],
+                                   axis=1)
+
+        # assemble final
+        final_df = pd.DataFrame({'gen_MW': df['Gen MWh'], 'fuel_name': df['fuel_name']})
 
         # return
         return final_df

@@ -314,8 +314,38 @@ class TestPJMGenMix(TestBaseGenMix):
 
 
 class TestNYISOGenMix(TestBaseGenMix):
-    def test_failing(self):
-        self._run_notimplemented_test('NYISO')
+    def test_latest(self):
+        # basic test
+        data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NYISO', start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1))
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_farpast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NYISO', start_at=today-timedelta(days=20),
+                              end_at=today-timedelta(days=10))
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
 
 
 class TestNEVPGenMix(TestBaseGenMix):
