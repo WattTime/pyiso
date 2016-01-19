@@ -2,7 +2,6 @@ from pyiso.base import BaseClient
 import numpy as np
 import pandas as pd
 from datetime import timedelta
-import pytz
 
 
 class NYISOClient(BaseClient):
@@ -19,7 +18,7 @@ class NYISOClient(BaseClient):
         'Nuclear': 'nuclear',
         'Natural Gas': 'natgas',  # not including dual fuel
         'Wind': 'wind',
-        'Dual Fuel': 'fossil',  # nat gas and/or other fossil
+        'Dual Fuel': 'dual',  # nat gas and/or other fossil
     }
 
     def utcify(self, *args, **kwargs):
