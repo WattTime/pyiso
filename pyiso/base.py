@@ -348,7 +348,7 @@ class BaseClient(object):
 
         return df
 
-    def utcify_index(self, local_index, tz_name=None):
+    def utcify_index(self, local_index, tz_name=None, tz_col=None):
         """
         Convert a DateTimeIndex to UTC.
 
@@ -362,16 +362,28 @@ class BaseClient(object):
         if tz_name is None:
             tz_name = self.TZ_NAME
 
-        # localize
-        try:
-            aware_local_index = local_index.tz_localize(tz_name)
-        except AmbiguousTimeError as e:
-            LOGGER.debug(e)
-            aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
-        # except Exception as e:
-        #     LOGGER.debug(e)  # already aware
-        #     print e
-        #     aware_local_index = local_index
+        # use tz col if given
+        if tz_col is not None:
+            # it seems like we shouldn't have to iterate, but all the smart ways aren't working
+            aware_local_list = []
+            for i in range(len(local_index)):
+                try:
+                    aware_local_ts = pytz.timezone(tz_col[i]).localize(local_index[i])
+                except pytz.UnknownTimeZoneError:
+                    # fall back to local ts
+                    aware_local_ts = pytz.timezone(tz_name).localize(local_index[i])
+                aware_local_list.append(aware_local_ts)
+
+            # indexify
+            aware_local_index = pd.DatetimeIndex(aware_local_list)
+
+        else:
+            # localize
+            try:
+                aware_local_index = local_index.tz_localize(tz_name)
+            except AmbiguousTimeError as e:
+                LOGGER.debug(e)
+                aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
 
         # convert to utc
         aware_utc_index = aware_local_index.tz_convert('UTC')

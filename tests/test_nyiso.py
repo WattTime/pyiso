@@ -282,6 +282,30 @@ class TestNYISOBase(TestCase):
 09/10/2014 19:55,SPR/DUN-SOUTH,23320,2380.44,4350,-9999\n\
 ')
 
+        self.genmix_csv = StringIO(u'Time Stamp,Time Zone,Fuel Category,Gen MWh\n\
+01/19/2016 00:05,EST,Dual Fuel,2678.0\n\
+01/19/2016 00:05,EST,Hydro,2385.0\n\
+01/19/2016 00:05,EST,Natural Gas,1820.0\n\
+01/19/2016 00:05,EST,Nuclear,5425.0\n\
+01/19/2016 00:05,EST,Other Fossil Fuels,169.0\n\
+01/19/2016 00:05,EST,Other Renewables,248.0\n\
+01/19/2016 00:05,EST,Wind,1173.0\n\
+01/19/2016 00:10,EST,Dual Fuel,2583.0\n\
+01/19/2016 00:10,EST,Hydro,2259.0\n\
+01/19/2016 00:10,EST,Natural Gas,1772.0\n\
+01/19/2016 00:10,EST,Nuclear,5427.0\n\
+01/19/2016 00:10,EST,Other Fossil Fuels,168.0\n\
+01/19/2016 00:10,EST,Other Renewables,252.0\n\
+01/19/2016 00:10,EST,Wind,1182.0\n\
+01/19/2016 00:15,EST,Dual Fuel,2531.0\n\
+01/19/2016 00:15,EST,Hydro,2212.0\n\
+01/19/2016 00:15,EST,Natural Gas,1724.0\n\
+01/19/2016 00:15,EST,Nuclear,5424.0\n\
+01/19/2016 00:15,EST,Other Fossil Fuels,167.0\n\
+01/19/2016 00:15,EST,Other Renewables,248.0\n\
+01/19/2016 00:15,EST,Wind,1173.0\n\
+')
+
     def test_parse_load_rtm(self):
         c = client_factory('NYISO')
         data = c.parse_load_rtm(self.load_csv)
@@ -320,24 +344,54 @@ class TestNYISOBase(TestCase):
 
         self.assertEqual(df.index.name, 'timestamp')
 
+    def test_parse_genmix(self):
+        c = client_factory('NYISO')
+        df = c.parse_genmix(self.genmix_csv)
+
+        for idx, row in df.iterrows():
+            self.assertEqual(idx.date(), date(2016, 1, 19))
+
+            self.assertLess(row['gen_MW'], 5500)
+            self.assertGreater(row['gen_MW'], 100)
+            self.assertIn(row['fuel_name'], c.fuel_names.values())
+
+        # should have 3 timestamps with 7 fuels
+        self.assertEqual(len(df), 3*len(c.fuel_names))
+
+        self.assertEqual(df.index.name, 'timestamp')
+
     def test_fetch_csv_load(self):
         c = client_factory('NYISO')
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
-        content = c.fetch_csv(today, 'pal')
-        self.assertEqual(content.split('\r\n')[0], '"Time Stamp","Time Zone","Name","PTID","Load"')
+        content_list = c.fetch_csvs(today, 'pal')
+        self.assertEqual(len(content_list), 1)
+        self.assertEqual(content_list[0].split('\r\n')[0],
+                         '"Time Stamp","Time Zone","Name","PTID","Load"')
 
     def test_fetch_csv_load_forecast(self):
         c = client_factory('NYISO')
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
-        content = c.fetch_csv(today, 'isolf')
-        self.assertEqual(content.split('\n')[0],
+        content_list = c.fetch_csvs(today, 'isolf')
+        self.assertEqual(len(content_list), 1)
+        self.assertEqual(content_list[0].split('\n')[0],
                          '"Time Stamp","Capitl","Centrl","Dunwod","Genese","Hud Vl","Longil","Mhk Vl","Millwd","N.Y.C.","North","West","NYISO"')
 
     def test_fetch_csv_trade(self):
         c = client_factory('NYISO')
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
-        content = c.fetch_csv(today, 'ExternalLimitsFlows')
-        self.assertEqual(content.split('\r\n')[0], 'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)')
+        content_list = c.fetch_csvs(today, 'ExternalLimitsFlows')
+        self.assertEqual(len(content_list), 1)
+        self.assertEqual(content_list[0].split('\r\n')[0],
+                         'Timestamp,Interface Name,Point ID,Flow (MWH),Positive Limit (MWH),Negative Limit (MWH)')
+
+    def test_fetch_csv_genmix(self):
+        c = client_factory('NYISO')
+        now = pytz.utc.localize(datetime.utcnow())
+        today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
+        content_list = c.fetch_csvs(today, 'rtfuelmix')
+        self.assertEqual(len(content_list), 1)
+        self.assertEqual(content_list[0].split('\r\n')[0],
+                         'Time Stamp,Time Zone,Fuel Category,Gen MWh')
