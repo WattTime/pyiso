@@ -122,11 +122,18 @@ class NYISOClient(BaseClient):
                 except AttributeError:
                     pass
 
-        # combine and slice
+        # combine pieces
         df = pd.concat(pieces)
-        sliced = self.slice_times(df)
 
-        # return
+        # genmix may have repeated times, so dedup
+        if 'fuel_name' in df.columns:
+            # can't drop dups on index, only columns
+            df['dummy_timestamp'] = df.index
+            df.drop_duplicates(subset=['dummy_timestamp', 'fuel_name'], inplace=True, keep='last')
+            del df['dummy_timestamp']
+
+        # slice and return
+        sliced = self.slice_times(df)
         return sliced
 
     def fetch_csvs(self, date, label):
