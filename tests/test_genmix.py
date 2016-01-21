@@ -341,11 +341,11 @@ class TestNYISOGenMix(TestBaseGenMix):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NYISO', start_at=today-timedelta(days=20),
-                              end_at=today-timedelta(days=10))
+                              end_at=today-timedelta(days=18))
 
-        # test timestamps are different
+        # test timestamps are different 5-min for 2 days for 7 fuels
         timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
+        self.assertEqual(len(timestamps), 12*24*2*7)
 
 
 class TestNEVPGenMix(TestBaseGenMix):
