@@ -701,3 +701,15 @@ class TestCAISOBase(TestCase):
         as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
                                           market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})
+
+    def test_lmp_loc(self):
+        c = client_factory('CAISO')
+        loc_data = c.get_lmp_loc()
+
+        # one entry for each node
+        # expected count is 4238
+        self.assertGreater(len(loc_data), 4000)
+
+        # check keys
+        self.assertItemsEqual(loc_data[0].keys(),
+                              ['node_id', 'latitude', 'longitude', 'area'])
