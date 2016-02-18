@@ -306,8 +306,57 @@ class TestNYISOBase(TestCase):
 01/19/2016 00:15,EST,Wind,1173.0\n\
 ')
 
+        self.lmp_csv = StringIO(u'\n\
+"Time Stamp","Name","PTID","LBMP ($/MWHr)","Marginal Cost Losses ($/MWHr)","Marginal Cost Congestion ($/MWHr)"\n\
+"02/18/2016 00:15:00","CAPITL",61757,21.53,1.69,0.00\n\
+"02/18/2016 00:15:00","CENTRL",61754,20.70,0.85,0.00\n\
+"02/18/2016 00:15:00","DUNWOD",61760,21.73,1.89,0.00\n\
+"02/18/2016 00:15:00","GENESE",61753,20.46,0.62,0.00\n\
+"02/18/2016 00:15:00","H Q",61844,19.21,-0.64,0.00\n\
+"02/18/2016 00:15:00","HUD VL",61758,21.73,1.89,0.00\n\
+"02/18/2016 00:15:00","LONGIL",61762,21.97,2.12,0.00\n\
+"02/18/2016 00:15:00","MHK VL",61756,20.86,1.01,0.00\n\
+"02/18/2016 00:15:00","MILLWD",61759,21.77,1.92,0.00\n\
+"02/18/2016 00:15:00","N.Y.C.",61761,21.85,2.00,0.00\n\
+"02/18/2016 00:15:00","NORTH",61755,18.69,-1.15,0.00\n\
+"02/18/2016 00:15:00","NPX",61845,21.55,1.71,0.00\n\
+"02/18/2016 00:15:00","O H",61846,20.30,0.46,0.00\n\
+"02/18/2016 00:15:00","PJM",61847,21.13,1.29,0.00\n\
+"02/18/2016 00:15:00","WEST",61752,20.74,0.89,0.00\n\
+"02/18/2016 00:30:00","CAPITL",61757,21.42,1.68,0.00\n\
+"02/18/2016 00:30:00","CENTRL",61754,20.57,0.83,0.00\n\
+"02/18/2016 00:30:00","DUNWOD",61760,21.64,1.90,0.00\n\
+"02/18/2016 00:30:00","GENESE",61753,20.34,0.59,0.00\n\
+"02/18/2016 00:30:00","H Q",61844,19.11,-0.63,0.00\n\
+"02/18/2016 00:30:00","HUD VL",61758,21.62,1.88,0.00\n\
+"02/18/2016 00:30:00","LONGIL",61762,21.90,2.15,0.00\n\
+"02/18/2016 00:30:00","MHK VL",61756,20.73,0.99,0.00\n\
+"02/18/2016 00:30:00","MILLWD",61759,21.66,1.91,0.00\n\
+"02/18/2016 00:30:00","N.Y.C.",61761,21.72,1.97,0.00\n\
+"02/18/2016 00:30:00","NORTH",61755,18.60,-1.15,0.00\n\
+"02/18/2016 00:30:00","NPX",61845,21.46,1.72,0.00\n\
+"02/18/2016 00:30:00","O H",61846,20.18,0.43,0.00\n\
+"02/18/2016 00:30:00","PJM",61847,21.03,1.28,0.00\n\
+"02/18/2016 00:30:00","WEST",61752,20.59,0.85,0.00\n\
+"02/18/2016 00:45:00","CAPITL",61757,21.42,1.68,0.00\n\
+"02/18/2016 00:45:00","CENTRL",61754,20.57,0.83,0.00\n\
+"02/18/2016 00:45:00","DUNWOD",61760,21.62,1.88,0.00\n\
+"02/18/2016 00:45:00","GENESE",61753,20.34,0.59,0.00\n\
+"02/18/2016 00:45:00","H Q",61844,19.13,-0.61,0.00\n\
+"02/18/2016 00:45:00","HUD VL",61758,21.62,1.88,0.00\n\
+"02/18/2016 00:45:00","LONGIL",61762,21.90,2.15,0.00\n\
+"02/18/2016 00:45:00","MHK VL",61756,20.73,0.99,0.00\n\
+"02/18/2016 00:45:00","MILLWD",61759,21.66,1.91,0.00\n\
+"02/18/2016 00:45:00","N.Y.C.",61761,21.70,1.96,0.00\n\
+"02/18/2016 00:45:00","NORTH",61755,18.62,-1.12,0.00\n\
+"02/18/2016 00:45:00","NPX",61845,21.46,1.72,0.00\n\
+"02/18/2016 00:45:00","O H",61846,20.18,0.43,0.00\n\
+"02/18/2016 00:45:00","PJM",61847,21.03,1.28,0.00\n\
+"02/18/2016 00:45:00","WEST",61752,20.59,0.85,0.00')
+
     def test_parse_load_rtm(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         data = c.parse_load_rtm(self.load_csv)
         for idx, row in data.iterrows():
             self.assertEqual(idx.date(), date(2014, 9, 10))
@@ -319,6 +368,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_load_forecast(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         data = c.parse_load_forecast(self.load_forecast_csv)
         for idx, row in data.iterrows():
             self.assertGreaterEqual(idx.date(), date(2015, 11, 22))
@@ -331,6 +381,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_trade(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         df = c.parse_trade(self.trade_csv)
 
         for idx, row in df.iterrows():
@@ -346,6 +397,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_genmix(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         df = c.parse_genmix(self.genmix_csv)
 
         for idx, row in df.iterrows():
@@ -360,8 +412,24 @@ class TestNYISOBase(TestCase):
 
         self.assertEqual(df.index.name, 'timestamp')
 
+    def test_parse_lmp(self):
+        c = client_factory('NYISO')
+        c.options = {'data': 'lmp', 'node_id': 'LONGIL', 'latest': True}
+        df = c.parse_lmp(self.lmp_csv)
+
+        for idx, row in df.iterrows():
+            self.assertEqual(idx.date(), date(2016, 2, 18))
+
+            self.assertLess(row['lmp'], 1000)
+            self.assertGreater(row['lmp'], -100)
+
+            self.assertEqual(row['node_id'], 'LONGIL')
+
+        self.assertEqual(df.index.name, 'timestamp')
+
     def test_fetch_csv_load(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content_list = c.fetch_csvs(today, 'pal')
@@ -371,6 +439,7 @@ class TestNYISOBase(TestCase):
 
     def test_fetch_csv_load_forecast(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content_list = c.fetch_csvs(today, 'isolf')
@@ -380,6 +449,7 @@ class TestNYISOBase(TestCase):
 
     def test_fetch_csv_trade(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content_list = c.fetch_csvs(today, 'ExternalLimitsFlows')
@@ -389,9 +459,20 @@ class TestNYISOBase(TestCase):
 
     def test_fetch_csv_genmix(self):
         c = client_factory('NYISO')
+        c.options = {'data': 'dummy'}
         now = pytz.utc.localize(datetime.utcnow())
         today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
         content_list = c.fetch_csvs(today, 'rtfuelmix')
         self.assertEqual(len(content_list), 1)
         self.assertEqual(content_list[0].split('\r\n')[0],
                          'Time Stamp,Time Zone,Fuel Category,Gen MWh')
+
+    def test_fetch_csv_lmp(self):
+        c = client_factory('NYISO')
+        c.options = {'data': 'lmp'}
+        now = pytz.utc.localize(datetime.utcnow())
+        today = now.astimezone(pytz.timezone(c.TZ_NAME)).date()
+        content_list = c.fetch_csvs(today, 'realtime')
+        self.assertEqual(len(content_list), 1)
+        self.assertEqual(content_list[0].split('\r\n')[0],
+                         '"Time Stamp","Name","PTID","LBMP ($/MWHr)","Marginal Cost Losses ($/MWHr)","Marginal Cost Congestion ($/MWHr)"')
