@@ -129,6 +129,7 @@ class TestERCOT(TestCase):
         df = self.c._request_report('load_7day')
 
         # test for expected data
-        self.assertEqual(len(df), 8*24)
+        # subtract 1 hour for DST
+        self.assertGreaterEqual(len(df), 8*24-1)
         for key in ['SystemTotal', 'HourEnding', 'DSTFlag', 'DeliveryDate']:
             self.assertIn(key, df.columns)

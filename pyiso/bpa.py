@@ -77,12 +77,8 @@ class BPAClient(BaseClient):
         return df
 
     def date_parser(self, ts_str):
-        TZINFOS = {
-            'PDT': pytz.timezone('America/Los_Angeles'),
-            'PST': pytz.timezone('America/Los_Angeles'),
-        }
-
-        return dateutil_parse(ts_str, tzinfos=TZINFOS)
+        ts = dateutil_parse(ts_str)
+        return ts
 
     def fetcher(self):
         """Choose the correct fetcher method for this request"""

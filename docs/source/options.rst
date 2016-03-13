@@ -25,6 +25,7 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``NVEnergy.get_load``     yes         yes                                no            yes
 ``NYISO.get_generation``  yes         yes                                no            no
 ``NYISO.get_load``        yes         yes                                no            yes
+``NYISO.get_lmp``         yes         yes                                no            no
 ``NYISO.get_trade``       yes         yes                                no            no
 ``PJM.get_load``          yes         yes                                no            yes
 ``PJM.get_trade``         yes         no                                 no            no

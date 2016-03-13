@@ -365,17 +365,20 @@ class BaseClient(object):
         # use tz col if given
         if tz_col is not None:
             # it seems like we shouldn't have to iterate, but all the smart ways aren't working
-            aware_local_list = []
+            aware_utc_list = []
             for i in range(len(local_index)):
                 try:
                     aware_local_ts = pytz.timezone(tz_col[i]).localize(local_index[i])
                 except pytz.UnknownTimeZoneError:
                     # fall back to local ts
                     aware_local_ts = pytz.timezone(tz_name).localize(local_index[i])
-                aware_local_list.append(aware_local_ts)
+
+                # utcify
+                aware_utc_ts = self.utcify(aware_local_ts)
+                aware_utc_list.append(aware_utc_ts)
 
             # indexify
-            aware_local_index = pd.DatetimeIndex(aware_local_list)
+            aware_utc_index = pd.DatetimeIndex(aware_utc_list)
 
         else:
             # localize
@@ -384,9 +387,13 @@ class BaseClient(object):
             except AmbiguousTimeError as e:
                 LOGGER.debug(e)
                 aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
+            except TypeError as e:
+                # already aware
+                LOGGER.debug(e)
+                aware_local_index = local_index
 
-        # convert to utc
-        aware_utc_index = aware_local_index.tz_convert('UTC')
+            # convert to utc
+            aware_utc_index = aware_local_index.tz_convert('UTC')
 
         # return
         return aware_utc_index
