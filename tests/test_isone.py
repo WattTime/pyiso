@@ -59,7 +59,7 @@ class TestISONE(TestCase):
     def test_endpoints_load_forecast(self):
         self.c.handle_options(data='load', forecast=True)
         endpoints = self.c.request_endpoints()
-        self.assertEqual(len(endpoints), 3)
+        self.assertGreaterEqual(len(endpoints), 3)
         self.assertIn('/hourlyloadforecast/day/', endpoints[0])
 
         now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('US/Eastern'))
@@ -161,7 +161,7 @@ class TestISONE(TestCase):
         self.assertLessEqual(date, now)
         self.assertGreaterEqual(date, now - timedelta(minutes=6))
         self.assertEqual(date.minute % 5, 0)
-        self.assertGreater(data['FiveMinLmp'][0]['LmpTotal'], 0)
+        self.assertGreater(data['FiveMinLmp'][0]['LmpTotal'], -150)
 
     def test_lmp_past_json_format(self):
         data = self.c.fetch_data('/fiveminutelmp/day/20150610/location/4001.json', self.c.auth)
