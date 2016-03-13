@@ -344,8 +344,9 @@ class TestNYISOGenMix(TestBaseGenMix):
                               end_at=today-timedelta(days=18))
 
         # test timestamps are different 5-min for 2 days for 7 fuels
+        # subtract one hour's worth for DST
         timestamps = [d['timestamp'] for d in data]
-        self.assertEqual(len(timestamps), 12*24*2*7)
+        self.assertGreaterEqual(len(timestamps), 12*24*2*7-12)
 
 
 class TestNEVPGenMix(TestBaseGenMix):

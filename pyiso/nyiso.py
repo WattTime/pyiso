@@ -27,7 +27,7 @@ class NYISOClient(BaseClient):
 
         # timestamp is end of interval
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
-        if freq == self.FREQUENCY_CHOICES.fivemin:
+        if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
             ts -= timedelta(minutes=5)
 
         # return
@@ -39,7 +39,7 @@ class NYISOClient(BaseClient):
 
         # timestamp is end of interval
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
-        if freq == self.FREQUENCY_CHOICES.fivemin:
+        if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
             idx -= timedelta(minutes=5)
 
         # return
@@ -106,6 +106,35 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
+    def get_lmp(self, latest=False, start_at=False, end_at=False, node_id=None, **kwargs):
+        # set args
+        self.handle_options(data='lmp', latest=latest, node_id=node_id,
+                            start_at=start_at, end_at=end_at, **kwargs)
+
+        # get data
+        if self.options['forecast']:
+            # always include today
+            dates_list = self.dates() + [self.local_now().date()]
+
+            # get data
+            df = self.get_any('damlbmp', self.parse_lmp, dates_list=dates_list)
+            extras = {
+                'ba_name': self.NAME,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.dam,
+            }
+        else:
+            # get data
+            df = self.get_any('realtime', self.parse_lmp)
+            extras = {
+                'ba_name': self.NAME,
+                'freq': self.FREQUENCY_CHOICES.fivemin,
+                'market': self.MARKET_CHOICES.fivemin,
+            }
+
+        # serialize and return
+        return self.serialize_faster(df, extras=extras)
+
     def get_any(self, label, parser, dates_list=None):
         # set up storage
         pieces = []
@@ -139,7 +168,10 @@ class NYISOClient(BaseClient):
     def fetch_csvs(self, date, label):
         # construct url
         datestr = date.strftime('%Y%m%d')
-        url = '%s/%s/%s%s.csv' % (self.base_url, label, datestr, label)
+        if self.options['data'] == 'lmp':
+            url = '%s/%s/%s%s_zone.csv' % (self.base_url, label, datestr, label)
+        else:
+            url = '%s/%s/%s%s.csv' % (self.base_url, label, datestr, label)
 
         # make request
         response = self.request(url)
@@ -157,7 +189,10 @@ class NYISOClient(BaseClient):
         unzipped = self.unzip(response_zipped.content)
 
         # return
-        return unzipped
+        if unzipped:
+            return unzipped
+        else:
+            return []
 
     def parse_load_rtm(self, content):
         # parse csv to df
@@ -242,6 +277,31 @@ class NYISOClient(BaseClient):
 
         # assemble final
         final_df = pd.DataFrame({'gen_MW': df['Gen MWh'], 'fuel_name': df['fuel_name']})
+
+        # return
+        return final_df
+
+    def parse_lmp(self, content):
+        # parse csv to df
+        df = self.parse_to_df(content, header=0, index_col=0, parse_dates=True)
+
+        # set index
+        df.index.name = 'timestamp'
+        df.index = self.utcify_index(df.index)
+
+        # if latest, throw out 15 min predicted data
+        if self.options['latest']:
+            df = df.truncate(after=self.local_now())
+
+        # select name for node id
+        node_df = df[df['Name'] == self.options['node_id']]
+
+        # pull out column
+        final_df = pd.DataFrame({
+            'lmp': node_df['LBMP ($/MWHr)'],
+            'node_id': node_df['Name'],
+            'lmp_type': 'energy',
+        })
 
         # return
         return final_df
