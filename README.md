@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.22: Feature: LMP in NYISO, thanks @ecalifornica! Bug fixes for DST transition.
 * 0.2.21: Major feature: generation mix in NYISO. Bug fix: time zone handling in NYISO.
 * 0.2.18: Minor change: enforce pandas version 0.17 or higher.
 * 0.2.17: Minor change: Limit retries in `base.request`, and increase time between retries.
