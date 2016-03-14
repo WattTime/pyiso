@@ -1,1 +1,1 @@
-(docs/source/contributing.rst  "contributing.rst")
+[Please find our contribution guidlines here] (docs/source/contributing.rst)
