@@ -19,6 +19,7 @@ When you're ready to get started coding:
 * run the tests: ``python setup.py test``
 * add tests to the :py:mod:`tests` directory and code to the :py:mod:`pyiso` directory, following the conventions that you see in the existing code
 * send a pull request
+* sign the CLA at https://www.clahub.com/agreements/WattTime/pyiso (see below)
 
 
 For data users
