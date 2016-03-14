@@ -1,1 +1,1 @@
-docs/source/contributing.rst
+(docs/source/contributing.rst  "contributing.rst")
