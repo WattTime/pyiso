@@ -49,4 +49,5 @@ You and WattTime, Corp, a california non-profit corporation, hereby accept and a
 
     You are not expected to provide support for your Contributions, except to the extent you desire to provide support. Your may provide support for free, for a fee, or not at all. Your Contributions are provided as-is, with all faults, defects and errors, and without any warranty of any kind (either express or implied) including, without limitation, any implied warranty of merchantability and fitness for a particular purpose and any warranty of non-infringement.
 
-    To get started, <a href="https://www.clahub.com/agreements/WattTime/pyiso">sign the Contributor License Agreement</a>.
+    To get started, sign the Contributor License Agreement at https://www.clahub.com/agreements/WattTime/pyiso.
+    
