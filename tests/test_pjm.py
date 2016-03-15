@@ -123,3 +123,10 @@ class TestPJM(TestCase):
         ts, val = self.c.fetch_edata_point('badtype', 'badkey', 'badheader')
         self.assertIsNone(ts)
         self.assertIsNone(val)
+
+    def test_get_lmp(self):
+        start_at=datetime(2015, 1, 1, tzinfo=pytz.utc)
+        end_at=datetime(2015, 1, 2, tzinfo=pytz.utc)
+        r = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371)
+        print r
+
