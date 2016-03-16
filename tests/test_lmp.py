@@ -115,8 +115,8 @@ class TestCAISOLMP(TestBaseLMP):
         # basic test
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              start_at=now+timedelta(hours=20),
-                              end_at=now+timedelta(days=2),
+                              start_at=now,
+                              end_at=now+timedelta(days=1),
                               market=self.MARKET_CHOICES.dam)
 
         # test timestamps are not equal
