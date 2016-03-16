@@ -203,9 +203,11 @@ class CAISOClient(BaseClient):
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
         if df.empty:
             return []
-        print df
 
         return_list = []
+
+        # revert MARKET_RUN_ID to standardized markets
+        invert_oasis_markets = {v:k for k, v in self.oasis_markets.items()}
         for i, row in df.iterrows():
             dp = {
                 'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
@@ -213,7 +215,7 @@ class CAISOClient(BaseClient):
                 'node_id': row['NODE'],
                 'ba_name': 'CAISO',
                 'lmp_type': row['LMP_TYPE'],
-                'market': row['MARKET_RUN_ID'],
+                'market': invert_oasis_markets[row['MARKET_RUN_ID']],
                 'freq': self.options['freq'],
             }
 
@@ -244,7 +246,6 @@ class CAISOClient(BaseClient):
                                                node=node_id)
 
         # Fetch data
-        print payload
         data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
@@ -284,8 +285,8 @@ class CAISOClient(BaseClient):
                 df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
-        # RTPD returns column name PRC, some others return MW
-        df.rename(columns={'MW': 'lmp', 'PRC': 'lmp'}, inplace=True)
+        # RTPD returns column name PRC, some others return MW/LMP_PRC
+        df.rename(columns={'MW': 'lmp', 'PRC': 'lmp', 'LMP_PRC': 'lmp'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':

@@ -69,7 +69,7 @@ class TestCAISOLMP(TestBaseLMP):
     def test_latest(self):
         # basic test
         data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              latest=True, market=self.MARKET_CHOICES.hourly)
+                              latest=True)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -92,7 +92,7 @@ class TestCAISOLMP(TestBaseLMP):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
         self.assertEqual(list(set([d['market'] for d in data])),
-                         [CAISOClient.oasis_markets[market]])
+                         [market])
         return data
 
     def test_date_range_rtm(self):
