@@ -110,6 +110,7 @@ class TestPJM(TestCase):
         self.assertEqual(df.shape, (3, 1))
 
         # times
+        print df.index[1]
         # first is 12.11.2015 17:00 EST
         self.assertEqual(df.index[0], pytz.utc.localize(datetime(2015, 12, 11, 22, 00)))
         # last is 12.11.2015 19:00 EST
@@ -125,8 +126,9 @@ class TestPJM(TestCase):
         self.assertIsNone(val)
 
     def test_get_lmp(self):
-        start_at=datetime(2015, 1, 1, tzinfo=pytz.utc)
-        end_at=datetime(2015, 1, 2, tzinfo=pytz.utc)
-        r = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371)
-        print r
+        start_at = datetime(2015, 1, 1, tzinfo=pytz.utc)
+        end_at = datetime(2015, 1, 2, tzinfo=pytz.utc)
+        r = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371,
+                           market='RT5M')
+        import pytest; pytest.set_trace()
 

@@ -9,7 +9,7 @@ class PJMClient(BaseClient):
     NAME = 'PJM'
     TZ_NAME = 'America/New_York'
     base_url = 'https://datasnapshot.pjm.com/content/'
-    base_dataminer_url = 'https://dataminer.pjm.com/dataminer/rest/public/api/markets'
+    base_dataminer_url = 'https://dataminer.pjm.com/dataminer/rest/public/api'
 
     def time_as_of(self, content):
         """
@@ -47,7 +47,10 @@ class PJMClient(BaseClient):
         # parse html to df
         dfs = pd.read_html(response.content, header=0, index_col=0)
         df = dfs[0]
-        val = df.loc[key][header]
+        if key and header:
+            val = df.loc[key][header]
+        else:
+            val = df
 
         # return
         return ts, val
@@ -128,20 +131,33 @@ class PJMClient(BaseClient):
         else:
             return []
 
+    def parse_datasnapshot_df(self, ts, df):
+        df['timestamp'] = ts
+
+        rename_d = {'LMP': 'lmp',}
+        df.rename(columns=rename_d, inplace=True)
+
+        df['node_id'] = df.index
+        df['freq'] = self.options['freq']
+        df['market'] = self.options['market']
+        df['ba_name'] = 'PJM'
+        df['lmp_type'] = 'TotalLMP'
+        return df
 
     def parse_dataminer_df(self, json):
         df = pd.DataFrame(json)
+
         # drop CongLMP and LossLMP
         df = df[df.priceType == 'TotalLMP']
 
         # turn nested prices into DataFrame
         df['lmp'] = df['prices'].apply(lambda x: pd.DataFrame.from_dict(x))
 
-
         # reindex and drop extra columns
         df = df.reset_index()
         df.drop(['index', 'prices'], axis=1)
 
+        # list of DataFrames to concatenate
         dfs = []
         # group by day
         grouped = df.groupby('publishDate')
@@ -153,11 +169,23 @@ class PJMClient(BaseClient):
             for col in ['pnodeId', 'priceType', 'publishDate', 'versionNum']:
                 lmps[col] = gr[col].iloc[0]
 
-            # append for concatenation
             dfs.append(lmps)
 
         retdf = pd.concat(dfs)
-        retdf.index = pd.to_datetime(retdf.index, utc=True)
+
+        # Convert datetime string to datetime object with timezone
+        retdf['timestamp'] = pd.to_datetime(retdf.index, utc=True)
+
+        # rename, drop and add standard columns
+        rename_d = {'price':'lmp',
+                    'pnodeId': 'node_id',
+                    'priceType': 'lmp_type',
+                   }
+        retdf.rename(columns=rename_d, inplace=True)
+        retdf.drop(['publishDate', 'versionNum'], axis=1, inplace=True)
+        retdf['freq'] = self.options['freq']
+        retdf['market'] = self.options['market']
+        retdf['ba_name'] = 'PJM'
 
         return retdf
 
@@ -169,17 +197,44 @@ class PJMClient(BaseClient):
 
         return df
 
+    def handle_options(self, **kwargs):
+        super(PJMClient, self).handle_options(**kwargs)
 
+        if 'market' not in self.options:
+            self.options['market'] = self.MARKET_CHOICES.dam
 
+        if 'freq' not in self.options:
+            self.options['freq'] = self.FREQUENCY_CHOICES.hourly
 
-    def get_lmp(self, start_at, end_at, node_id, **kwargs):
+        if self.options['market'] in (self.MARKET_CHOICES.dam, self.MARKET_CHOICES.hourly):
+            # set correct endpoint for lmp data
+            endpoints = {
+                self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
+                self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily',}
+            self.options['endpoint'] = endpoints[self.options['market']]
+            self.options['method'] = 'dataminer'
+
+        # special handling for five minute lmps
+        elif self.options['market'] == self.MARKET_CHOICES.fivemin:
+            self.options['method'] = 'datasnapshot'
+
+            # no historical data for 5min lmp
+            self.options['latest'] = True
+
+    def get_lmp(self, node_id=None, **kwargs):
         self.handle_options(data='lmp', **kwargs)
-        format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
 
-        params = {'startDate': start_at.strftime(format_str),
-                  'endDate': end_at.strftime(format_str),
+        if self.options['method'] == 'datasnapshot':
+            (ts, df) = self.fetch_edata_point('ZonalAggregateLmp', None, None)
+            df = self.parse_datasnapshot_df(ts, df)
+        else:
+            # if getting from dataminer method, setup parameters
+            format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
+            params = {'startDate': self.options['start_at'].strftime(format_str),
+                  'endDate': self.options['end_at'].strftime(format_str),
                   'pnodeList': node_id}
-        r = self.fetch_dataminer_df('/realtime/lmp/daily', params=params)
-        return r
+            df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
+
+        return df.to_dict(orient='records')
 
 

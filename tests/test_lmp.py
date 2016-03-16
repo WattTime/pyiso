@@ -173,3 +173,58 @@ class TestNYISOLMP(TestBaseLMP):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+
+class TestPJMLMP(TestBaseLMP):
+    def test_latest(self): # skip
+        # basic test
+        data = self._run_test('PJM', node_id=None,
+                              latest=True, market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def forecast(self):  # skip
+        # basic test
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('PJM', node_id=33092371,
+                              start_at=now, end_at=now+timedelta(days=1))
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range_dayahead_hourly(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('PJM', node_id=33092371,
+                              start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_realtime_hourly(self):
+         # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('PJM', node_id=33092371,
+                              start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1),
+                              market=self.MARKET_CHOICES.hourly)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
