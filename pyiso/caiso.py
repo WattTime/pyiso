@@ -45,14 +45,17 @@ class CAISOClient(BaseClient):
         BaseClient.MARKET_CHOICES.hourly: 'HASP',
         BaseClient.MARKET_CHOICES.fivemin: 'RTM',  # There are actually three codes used: RTPD (Real-time Pre-dispatch), RTD (real-time dispatch), and RTM (Real-Time Market). I can't figure out what the difference is.
         BaseClient.MARKET_CHOICES.dam: 'DAM',
+        BaseClient.MARKET_CHOICES.fifteenmin: 'RTPD'
     }
     LMP_MARKETS = {
         'RTM': 'PRC_INTVL_LMP',
         'DAM': 'PRC_LMP',
         'HASP': 'PRC_HASP_LMP',
+        'RTPD': 'PRC_RTPD_LMP',
         BaseClient.MARKET_CHOICES.fivemin: 'PRC_INTVL_LMP',
         BaseClient.MARKET_CHOICES.dam: 'PRC_LMP',
         BaseClient.MARKET_CHOICES.hourly: 'PRC_HASP_LMP',
+        BaseClient.MARKET_CHOICES.fifteenmin: 'PRC_RTPD_LMP',
     }
     AS_MARKETS = {
         'RTM': 'PRC_INTVL_AS',
@@ -200,16 +203,17 @@ class CAISOClient(BaseClient):
         df = self.get_lmp_as_dataframe(node_id, **kwargs)
         if df.empty:
             return []
+        print df
 
         return_list = []
         for i, row in df.iterrows():
             dp = {
                 'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
-                'lmp': row['LMP_PRC'],
+                'lmp': row['lmp'],
                 'node_id': row['NODE'],
                 'ba_name': 'CAISO',
                 'lmp_type': row['LMP_TYPE'],
-                'market': self.options['market'],
+                'market': row['MARKET_RUN_ID'],
                 'freq': self.options['freq'],
             }
 
@@ -240,6 +244,7 @@ class CAISOClient(BaseClient):
                                                node=node_id)
 
         # Fetch data
+        print payload
         data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
@@ -279,8 +284,8 @@ class CAISOClient(BaseClient):
                 df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
-
-        df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
+        # RTPD returns column name PRC, some others return MW
+        df.rename(columns={'MW': 'lmp', 'PRC': 'lmp'}, inplace=True)
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':

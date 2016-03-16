@@ -1,5 +1,6 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
+from pyiso.caiso import CAISOClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
@@ -68,7 +69,7 @@ class TestCAISOLMP(TestBaseLMP):
     def test_latest(self):
         # basic test
         data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              latest=True, market=self.MARKET_CHOICES.fivemin)
+                              latest=True, market=self.MARKET_CHOICES.hourly)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -79,16 +80,36 @@ class TestCAISOLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_date_range(self):
+    def date_range(self, market):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
                               start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(days=1),
+                              market=market)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+        self.assertEqual(list(set([d['market'] for d in data])),
+                         [CAISOClient.oasis_markets[market]])
+        return data
+
+    def test_date_range_rtm(self):
+        data = self.date_range(self.MARKET_CHOICES.fivemin)
+        self.assertEqual(len(data), 12*24)
+
+    def test_date_range_dam(self):
+        data = self.date_range(self.MARKET_CHOICES.dam)
+        self.assertEqual(len(data), 24)
+
+    def test_date_range_hourly(self):
+        data = self.date_range(self.MARKET_CHOICES.hourly)
+        self.assertEqual(len(data), 96)
+
+    def test_date_range_rtpd(self):
+        data = self.date_range(self.MARKET_CHOICES.fifteenmin)
+        self.assertEqual(len(data), 24*4)
 
     def test_forecast(self):
         # basic test

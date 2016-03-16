@@ -603,6 +603,20 @@ class TestCAISOBase(TestCase):
         self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
 
+    def test_get_lmp_dataframe_fifteen(self):
+        c = client_factory('CAISO')
+        ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
+        start = ts - timedelta(hours=2)
+        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
+        self.assertEqual(len(lmps), 8)
+
+        self.assertGreaterEqual(lmps['lmp'].max(), 0)
+        self.assertLess(lmps['lmp'].max(), 1500)
+        self.assertGreaterEqual(lmps['lmp'].min(), -300)
+
+        self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
+        self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
+
     def test_get_lmp_dataframe_badnode(self):
         c = client_factory('CAISO')
         df = c.get_lmp_as_dataframe('badnode')
