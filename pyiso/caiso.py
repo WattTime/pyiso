@@ -400,6 +400,8 @@ class CAISOClient(BaseClient):
         except KeyError:
             market_run_id = self.oasis_markets[self.options['market']]
 
+        self.options.update(market_run_id=market_run_id)
+
         # construct payload
         payload = {
             'queryname': queryname,
