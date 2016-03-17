@@ -179,7 +179,7 @@ class TestPJMLMP(TestBaseLMP):
     def test_latest(self): # skip
         # basic test
         data = self._run_test('PJM', node_id=None,
-                              latest=True, market=self.MARKET_CHOICES.fivemin)
+                              market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -187,8 +187,8 @@ class TestPJMLMP(TestBaseLMP):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def forecast(self):  # skip
         # basic test
@@ -210,7 +210,7 @@ class TestPJMLMP(TestBaseLMP):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('PJM', node_id=33092371,
                               start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(hours=40))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

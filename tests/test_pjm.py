@@ -2,6 +2,7 @@ from pyiso import client_factory
 from unittest import TestCase
 import pandas as pd
 from datetime import datetime, timedelta
+import time
 import pytz
 
 
@@ -105,16 +106,24 @@ class TestPJM(TestCase):
 
     def test_parse_forecast_load(self):
         dfs = pd.read_html(self.edata_forecast_load, header=0, index_col=0, parse_dates=True)
-        df = self.c.utcify_index(dfs[0])
+        # pandas date parser recognizes the timezone (EST), but returns a naive datetime
+        # in UTC, why?
+        df = self.c.utcify_index(dfs[0], tz_name='utc')
         self.assertEqual(df.columns, 'MW')
         self.assertEqual(df.shape, (3, 1))
 
         # times
-        print df.index[1]
         # first is 12.11.2015 17:00 EST
         self.assertEqual(df.index[0], pytz.utc.localize(datetime(2015, 12, 11, 22, 00)))
         # last is 12.11.2015 19:00 EST
         self.assertEqual(df.index[-1], pytz.utc.localize(datetime(2015, 12, 12, 0, 00)))
+
+    def test_fetch_edata_series_timezone(self):
+        data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
+
+        # pandas.datetime.value is nanoseconds since epoch
+        # check that latest forecast is within 1 hour, 1 minute of now
+        self.assertLessEqual(abs((data.index[0].value / 10**9) - time.time()), 60*60+60)
 
     def test_missing_time_is_none(self):
         ts = self.c.time_as_of('')
@@ -128,6 +137,12 @@ class TestPJM(TestCase):
     def test_get_lmp(self):
         start_at = datetime(2015, 1, 1, tzinfo=pytz.utc)
         end_at = datetime(2015, 1, 2, tzinfo=pytz.utc)
-        r = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371,
-                           market='RT5M')
+
+        # node 33092371 is COMED
+        data = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371)
+        timestamps = [d['timestamp'] for d in data]
+        import pytest; pytest.set_trace()
+        self.assertLessEqual(min(timestamps), start_at)
+        self.assertGreaterEqual(max(timestamps), end_at)
+
 

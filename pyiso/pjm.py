@@ -64,7 +64,7 @@ class PJMClient(BaseClient):
 
         # parse html to df
         dfs = pd.read_html( response.content, header=0, index_col=0, parse_dates=True)
-        df = self.utcify_index(dfs[0])
+        df = self.utcify_index(dfs[0], tz_name='utc')
 
         # return df
         return df
@@ -136,6 +136,8 @@ class PJMClient(BaseClient):
 
         rename_d = {'LMP': 'lmp',}
         df.rename(columns=rename_d, inplace=True)
+        # convert $12.44 to float
+        df['lmp'] = df['lmp'].apply(lambda x: float(x.replace('$', '')))
 
         df['node_id'] = df.index
         df['freq'] = self.options['freq']
@@ -191,8 +193,7 @@ class PJMClient(BaseClient):
 
     def fetch_dataminer_df(self, endpoint, params):
         url = self.base_dataminer_url + endpoint
-
-        response = self.request(url, params=params)
+        response = self.request(url, mode='post', json=params)
         df = self.parse_dataminer_df(response.json())
 
         return df
@@ -217,9 +218,10 @@ class PJMClient(BaseClient):
         # special handling for five minute lmps
         elif self.options['market'] == self.MARKET_CHOICES.fivemin:
             self.options['method'] = 'datasnapshot'
-
+            self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
             # no historical data for 5min lmp
             self.options['latest'] = True
+
 
     def get_lmp(self, node_id=None, **kwargs):
         self.handle_options(data='lmp', **kwargs)
@@ -232,8 +234,10 @@ class PJMClient(BaseClient):
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
             params = {'startDate': self.options['start_at'].strftime(format_str),
                   'endDate': self.options['end_at'].strftime(format_str),
-                  'pnodeList': node_id}
+                  'pnodeList': [node_id]}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
+
+
 
         return df.to_dict(orient='records')
 
