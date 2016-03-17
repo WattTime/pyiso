@@ -130,5 +130,4 @@ class TestPJM(TestCase):
         end_at = datetime(2015, 1, 2, tzinfo=pytz.utc)
         r = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371,
                            market='RT5M')
-        import pytest; pytest.set_trace()
 
