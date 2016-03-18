@@ -134,15 +134,26 @@ class TestPJM(TestCase):
         self.assertIsNone(ts)
         self.assertIsNone(val)
 
-    def test_get_lmp(self):
-        start_at = datetime(2015, 1, 1, tzinfo=pytz.utc)
-        end_at = datetime(2015, 1, 2, tzinfo=pytz.utc)
+    def test_get_lmp_datasnapshot(self):
+        start_at = pytz.timezone('US/Eastern').localize(datetime(2015, 1, 1)
+                                                       ).astimezone(pytz.utc)
+        end_at = start_at + timedelta(days=1)
 
         # node 33092371 is COMED
-        data = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id=33092371)
+        data = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id='COMED')
         timestamps = [d['timestamp'] for d in data]
-        import pytest; pytest.set_trace()
+
         self.assertLessEqual(min(timestamps), start_at)
         self.assertGreaterEqual(max(timestamps), end_at)
+
+    def test_get_lmp_oasis(self):
+        now = datetime.now(pytz.utc)
+        data = self.c.get_lmp(node_id=33092371, market='RT5M')
+
+        timestamps = [d['timestamp'] for d in data]
+        # no historical data
+        self.assertEqual(len(set(timestamps)), 1)
+        self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*6)
+
 
 

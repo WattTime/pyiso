@@ -176,8 +176,21 @@ class TestNYISOLMP(TestBaseLMP):
 
 
 class TestPJMLMP(TestBaseLMP):
-    def test_latest(self): # skip
+    def test_latest(self):
         # basic test
+        data = self._run_test('PJM', node_id='COMED',
+                              market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_latest_oasis(self):
         data = self._run_test('PJM', node_id=None,
                               market=self.MARKET_CHOICES.fivemin)
 
@@ -189,6 +202,7 @@ class TestPJMLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
 
     def forecast(self):  # skip
         # basic test

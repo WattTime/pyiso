@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
+from dateutil.parser import parse
+import pytz
 
 
 class PJMClient(BaseClient):
@@ -10,6 +12,21 @@ class PJMClient(BaseClient):
     TZ_NAME = 'America/New_York'
     base_url = 'https://datasnapshot.pjm.com/content/'
     base_dataminer_url = 'https://dataminer.pjm.com/dataminer/rest/public/api'
+    oasis_url = 'http://oasis.pjm.com/system.htm'
+
+
+    zonal_aggregate_nodes = {
+        'AECO': 51291,
+        'AEP': 8445784,
+        'APS': 8394954,
+        'ATSI': 116013753,
+        'BGE': 51292,
+        'COMED': 33092371,
+        'DAY': 34508503,
+        'DEOK': 124076095,
+        'DOM': 34964545,
+        'DPL': 51293,}
+
 
     def time_as_of(self, content):
         """
@@ -89,7 +106,6 @@ class PJMClient(BaseClient):
                 'ba_name': self.NAME,
             }
             data = self.serialize_faster(sliced, extras=extras)
-
             # return
             return data
 
@@ -213,31 +229,63 @@ class PJMClient(BaseClient):
                 self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
                 self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily',}
             self.options['endpoint'] = endpoints[self.options['market']]
-            self.options['method'] = 'dataminer'
 
         # special handling for five minute lmps
         elif self.options['market'] == self.MARKET_CHOICES.fivemin:
-            self.options['method'] = 'datasnapshot'
             self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
             # no historical data for 5min lmp
             self.options['latest'] = True
+
+    def fetch_oasis_data(self):
+        response = self.request(self.oasis_url)
+        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=False)
+        df = dfs[1]
+
+        df['node_id'] = df.index
+        df.rename(columns={'5 Minute Weighted Avg. LMP': 'lmp'}, inplace=True)
+        # drop 'Hourly Integrated LMP for Hour Ending XX' and 'Type' columns
+        df.drop([df.columns[2], 'Type'], axis=1, inplace=True)
+
+        # find timestamp
+        soup = BeautifulSoup(response.content)
+        # the datetime is the only bold text on the page, this could break easily
+        ts_elt = soup.find('b')
+
+        # do not pass tzinfos argument to dateutil.parser.parse, it fails arithmetic
+        ts = parse(ts_elt.string, ignoretz=True)
+        ts = pytz.timezone('US/Eastern').localize(ts)
+        ts = ts.astimezone(pytz.utc)
+        df['timestamp'] = ts
+
+        df['freq'] = self.options['freq']
+        df['market'] = self.options['market']
+        df['ba_name'] = 'PJM'
+        df['lmp_type'] = 'TotalLMP'
+        return df
 
 
     def get_lmp(self, node_id=None, **kwargs):
         self.handle_options(data='lmp', **kwargs)
 
-        if self.options['method'] == 'datasnapshot':
-            (ts, df) = self.fetch_edata_point('ZonalAggregateLmp', None, None)
-            df = self.parse_datasnapshot_df(ts, df)
+        if self.options['market'] == self.MARKET_CHOICES.fivemin:
+            if node_id in self.zonal_aggregate_nodes.keys():
+                # get high precision LMP
+                (ts, df) = self.fetch_edata_point('ZonalAggregateLmp', None, None)
+                df = self.parse_datasnapshot_df(ts, df)
+            else:
+                df = self.fetch_oasis_data()
+
         else:
+            # translate names to id numbers
+            if node_id in self.zonal_aggregate_nodes.keys():
+                node_id = self.zonal_aggregate_nodes[node_id]
+
             # if getting from dataminer method, setup parameters
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
             params = {'startDate': self.options['start_at'].strftime(format_str),
                   'endDate': self.options['end_at'].strftime(format_str),
                   'pnodeList': [node_id]}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
-
-
 
         return df.to_dict(orient='records')
 
