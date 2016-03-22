@@ -8,6 +8,7 @@ except ImportError:
 from io import StringIO
 from datetime import datetime
 import pytz
+from dateutil.parser import parse
 
 
 class MISOClient(BaseClient):
@@ -177,3 +178,66 @@ class MISOClient(BaseClient):
 
         else:
             raise ValueError('Can only parse MISO forecast gen, load, or trade data, not %s' % self.options['data'])
+
+
+    def get_realtime_lmp(self, node_id, **kwargs):
+        # get csv with latest 5 minute data
+        url = self.base_url + '/ria/Consolidated.aspx?format=csv'
+        response = self.request(url)
+
+        # parse data into DataFrame
+        data = StringIO(response.text)
+        df = pd.read_csv(data, skiprows=[1,3], header=None)
+
+        # parse timestamp from column name, add timezone
+        ts = df.iloc[0,13]
+        ts = ts.replace('RefId=', '')
+        ts = parse(ts, ignoretz=True)
+        ts = self.utcify(ts)
+
+        #MEC = Marginal Energy Component (unconstrained LMP)
+        #MCC = Marginal Congestion Component (GSF X Marginal Value)
+        # drop MEC and MCC prices
+        drop_col = [2,3,5,6,8,9,11,12,13]
+
+        # drop Ex/Post Ante prices
+        import pytest; pytest.set_trace()
+
+        df.drop(drop_col, axis=1, inplace=True)
+
+        # drop headers
+        df.drop([0,1], axis=0, inplace=True)
+
+        # add columns
+        df.rename(columns={0: 'node_id', 1: 'lmp'}, inplace=True)
+        df['timestamp'] = ts
+        df['ba_name'] = 'MISO'
+        df['lmp_type'] = 'TotalLMP'
+        df['freq'] = self.FREQUENCY_CHOICES.fivemin
+        df['market'] = self.MARKET_CHOICES.fivemin
+
+        # parse lmp as int
+        df['lmp'] = df['lmp'].astype(float)
+
+        return df
+
+    def get_historical_lmp(self):
+         url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
+
+    def get_lmp(self, node_id, latest=True, **kwargs):
+        self.handle_options(latest=latest, **kwargs)
+
+        if self.options['latest']:
+            df = self.get_realtime_lmp(node_id, **kwargs)
+
+        else:
+            #TODO waiting on MISO market portal access
+            pass
+
+        return df.to_dict(orient='records')
+
+
+
+
+
+

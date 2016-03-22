@@ -16,3 +16,7 @@ class TestMISO(TestCase):
         self.assertEqual(ts.hour, 1+5)
         self.assertEqual(ts.minute, 45)
         self.assertEqual(ts.tzinfo, pytz.utc)
+
+    def test_get_lmp(self):
+        self.c.get_lmp(None)
+
