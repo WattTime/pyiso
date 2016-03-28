@@ -47,9 +47,9 @@ class TestBaseLMP(TestCase):
             if c.options['forecast']:
                 self.assertGreaterEqual(dp['timestamp'], now)
             elif c.options['latest']:
-                # within 5 min
+                # within 8 min
                 delta = now - dp['timestamp']
-                self.assertLess(abs(delta.total_seconds()), 5.5*60)
+                self.assertLess(abs(delta.total_seconds()), 8*60)
             else:
                 self.assertLess(dp['timestamp'], now)
 
@@ -241,4 +241,37 @@ class TestPJMLMP(TestBaseLMP):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+    def test_multiple_lmp_realtime(self):
+        node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
+                     'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
+                     'PEPCO', 'PPL', 'PSEG', 'RECO']
+        data = self._run_test('PJM', node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
+
+    def test_multiple_lmp_realtime_mixed(self):
+        node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
+                     'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
+                     'PEPCO', 'PPL', 'PSEG', 'RECO', '33092371']
+        data = self._run_test('PJM', node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
+
+    def test_multiple_lmp_realtime_oasis(self):
+        node_list = ['MERIDIAN EWHITLEY', 'LANSDALE']
+        data = self._run_test('PJM', node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
+
+
 

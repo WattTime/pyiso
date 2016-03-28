@@ -267,8 +267,12 @@ class PJMClient(BaseClient):
     def get_lmp(self, node_id=None, **kwargs):
         self.handle_options(data='lmp', **kwargs)
 
+        # standardize node_id
+        if not isinstance(node_id, list):
+            node_id = [node_id]
+
         if self.options['market'] == self.MARKET_CHOICES.fivemin:
-            if node_id in self.zonal_aggregate_nodes.keys():
+            if set(node_id).issubset(self.zonal_aggregate_nodes.keys()):
                 # get high precision LMP
                 (ts, df) = self.fetch_edata_point('ZonalAggregateLmp', None, None)
                 df = self.parse_datasnapshot_df(ts, df)
@@ -277,14 +281,14 @@ class PJMClient(BaseClient):
 
         else:
             # translate names to id numbers
-            if node_id in self.zonal_aggregate_nodes.keys():
+            if set(node_id).issubset(self.zonal_aggregate_nodes.keys()):
                 node_id = self.zonal_aggregate_nodes[node_id]
 
             # if getting from dataminer method, setup parameters
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
             params = {'startDate': self.options['start_at'].strftime(format_str),
                   'endDate': self.options['end_at'].strftime(format_str),
-                  'pnodeList': [node_id]}
+                  'pnodeList': node_id}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
 
         return df.to_dict(orient='records')
