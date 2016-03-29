@@ -126,6 +126,24 @@ class TestCAISOLMP(TestBaseLMP):
     def test_bad_node(self):
         self._run_test('CAISO', node_id='badnode', expect_data=False, latest=True)
 
+    def test_multiple_latest(self):
+        node_list = ['SLAP_PGP2-APND', 'SLAP_PGEB-APND']
+        data = self._run_test('CAISO', node_id=node_list,
+                              latest=True, market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        nodes = [d['node_id'] for d in data]
+        self.assertEqual(nodes, node_list)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+
 
 class TestISONELMP(TestBaseLMP):
     def test_latest(self):

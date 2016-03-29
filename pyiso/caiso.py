@@ -200,27 +200,56 @@ class CAISOClient(BaseClient):
         Values holds $/MW float
         for final LMP price (i.e., LMP_TYPE Energy)
         """
-        df = self.get_lmp_as_dataframe(node_id, **kwargs)
-        if df.empty:
-            return []
+        if not isinstance(node_id, list):
+            node_id = [node_id]
 
-        return_list = []
+        if len(node_id) > 1:
+            # CAISO will not accept more than 10 node_ids
+            # to do, if less than 10 node_ids, only get requested node ids
+            node_list = node_id
+            node_id = 'ALL'
+
+        df = self.get_lmp_as_dataframe(node_id, **kwargs)
+        df = self._standardize_lmp_dataframe(df)
+
+        # drop non-requested nodes
+        if node_id == 'ALL':
+            df = df[df['node_id'].isin(node_list)]
+
+        return df.to_dict(orient='records')
+
+    def _standardize_lmp_dataframe(self, df):
+        if df.empty:
+            return df
+
+        # RTPD returns column name PRC, some others return MW/LMP_PRC
+        rename_dict = {'MW': 'lmp', 'PRC': 'lmp', 'LMP_PRC': 'lmp', 'NODE': 'node_id',
+                       'LMP_TYPE': 'lmp_type', 'MARKET_RUN_ID': 'market'}
+        df.rename(columns=rename_dict, inplace=True)
+
+        # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
+        if df.index.name != 'INTERVALSTARTTIME_GMT':
+            df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
+            df.index.name = 'INTERVALSTARTTIME_GMT'
+        df.index = pandas.to_datetime(df.index)
+
+        # utcify
+        df.index = self.utcify_index(df.index, tz_name='UTC')
 
         # revert MARKET_RUN_ID to standardized markets
-        invert_oasis_markets = {v:k for k, v in self.oasis_markets.items()}
-        for i, row in df.iterrows():
-            dp = {
-                'timestamp': i.to_pydatetime(),  # INTERVALSTARTTIME_GMT is the index
-                'lmp': row['lmp'],
-                'node_id': row['NODE'],
-                'ba_name': 'CAISO',
-                'lmp_type': row['LMP_TYPE'],
-                'market': invert_oasis_markets[row['MARKET_RUN_ID']],
-                'freq': self.options['freq'],
-            }
+        invert_oasis_markets = {v: k for k, v in self.oasis_markets.items() if k != v}
+        df.replace({'market': invert_oasis_markets}, inplace=True)
 
-            return_list.append(dp)
-        return return_list
+        # add expected columns
+        df['timestamp'] = df.index
+        df['ba_name'] = 'CAISO'
+        df['freq'] = self.options['freq']
+
+        # drop unwanted columns
+        df = df[['market', 'freq', 'lmp', 'lmp_type', 'node_id', 'ba_name', 'timestamp']]
+
+        return df
+
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
                              lmp_only=True, **kwargs):
@@ -249,7 +278,6 @@ class CAISOClient(BaseClient):
         data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
-
         if lmp_only is True:
             # Turn into pandas Dataframe
             if len(data) == 0:
@@ -285,17 +313,6 @@ class CAISOClient(BaseClient):
                 df['LMP_TYPE'][0]
             except KeyError:  # no good data
                 return pandas.DataFrame
-        # RTPD returns column name PRC, some others return MW/LMP_PRC
-        df.rename(columns={'MW': 'lmp', 'PRC': 'lmp', 'LMP_PRC': 'lmp'}, inplace=True)
-
-        # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
-        if df.index.name != 'INTERVALSTARTTIME_GMT':
-            df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
-            df.index.name = 'INTERVALSTARTTIME_GMT'
-        df.index = pandas.to_datetime(df.index)
-
-        # utcify
-        df.index = self.utcify_index(df.index, tz_name='UTC')
 
         return df
 
