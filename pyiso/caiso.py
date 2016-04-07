@@ -243,7 +243,6 @@ class CAISOClient(BaseClient):
         data = self.fetch_oasis(payload=payload, return_all_files=not(lmp_only))
         # data will be a single csv-derived string if lmp_only==True
         # data will be an array of csv-derived strings if lmp_only==False
-
         if lmp_only is True:
             # Turn into pandas Dataframe
             if len(data) == 0:
@@ -260,7 +259,7 @@ class CAISOClient(BaseClient):
             try:
                 df = df.ix[df['LMP_TYPE'] == 'LMP']
             except KeyError:  # no good data
-                return pandas.DataFrame
+                return pandas.DataFrame()
         else:
             # data is an array of csv-derived strings
             df = pandas.DataFrame()
@@ -278,7 +277,7 @@ class CAISOClient(BaseClient):
             try:
                 df['LMP_TYPE'][0]
             except KeyError:  # no good data
-                return pandas.DataFrame
+                return pandas.DataFrame()
 
         df.rename(columns={'MW': 'LMP_PRC'}, inplace=True)
 
@@ -537,6 +536,7 @@ class CAISOClient(BaseClient):
         parsed_data = []
 
         # extract values from xml
+
         for raw_soup_dp in raw_data:
             # set up storage for timestamp
             ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
