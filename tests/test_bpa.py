@@ -1,9 +1,8 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 import pytz
 from datetime import datetime
 from io import StringIO
-from os import environ
 
 
 class TestBPABase(TestCase):

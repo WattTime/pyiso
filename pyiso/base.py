@@ -334,10 +334,27 @@ class BaseClient(object):
 
         # do xls
         elif mode == 'xls':
+            # parse_dates is not implemented for excel, so pop it off
+            if 'parse_dates' in kwargs:
+                parse_dates = kwargs.pop('parse_dates')
+            else:
+                parse_dates = False
+
             pieces = []
             for sheet in sheet_names:
                 pieces.append(filelike.parse(sheet, **kwargs))
             df = pd.concat(pieces)
+
+            # parse date index
+            if parse_dates:
+                idx = []
+                for t in df.index:
+                    try:
+                        idx.append(pd.to_datetime(t))
+                    except ValueError:
+                        # not a datetime
+                        idx.append('')
+                df.index = idx
 
         # set names
         if header_names is not None:
