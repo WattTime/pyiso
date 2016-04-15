@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.2.23: Major fix: ERCOT real-time data format changed, this release is updated to match the new format. Minor fixes to excel date handling with pandas 0.18, and MISO forecast.
 * 0.2.22: Feature: LMP in NYISO, thanks @ecalifornica! Bug fixes for DST transition.
 * 0.2.21: Major feature: generation mix in NYISO. Bug fix: time zone handling in NYISO.
 * 0.2.18: Minor change: enforce pandas version 0.17 or higher.
