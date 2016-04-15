@@ -124,7 +124,7 @@ class MISOClient(BaseClient):
     def handle_forecast(self):
         dates_list = self.dates()
         if min(dates_list) > self.local_now().date():
-            dates_list = [self.local_now().date()]
+            dates_list = [self.local_now().date()] + dates_list
         pieces = [self.fetch_forecast(date) for date in dates_list]
         df = pd.concat(pieces)
         return self.parse_forecast(df)
