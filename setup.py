@@ -71,5 +71,6 @@ setup(
         'xlrd',
         'lxml',
         'html5lib',
+        'requests_mock',
     ],
 )
