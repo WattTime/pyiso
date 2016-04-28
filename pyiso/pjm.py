@@ -5,6 +5,8 @@ from pyiso import LOGGER
 import pandas as pd
 from dateutil.parser import parse
 import pytz
+from datetime import datetime
+from StringIO import StringIO
 
 
 class PJMClient(BaseClient):
@@ -86,6 +88,12 @@ class PJMClient(BaseClient):
         # return df
         return df
 
+    def fetch_historical_load(self, year):
+        url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
+        response = self.request(url)
+        import ipdb; ipdb.set_trace()
+        return
+
     def get_load(self, latest=False, start_at=None, end_at=None, forecast=False, **kwargs):
         # set args
         self.handle_options(data='load', latest=latest,
@@ -108,6 +116,8 @@ class PJMClient(BaseClient):
             data = self.serialize_faster(sliced, extras=extras)
             # return
             return data
+        elif start_at < datetime.now() - timedelta(hours=1):
+            df = self.fetch_historical_load(start_at.year)
 
         else:
             # handle real-time
