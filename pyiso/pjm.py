@@ -89,8 +89,43 @@ class PJMClient(BaseClient):
     def fetch_historical_load(self, year):
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
         response = self.request(url)
-        import ipdb; ipdb.set_trace()
-        return
+        dfs = pd.read_excel(StringIO(response.content), sheetname=None)
+
+        # Strip all subregions, except PJM RTO total
+        df = dfs['RTO']
+        drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30',
+                    'MAX', 'HOUR', 'DATE.1', 'Unnamed: 34', 'MIN', 'HOUR.1', 'DATE.2']
+        df.drop(drop_col, axis=1, inplace=True)
+
+        df = pd.melt(df, id_vars=['DATE', 'COMP'])
+
+        # Get datetime format
+        df['hour'] = df['variable'].str.strip('HE').astype(int) - 1
+        df['datetime_str'] = (pd.to_datetime(df['DATE']).astype(str) + ':' +
+                              df['hour'].astype(str).str.zfill(2))
+        df['timestamp'] = pd.to_datetime(df['datetime_str'], format='%Y-%m-%d:%H')
+
+        # todo handle DST transitions properly, this just returns Not a Time
+        f = lambda x: pytz.timezone(self.TZ_NAME).localize(x['timestamp'])
+        df['timestamp'] = df.apply(f, axis=1)
+
+        # pandas time series functions only work on index
+        df.index = df['timestamp']
+        df['timestamp'] = df.index.tz_convert('utc')
+
+        drop_col = ['datetime_str', 'DATE', 'hour', 'variable', 'COMP']
+        df.drop(drop_col, axis=1, inplace=True)
+
+        # add formatting
+        extras = {
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.dam,
+                'ba_name': self.NAME,
+            }
+        for key in extras:
+            df[key] = extras[key]
+        df.rename(columns={'value': 'load_MW'}, inplace=True)
+        return df
 
     def get_load(self, latest=False, start_at=None, end_at=None, forecast=False, **kwargs):
         # set args
@@ -114,8 +149,12 @@ class PJMClient(BaseClient):
             data = self.serialize_faster(sliced, extras=extras)
             # return
             return data
-        elif start_at < datetime.now() - timedelta(hours=1):
+        elif start_at and start_at < datetime.now(pytz.utc) - timedelta(hours=1):
             df = self.fetch_historical_load(start_at.year)
+
+            # drop the index
+            df.reset_index(drop=True, inplace=True)
+            return df.to_dict(orient='records')
 
         else:
             # handle real-time

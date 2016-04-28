@@ -157,4 +157,6 @@ class TestPJM(TestCase):
 
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)
+        self.assertEqual(df['load_MW'][0], 94001.713000000003)
+        self.assertEqual(df['load_MW'][-1], 79160.809999999998)
         self.assertEqual(len(df), 365*24)

@@ -306,6 +306,15 @@ class TestPJMLoad(TestBaseLoad):
         self.assertGreaterEqual(min(timestamps), today+timedelta(hours=20))
         self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
+    def test_historical(self):
+        start_at = datetime(2015, 01, 02, tzinfo=pytz.utc)
+        end_at = datetime(2015, 12, 01, tzinfo=pytz.utc)
+        data = self._run_test('PJM', start_at=start_at, end_at=end_at)
+
+        timestamps = [d['timestamp'] for d in data]
+
+        self.assertEqual(len(set(timestamps)), 365*24)
+
 
 class TestSPPLoad(TestBaseLoad):
     def test_failing(self):
