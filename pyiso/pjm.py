@@ -5,7 +5,7 @@ from pyiso import LOGGER
 import pandas as pd
 from dateutil.parser import parse
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 from StringIO import StringIO
 
 
@@ -15,7 +15,6 @@ class PJMClient(BaseClient):
     base_url = 'https://datasnapshot.pjm.com/content/'
     base_dataminer_url = 'https://dataminer.pjm.com/dataminer/rest/public/api'
     oasis_url = 'http://oasis.pjm.com/system.htm'
-
 
     zonal_aggregate_nodes = {
         'AECO': 51291,
@@ -27,8 +26,7 @@ class PJMClient(BaseClient):
         'DAY': 34508503,
         'DEOK': 124076095,
         'DOM': 34964545,
-        'DPL': 51293,}
-
+        'DPL': 51293, }
 
     def time_as_of(self, content):
         """
@@ -82,7 +80,7 @@ class PJMClient(BaseClient):
             return pd.Series()
 
         # parse html to df
-        dfs = pd.read_html( response.content, header=0, index_col=0, parse_dates=True)
+        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=True)
         df = self.utcify_index(dfs[0], tz_name='utc')
 
         # return df
@@ -160,7 +158,7 @@ class PJMClient(BaseClient):
     def parse_datasnapshot_df(self, ts, df):
         df['timestamp'] = ts
 
-        rename_d = {'LMP': 'lmp',}
+        rename_d = {'LMP': 'lmp'}
         df.rename(columns=rename_d, inplace=True)
         # convert $12.44 to float
         df['lmp'] = df['lmp'].apply(lambda x: float(x.replace('$', '')))
@@ -205,10 +203,10 @@ class PJMClient(BaseClient):
         retdf['timestamp'] = pd.to_datetime(retdf.index, utc=True)
 
         # rename, drop and add standard columns
-        rename_d = {'price':'lmp',
+        rename_d = {'price': 'lmp',
                     'pnodeId': 'node_id',
                     'priceType': 'lmp_type',
-                   }
+                    }
         retdf.rename(columns=rename_d, inplace=True)
         retdf.drop(['publishDate', 'versionNum'], axis=1, inplace=True)
         retdf['freq'] = self.options['freq']
@@ -237,7 +235,7 @@ class PJMClient(BaseClient):
             # set correct endpoint for lmp data
             endpoints = {
                 self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
-                self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily',}
+                self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily', }
             self.options['endpoint'] = endpoints[self.options['market']]
 
         # special handling for five minute lmps
@@ -273,7 +271,6 @@ class PJMClient(BaseClient):
         df['lmp_type'] = 'TotalLMP'
         return df
 
-
     def get_lmp(self, node_id=None, **kwargs):
         self.handle_options(data='lmp', **kwargs)
 
@@ -297,10 +294,8 @@ class PJMClient(BaseClient):
             # if getting from dataminer method, setup parameters
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
             params = {'startDate': self.options['start_at'].strftime(format_str),
-                  'endDate': self.options['end_at'].strftime(format_str),
-                  'pnodeList': node_id}
+                      'endDate': self.options['end_at'].strftime(format_str),
+                      'pnodeList': node_id}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
 
         return df.to_dict(orient='records')
-
-
