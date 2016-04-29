@@ -125,6 +125,9 @@ class PJMClient(BaseClient):
         for key in extras:
             df[key] = extras[key]
         df.rename(columns={'value': 'load_MW'}, inplace=True)
+
+        # Drop the couple of times around DST transition that we don't handle correctly
+        df.dropna(subset=['load_MW'], inplace=True)
         return df
 
     def get_load(self, latest=False, start_at=None, end_at=None, forecast=False, **kwargs):
@@ -154,6 +157,8 @@ class PJMClient(BaseClient):
 
             # drop the index
             df.reset_index(drop=True, inplace=True)
+
+            df = self.slice_times(df)
             return df.to_dict(orient='records')
 
         else:
@@ -328,13 +333,15 @@ class PJMClient(BaseClient):
         else:
             # translate names to id numbers
             if set(node_id).issubset(self.zonal_aggregate_nodes.keys()):
-                node_id = self.zonal_aggregate_nodes[node_id]
+                node_names = []
+                for node in node_id:
+                    node_names.append(self.zonal_aggregate_nodes[node])
 
             # if getting from dataminer method, setup parameters
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
             params = {'startDate': self.options['start_at'].strftime(format_str),
                       'endDate': self.options['end_at'].strftime(format_str),
-                      'pnodeList': node_id}
+                      'pnodeList': node_names}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
 
         return df.to_dict(orient='records')
