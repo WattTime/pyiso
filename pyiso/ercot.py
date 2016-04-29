@@ -120,31 +120,24 @@ class ERCOTClient(BaseClient):
         # return
         return data
 
-    def val_for_label(self, soup, label):
-        # value is after text
-        label_elt = soup.find(text=label)
-        parent_elt = label_elt.parent.parent.parent
-        elt = parent_elt.find(class_='labelValueClassBold')
-        val = float(elt.text)
-
-        # return
-        return val
-
     def parse_rtm(self, content):
         # make soup
         soup = BeautifulSoup(content)
 
         # timestamp text starts with 'Last Updated'
         timestamp_elt = soup.find(text=re.compile('Last Updated'))
-        timestamp_str = timestamp_elt.strip('Last Updated ')
+        timestamp_str = timestamp_elt.strip('Last Updated: ')
         timestamp = self.utcify(timestamp_str)
 
+        # parse rest of page as html table
+        df = pd.read_html(content, index_col=0)[0]
+
         # get other values
-        load_val = self.val_for_label(soup, 'Actual System Demand')
-        wind_val = self.val_for_label(soup, 'Total Wind Output')
+        load_val = df.loc['Actual System Demand'][1]
+        wind_val = df.loc['Total Wind Output'][1]
         tie_flow_labels = ['DC_E (East)', 'DC_L (Laredo VFT)', 'DC_N (North)',
                            'DC_R (Railroad)', 'DC_S (Eagle Pass)']
-        total_imports_val = sum([self.val_for_label(soup, label) for label in tie_flow_labels])
+        total_imports_val = sum([df.loc[label][1] for label in tie_flow_labels])
 
         # use options to get labels
         if self.options['data'] == 'load':

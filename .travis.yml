@@ -2,14 +2,30 @@ language: python
 python:
 - '2.7'
 - '3.4'
-env: 
+env:
   global:
     - secure: "lmQwPQ1dNFpe1FuV3qm8HGb6HqM+Ygh5tFECOCyKicM/kiBmFvExYYq//3xeKbKdDP9UAnAVQJZFC35cKjJd4qldatvsRLuEkWNrDtZbrKPb2XsRGZNEZB0cQC8TDQ+KUliIvdYn0Vxk8OUnBA2YTKE6JsRdpCU4laPamnaw6r4="
     - secure: "DXAME8FP8ZM82EMUBwEWNlzDf8i4u8RJ5K1T1/BygOJcwfrB46lll8RR2q2ZOl7YB7zIjXmP+6kWEWd+hNZ4iYkbbIQfmf7bOzwh42fKhbXC4hV52g7w/LuVLx/K+6M0ccG8/7uA55bi6mnCkhVK4hP6+Y7YoQ9x1tA92iBeF4M="
 install:
-- python setup.py install
-- pip install -r requirements.txt
-- pip install coveralls
+
+     # Install miniconda for python 2.7
+  - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+
+
+  # Install
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+  - conda install -n test-environment pandas>=0.17
+  - source activate test-environment
+  - python setup.py install
+  - pip install -r requirements.txt
+  - pip install coveralls
 script: nosetests
 deploy:
   provider: pypi

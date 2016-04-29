@@ -1,7 +1,6 @@
 from pyiso import client_factory
 from unittest import TestCase
 import pytz
-from io import StringIO
 from datetime import datetime
 
 
@@ -9,67 +8,96 @@ class TestERCOT(TestCase):
     def setUp(self):
         self.c = client_factory('ERCOT')
 
-        self.rtm_html = StringIO(u'<html>\n\
-<body class="bodyStyle">\n\
-<table class="tableStyle" cellpadding="0" cellspacing="0" border="0" bgcolor="#ECECE2">\n\
-    <tr>\n\
-        <th colspan="5" valign="middle" class="hdr_port" >Real-Time System Conditions</th>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan="5" class="labelClass" valign="middle"><span class="labelValueClass">Last Updated Sep 15 2014 13:50:20 CDT</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <th colspan="5" valign="middle" class="headerClass"><span class="headerValueClass">Frequency</span></th>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan = "4" valign="middle" class="labelClass"><span class="labelValueClass">Current Frequency</span></td>\n\
-        <td valign="middle" class="labelClassRight"><span class="labelValueClassBold">59.998</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan = "4" valign="middle" class="labelClass"><span class="labelValueClass">Instantaneous Time Error</span></td>\n\
-        <td valign="middle" class="labelClassRight"><span class="labelValueClassBold">-29.222</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <th colspan="5" valign="middle" class="headerClass"><span class="headerValueClass">Real-Time Data</span></th>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan = "4" valign="middle" class="labelClass"><span class="labelValueClass">Actual System Demand</span></td>\n\
-        <td valign="middle" class="labelClassRight"><span class="labelValueClassBold">48681</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan = "4" valign="middle" class="labelClass"><span class="labelValueClass">Total System Capacity (not including Ancillary Services)</span></td>\n\
-        <td valign="middle" class="labelClassRight"><span class="labelValueClassBold">54642</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <td colspan = "4" valign="middle" class="labelClass"><span class="labelValueClass">Total Wind Output</span></td>\n\
-        <td valign="middle" class="labelClassRight"><span class="labelValueClassBold">885</span></td>\n\
-    </tr>\n\
-    <tr valign="top">\n\
-        <th colspan = "5" valign="middle" class="headerClass"><span class="headerValueClass">DC Tie Flows</span></th>\n\
-    </tr>\n\
-            <tr valign="top">\n\
-            <td colspan = "3" valign="middle" class="labelClass"><span class="labelValueClass">DC_E (East)</span></td>\n\
-            <td colspan = "2" valign="middle" class="labelClassRight"><span class="labelValueClassBold">-543</span></td>\n\
-        </tr>\n\
-            <tr valign="top">\n\
-            <td colspan = "3" valign="middle" class="labelClass"><span class="labelValueClass">DC_L (Laredo VFT)</span></td>\n\
-            <td colspan = "2" valign="middle" class="labelClassRight"><span class="labelValueClassBold">0</span></td>\n\
-        </tr>\n\
-            <tr valign="top">\n\
-            <td colspan = "3" valign="middle" class="labelClass"><span class="labelValueClass">DC_N (North)</span></td>\n\
-            <td colspan = "2" valign="middle" class="labelClassRight"><span class="labelValueClassBold">0</span></td>\n\
-        </tr>\n\
-            <tr valign="top">\n\
-            <td colspan = "3" valign="middle" class="labelClass"><span class="labelValueClass">DC_R (Railroad)</span></td>\n\
-            <td colspan = "2" valign="middle" class="labelClassRight"><span class="labelValueClassBold">0</span></td>\n\
-        </tr>\n\
-            <tr valign="top">\n\
-            <td colspan = "3" valign="middle" class="labelClass"><span class="labelValueClass">DC_S (Eagle Pass)</span></td>\n\
-            <td colspan = "2" valign="middle" class="labelClassRight"><span class="labelValueClassBold">5</span></td>\n\
-        </tr>\n\
-    </table>\n\
-</body>\n\
-</html>')
+        self.rtm_html = """
+ <html>
+<head>
+<script>
+  setTimeout("window.location.reload(true);",60000);
+</script>
+<title>Real-Time System Conditions</title>
+<meta http-equiv='pragma'  content='no-cache'>
+<link rel="stylesheet" type="text/css" href="/content/styles/cdr_reports.css" />
+<script>
+function open_window(url) {
+  window.open(url,"help",'toolbar=0,location=0,directories=0,status=0,menubar=0,scrollbars=yes,resizable=0,width=750,height=825');
+};
+</script>
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-460876-10', 'auto');
+ga('send', 'pageview');
+</script>
+<!-- End Google Analytics -->
+</head>
+<body class="bodyStyle">
+<div style="display: inline-block;">
+<div>
+  <div class='header1'>Real-Time System Conditions</div>
+  <div class='helpLink'><a href="javascript:open_window('/help/popup/rtSysCondHelp')">Help?</a></div>
+</div>
+<br>
+<div class="schedTime rightAlign">Last Updated: Apr 14, 2016 18:38:40</div>
+<table class="tableStyle">
+<tbody>
+  <tr>
+    <td class="headerValueClass" colSpan="2">Frequency</td>
+  </tr>
+    <td class="tdLeft">Current Frequency</td>
+    <td class="labelClassCenter">59.998</td>
+  </tr>
+  </tr>
+    <td class="tdLeft">Instantaneous Time Error</td>
+    <td class="labelClassCenter">-17.468</td>
+  </tr>
+  <tr>
+    <td class="headerValueClass" colSpan="2">Real-Time Data</td>
+  </tr>
+  </tr>
+    <td class="tdLeft">Actual System Demand</td>
+    <td class="labelClassCenter">38850</td>
+  </tr>
+  </tr>
+    <td class="tdLeft">Total System Capacity (not including Ancillary Services)</td>
+    <td class="labelClassCenter">42514</td>
+  </tr>
+  </tr>
+    <td class="tdLeft">Total Wind Output</td>
+    <td class="labelClassCenter">5242</td>
+  </tr>
+  <tr>
+    <td class="headerValueClass" colSpan="2">DC Tie Flows</td>
+  </tr>
+    </tr>
+    <td class="tdLeft">DC_E (East)</td>
+    <td class="labelClassCenter">-31</td>
+  </tr>
+    </tr>
+    <td class="tdLeft">DC_L (Laredo VFT)</td>
+    <td class="labelClassCenter">0</td>
+  </tr>
+    </tr>
+    <td class="tdLeft">DC_N (North)</td>
+    <td class="labelClassCenter">0</td>
+  </tr>
+    </tr>
+    <td class="tdLeft">DC_R (Railroad)</td>
+    <td class="labelClassCenter">0</td>
+  </tr>
+    </tr>
+    <td class="tdLeft">DC_S (Eagle Pass)</td>
+    <td class="labelClassCenter">1</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+</body>
+</html>
+"""
 
     def test_utcify(self):
         ts_str = '05/03/2014 02:00'
@@ -87,8 +115,8 @@ class TestERCOT(TestCase):
         self.assertEqual(len(data), 1)
         expected_keys = ['timestamp', 'ba_name', 'load_MW', 'freq', 'market']
         self.assertEqual(sorted(data[0].keys()), sorted(expected_keys))
-        self.assertEqual(data[0]['timestamp'], pytz.utc.localize(datetime(2014, 9, 15, 18, 50, 20)))
-        self.assertEqual(data[0]['load_MW'], 48681.0)
+        self.assertEqual(data[0]['timestamp'], pytz.utc.localize(datetime(2016, 4, 14, 23, 38, 40)))
+        self.assertEqual(data[0]['load_MW'], 38850.0)
 
     def test_parse_genmix(self):
         self.c.handle_options(data='gen', latest=True)
@@ -98,12 +126,12 @@ class TestERCOT(TestCase):
         expected_keys = ['timestamp', 'ba_name', 'gen_MW', 'fuel_name', 'freq', 'market']
         self.assertEqual(sorted(data[0].keys()), sorted(expected_keys))
 
-        self.assertEqual(data[0]['timestamp'], pytz.utc.localize(datetime(2014, 9, 15, 18, 50, 20)))
-        self.assertEqual(data[0]['gen_MW'], 885.0)
+        self.assertEqual(data[0]['timestamp'], pytz.utc.localize(datetime(2016, 4, 14, 23, 38, 40)))
+        self.assertEqual(data[0]['gen_MW'], 5242.0)
         self.assertEqual(data[0]['fuel_name'], 'wind')
 
-        self.assertEqual(data[1]['timestamp'], pytz.utc.localize(datetime(2014, 9, 15, 18, 50, 20)))
-        self.assertEqual(data[1]['gen_MW'], 48334.0)
+        self.assertEqual(data[1]['timestamp'], pytz.utc.localize(datetime(2016, 4, 14, 23, 38, 40)))
+        self.assertEqual(data[1]['gen_MW'], 38850 - 5242 + 31 - 1)
         self.assertEqual(data[1]['fuel_name'], 'nonwind')
 
     def test_request_report_gen_hrly(self):

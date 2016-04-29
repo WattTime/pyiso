@@ -47,7 +47,7 @@ class BPAClient(BaseClient):
             xd = self.fetch_xls(url)
             piece = self.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names,
                                      skiprows=18, parse_cols=cols,
-                                     parse_dates=True, index_col=0,
+                                     index_col=0, parse_dates=True,
                                      header_names=header_names)
             pieces.append(piece)
 
@@ -71,7 +71,7 @@ class BPAClient(BaseClient):
 
         # parse like tsv
         df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
-                              index_col=0, parse_dates=True, usecols=cols,
+                              index_col=0, usecols=cols,
                               date_parser=self.date_parser)
 
         return df
