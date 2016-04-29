@@ -155,10 +155,9 @@ class PJMClient(BaseClient):
         elif start_at and start_at < datetime.now(pytz.utc) - timedelta(hours=1):
             df = self.fetch_historical_load(start_at.year)
 
+            df = self.slice_times(df)
             # drop the index
             df.reset_index(drop=True, inplace=True)
-
-            df = self.slice_times(df)
             return df.to_dict(orient='records')
 
         else:
@@ -332,10 +331,12 @@ class PJMClient(BaseClient):
 
         else:
             # translate names to id numbers
-            if set(node_id).issubset(self.zonal_aggregate_nodes.keys()):
-                node_names = []
-                for node in node_id:
+            node_names = []
+            for node in node_id:
+                if node in self.zonal_aggregate_nodes.keys():
                     node_names.append(self.zonal_aggregate_nodes[node])
+                else:
+                    node_names.append(node)
 
             # if getting from dataminer method, setup parameters
             format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"

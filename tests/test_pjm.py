@@ -154,7 +154,7 @@ class TestPJM(TestCase):
             timestamps = [d['timestamp'] for d in data]
             # no historical data
             self.assertEqual(len(set(timestamps)), 1)
-            self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*7)
+            self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*8)
 
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)
