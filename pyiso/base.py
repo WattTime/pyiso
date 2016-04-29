@@ -434,7 +434,7 @@ class BaseClient(object):
                 raise ValueError('Slicing by time requires start_at and end_at')
 
         # sort before truncate eliminates DST KeyError
-        sorteddf = df.sort()
+        sorteddf = df.sort_index()
         sliced = sorteddf.truncate(before=start_at, after=end_at)
 
         # return
