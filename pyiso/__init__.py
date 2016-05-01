@@ -1,7 +1,7 @@
 import imp
+import logging
 import os.path
 from os import environ
-import logging
 
 __version__ = '0.2.23'
 
@@ -33,6 +33,7 @@ BALANCING_AUTHORITIES = {
     'ELE': {'module': 'sveri', 'class': 'SVERIClient'},
     'ERCOT': {'module': 'ercot', 'class': 'ERCOTClient'},
     'HGMA': {'module': 'sveri', 'class': 'SVERIClient'},
+    'IESO': {'module': 'ieso', 'class': 'IESOClient'},
     'IID': {'module': 'sveri', 'class': 'SVERIClient'},
     'ISONE': {'module': 'isone', 'class': 'ISONEClient'},
     'GRIF': {'module': 'sveri', 'class': 'SVERIClient'},
