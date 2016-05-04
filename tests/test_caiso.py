@@ -1,4 +1,4 @@
-from pyiso import client_factory, LOG_LEVEL
+from pyiso import client_factory
 from unittest import TestCase
 from io import StringIO
 import StringIO as sio  # necessary for zipfile testing, io.StringIO causes unicode errors
@@ -7,8 +7,9 @@ import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 import numpy
-import requests_mock
+import mock
 import zipfile
+import requests
 
 
 class TestCAISOBase(TestCase):
@@ -716,14 +717,9 @@ class TestCAISOBase(TestCase):
         self.assertItemsEqual(loc_data[0].keys(),
                               ['node_id', 'latitude', 'longitude', 'area'])
 
-    @requests_mock.mock()
-    def test_bad_data(self, m):
-        filename = u'0150301_20150301_PRC_INTVL_LMP_RTM_20160407_13_32_17_v1.zip'
-        o = sio.StringIO()
-        zf = zipfile.ZipFile(o, mode='w')
-        zf.writestr(filename, self.ren_report_tsv.getvalue().encode('utf-8'))
-        zf.close()
-        m.get(requests_mock.ANY, content=o.getvalue())
+    @mock.patch('pyiso.caiso.CAISOClient.request')
+    def test_bad_data(self, mock_request):
+        mock_request.return_value = requests.get('https://httpbin.org/')
 
         c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
@@ -732,20 +728,13 @@ class TestCAISOBase(TestCase):
 
         self.assertIsInstance(df, pd.DataFrame)
 
-    @requests_mock.mock()
-    def test_bad_data_lmp_only(self, m):
-        filename = u'0150301_20150301_PRC_INTVL_LMP_RTM_20160407_13_32_17_v1.zip'
-        o = sio.StringIO()
-        zf = zipfile.ZipFile(o, mode='w')
-        zf.writestr(filename, self.ren_report_tsv.getvalue().encode('utf-8'))
-        zf.close()
-        m.get(requests_mock.ANY, content=o.getvalue())
+    @mock.patch('pyiso.caiso.CAISOClient.request')
+    def test_bad_data_lmp_only(self, mock_request):
+        mock_request.return_value = requests.get('https://httpbin.org/')
 
         c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
         df = c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts,
-                                   lmp_only=False)
-
+                                    lmp_only=False)
         self.assertIsInstance(df, pd.DataFrame)
-
