@@ -271,7 +271,7 @@ class TestPJMLMP(TestBaseLMP):
     def test_multiple_lmp_realtime_oasis(self):
         with requests_cache.disabled():
             node_list = ['MERIDIAN EWHITLEY', 'LANSDALE']
-            data = self._run_test('PJM', node_id=node_list, latest=True,
+            data = self._run_test('PJM', tol_min=9, node_id=node_list, latest=True,
                                   market=self.MARKET_CHOICES.fivemin)
 
             nodes_returned = [d['node_id'] for d in data]
