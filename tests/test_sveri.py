@@ -73,8 +73,7 @@ class TestSVERI(TestCase):
         payloads = self.c.get_gen_payloads()
         response = self.c.request(self.c.BASE_URL, params=payloads[0])
 
-        # python3-compatible string containment test
-        self.assertNotEqual(response.content.find(self.sample), -1)
+        self.assertIn(self.sample, response.content)
 
     def test_get_payloads_latest(self):
         # latest

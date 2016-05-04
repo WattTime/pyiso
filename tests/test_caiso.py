@@ -1,14 +1,12 @@
 from pyiso import client_factory
 from unittest import TestCase
 from io import StringIO
-import StringIO as sio  # necessary for zipfile testing, io.StringIO causes unicode errors
 import pandas as pd
 import pytz
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
 import numpy
 import mock
-import zipfile
 import requests
 
 
