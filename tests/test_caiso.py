@@ -706,14 +706,7 @@ class TestCAISOBase(TestCase):
 
     def test_lmp_loc(self):
         c = client_factory('CAISO')
-        loc_data = c.get_lmp_loc()
-
-        # one entry for each node
-        self.assertGreaterEqual(len(loc_data), 4228)
-
-        # check keys
-        self.assertItemsEqual(loc_data[0].keys(),
-                              ['node_id', 'latitude', 'longitude', 'area'])
+        self.assertRaises(ValueError, c.get_lmp_loc)
 
     @mock.patch('pyiso.caiso.CAISOClient.request')
     def test_bad_data(self, mock_request):
