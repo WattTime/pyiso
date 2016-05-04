@@ -112,11 +112,13 @@ class PJMClient(BaseClient):
         # TODO handle DST transitions properly, this just returns Not a Time
         # and utcify_index fails with AmbiguousTimeError, even with ambiguous='infer'
         f = lambda x: pytz.timezone(self.TZ_NAME).localize(x['timestamp'])
-        df.index = df.apply(f, axis=1)
-        df.index = df.index.tz_convert('utc')
+        df['timestamp'] = df.apply(f, axis=1)
+        df.set_index('timestamp', inplace=True)
+        df = self.utcify_index(df)
+#        df.index = df.index.tz_convert('utc')
 
         # drop unneded cols
-        drop_col = ['datetime_str', 'DATE', 'hour', 'variable', 'COMP', 'timestamp']
+        drop_col = ['datetime_str', 'DATE', 'hour', 'variable', 'COMP']
         df.drop(drop_col, axis=1, inplace=True)
 
         # add formatting
