@@ -16,7 +16,7 @@ class TestBaseLMP(TestCase):
         # set up other expected values
         self.BA_CHOICES = BALANCING_AUTHORITIES.keys()
 
-    def _run_test(self, ba_name, expect_data=True, **kwargs):
+    def _run_test(self, ba_name, expect_data=True, tol_min=8, **kwargs):
         # set up
         c = client_factory(ba_name)
 
@@ -50,7 +50,7 @@ class TestBaseLMP(TestCase):
             elif c.options['latest']:
                 # within 8 min
                 delta = now - dp['timestamp']
-                self.assertLess(abs(delta.total_seconds()), 8*60)
+                self.assertLess(abs(delta.total_seconds()), tol_min*60)
             else:
                 self.assertLess(dp['timestamp'], now)
 
@@ -206,21 +206,20 @@ class TestPJMLMP(TestBaseLMP):
                 self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
                 self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
+    # def test_forecast(self):
+    #     # basic test
+    #     now = pytz.utc.localize(datetime.utcnow())
+    #     data = self._run_test('PJM', node_id=33092371,
+    #                           start_at=now, end_at=now+timedelta(days=1))
 
-    def forecast(self):  # skip
-        # basic test
-        now = pytz.utc.localize(datetime.utcnow())
-        data = self._run_test('PJM', node_id=33092371,
-                              start_at=now, end_at=now+timedelta(days=1))
+    #     # test all timestamps are equal
+    #     timestamps = [d['timestamp'] for d in data]
+    #     self.assertGreater(len(set(timestamps)), 1)
 
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+    #     # test flags
+    #     for dp in data:
+    #         self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+    #         self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def test_date_range_dayahead_hourly(self):
         # basic test
@@ -278,6 +277,3 @@ class TestPJMLMP(TestBaseLMP):
             nodes_returned = [d['node_id'] for d in data]
             for node in nodes_returned:
                 self.assertIn(node, nodes_returned)
-
-
-

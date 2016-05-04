@@ -314,8 +314,9 @@ class TestPJMLoad(TestBaseLoad):
 
         timestamps = [d['timestamp'] for d in data]
 
+        # 364 days, except for DST transition hours
         # TODO handle DST transitions instead of dropping them
-        self.assertEqual(len(set(timestamps)), 365*24-26)
+        self.assertEqual(len(set(timestamps)), 364*24-2)
 
 
 class TestSPPLoad(TestBaseLoad):

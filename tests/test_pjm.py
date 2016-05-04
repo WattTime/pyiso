@@ -2,9 +2,9 @@ from pyiso import client_factory
 from unittest import TestCase
 import pandas as pd
 from datetime import datetime, timedelta
-import time
 import pytz
 import requests_cache
+
 
 class TestPJM(TestCase):
     def setUp(self):
@@ -108,7 +108,7 @@ class TestPJM(TestCase):
         dfs = pd.read_html(self.edata_forecast_load, header=0, index_col=0, parse_dates=True)
         # pandas date parser recognizes the timezone (EST), but returns a naive datetime
         # in UTC, why?
-        df = self.c.utcify_index(dfs[0], tz_name='utc')
+        df = self.c.utcify_index(dfs[0])
         self.assertEqual(df.columns, 'MW')
         self.assertEqual(df.shape, (3, 1))
 
@@ -121,9 +121,9 @@ class TestPJM(TestCase):
     def test_fetch_edata_series_timezone(self):
         data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
 
-        # pandas.datetime.value is nanoseconds since epoch
         # check that latest forecast is within 1 hour, 1 minute of now
-        self.assertLessEqual(abs((data.index[0].value / 10**9) - time.time()), 60*60+60)
+        td = data.index[0] - pytz.utc.localize(datetime.utcnow())
+        self.assertLessEqual(td, timedelta(hours=1, minutes=1))
 
     def test_missing_time_is_none(self):
         ts = self.c.time_as_of('')
@@ -152,6 +152,7 @@ class TestPJM(TestCase):
             data = self.c.get_lmp(node_id=33092371, market='RT5M')
 
             timestamps = [d['timestamp'] for d in data]
+
             # no historical data
             self.assertEqual(len(set(timestamps)), 1)
             self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*8)
