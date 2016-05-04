@@ -72,5 +72,6 @@ setup(
         'lxml',
         'html5lib',
         'requests-cache',
+        'mock',
     ],
 )

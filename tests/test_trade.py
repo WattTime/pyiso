@@ -212,8 +212,8 @@ class TestISONETrade(TestBaseTrade):
 class TestMISOTrade(TestBaseTrade):
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('MISO', start_at=today+timedelta(hours=10),
+        today = pytz.utc.localize(datetime.utcnow())
+        data = self._run_net_test('MISO', start_at=today+timedelta(hours=2),
                                   end_at=today+timedelta(days=2))
 
         # test timestamps are not equal

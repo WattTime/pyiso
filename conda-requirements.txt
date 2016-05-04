@@ -8,3 +8,4 @@ dateutil==2.1
 pytz
 requests==2.9.1
 xlrd==0.9.2
+mock

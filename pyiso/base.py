@@ -351,7 +351,7 @@ class BaseClient(object):
                 for t in df.index:
                     try:
                         idx.append(pd.to_datetime(t))
-                    except ValueError:
+                    except (ValueError, TypeError):
                         # not a datetime
                         idx.append('')
                 df.index = idx
