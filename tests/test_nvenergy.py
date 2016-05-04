@@ -3982,3 +3982,7 @@ class TestNVEnergy(TestCase):
         self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 13)), 'value': 1}, subs)
         self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 11)), 'value': 4}, subs)
         self.assertIn({'timestamp': pytz.utc.localize(datetime(2015, 8, 12)), 'value': 5}, subs)
+
+    def test_time_subset_accepts_no_latest_data(self):
+        self.c.handle_options(latest=True)
+        self.assertEqual(self.c.time_subset([]), [])

@@ -226,8 +226,12 @@ class NVEnergyClient(BaseClient):
         return data
 
     def time_subset(self, data):
+        # if no data, empty list
+        if len(data) == 0:
+            return []
+
         # if sliceable, return inclusive of dates
-        if self.options['sliceable']:
+        elif self.options['sliceable']:
             f = lambda x: x['timestamp'] >= self.options['start_at'] and x['timestamp'] <= self.options['end_at']
             filtered = filter(f, data)
             return list(filtered)
