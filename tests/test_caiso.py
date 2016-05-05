@@ -1,5 +1,5 @@
 from pyiso import client_factory
-from unittest import TestCase
+from unittest import TestCase, expectedFailure
 from io import StringIO
 import pandas as pd
 import pytz
@@ -704,9 +704,17 @@ class TestCAISOBase(TestCase):
                                           market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})
 
+    @expectedFailure
     def test_lmp_loc(self):
         c = client_factory('CAISO')
-        self.assertRaises(ValueError, c.get_lmp_loc)
+        loc_data = c.get_lmp_loc()
+
+        # one entry for each node
+        self.assertGreaterEqual(len(loc_data), 4228)
+
+        # check keys
+        self.assertItemsEqual(loc_data[0].keys(),
+                              ['node_id', 'latitude', 'longitude', 'area'])
 
     @mock.patch('pyiso.caiso.CAISOClient.request')
     def test_bad_data(self, mock_request):

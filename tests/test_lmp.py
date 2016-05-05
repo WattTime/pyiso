@@ -194,7 +194,7 @@ class TestPJMLMP(TestBaseLMP):
 
     def test_latest_oasis(self):
         with requests_cache.disabled():
-            data = self._run_test('PJM', node_id=None,
+            data = self._run_test('PJM', node_id=None, tol_min=10,
                                   market=self.MARKET_CHOICES.fivemin)
 
             # test all timestamps are equal
@@ -249,7 +249,7 @@ class TestPJMLMP(TestBaseLMP):
             node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
                          'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
                          'PEPCO', 'PPL', 'PSEG', 'RECO']
-            data = self._run_test('PJM', node_id=node_list, latest=True,
+            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
                                   market=self.MARKET_CHOICES.fivemin)
 
             nodes_returned = [d['node_id'] for d in data]
@@ -261,7 +261,7 @@ class TestPJMLMP(TestBaseLMP):
             node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
                          'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
                          'PEPCO', 'PPL', 'PSEG', 'RECO', '33092371']
-            data = self._run_test('PJM', node_id=node_list, latest=True,
+            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
                                   market=self.MARKET_CHOICES.fivemin)
 
             nodes_returned = [d['node_id'] for d in data]
@@ -271,7 +271,7 @@ class TestPJMLMP(TestBaseLMP):
     def test_multiple_lmp_realtime_oasis(self):
         with requests_cache.disabled():
             node_list = ['MERIDIAN EWHITLEY', 'LANSDALE']
-            data = self._run_test('PJM', tol_min=9, node_id=node_list, latest=True,
+            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
                                   market=self.MARKET_CHOICES.fivemin)
 
             nodes_returned = [d['node_id'] for d in data]
