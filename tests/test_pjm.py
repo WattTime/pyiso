@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import requests_cache
+import unittest
 
 
 class TestPJM(TestCase):
@@ -104,6 +105,7 @@ class TestPJM(TestCase):
         self.assertEqual(df.columns, 'MW')
         self.assertEqual(df.loc['PJM RTO Total']['MW'], 91419)
 
+    @unittest.skip('No longer using self.utcify_index')
     def test_parse_forecast_load(self):
         dfs = pd.read_html(self.edata_forecast_load, header=0, index_col=0, parse_dates=True)
         # pandas date parser recognizes the timezone (EST), but returns a naive datetime
@@ -119,11 +121,12 @@ class TestPJM(TestCase):
         self.assertEqual(df.index[-1], pytz.utc.localize(datetime(2015, 12, 12, 0, 00)))
 
     def test_fetch_edata_series_timezone(self):
-        data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
+        with requests_cache.disabled():
+            data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
 
-        # check that latest forecast is within 1 hour, 1 minute of now
-        td = data.index[0] - pytz.utc.localize(datetime.utcnow())
-        self.assertLessEqual(td, timedelta(hours=1, minutes=1))
+            # check that latest forecast is within 1 hour, 1 minute of now
+            td = data.index[0] - pytz.utc.localize(datetime.utcnow())
+            self.assertLessEqual(td, timedelta(hours=1, minutes=1))
 
     def test_missing_time_is_none(self):
         ts = self.c.time_as_of('')
@@ -162,3 +165,18 @@ class TestPJM(TestCase):
         self.assertEqual(df['load_MW'][0], 94001.713000000003)
         self.assertEqual(df['load_MW'][-1], 79160.809999999998)
         self.assertEqual(len(df), 365*24 - 2)
+
+        est = pytz.timezone(self.c.TZ_NAME)
+        start_at = est.localize(datetime(2015, 1, 1))
+        end_at = est.localize(datetime(2015, 12, 31, 23, 0))
+
+        self.assertEqual(df.index[0], start_at)
+        self.assertEqual(df.index[-1], end_at)
+
+        # Manually checked form xls file
+        # These tests should fail if timezones are improperly handled
+        tz_func = lambda x: pd.tslib.Timestamp(pytz.utc.normalize(est.localize(x)))
+        self.assertEqual(df.ix[tz_func(datetime(2015, 2, 2, 14))]['load_MW'], 105714.638)
+        self.assertEqual(df.ix[tz_func(datetime(2015, 6, 4, 2))]['load_MW'], 64705.985)
+        self.assertEqual(df.ix[tz_func(datetime(2015, 12, 15, 23))]['load_MW'], 79345.672)
+

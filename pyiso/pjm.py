@@ -79,8 +79,9 @@ class PJMClient(BaseClient):
             return pd.Series()
 
         # parse html to df
-        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=True)
-        df = self.utcify_index(dfs[0])
+        dfs = pd.read_html(response.content, header=0, index_col=0)
+        df = dfs[0]
+        df.index = pd.to_datetime(df.index, utc=True)
         df.index.set_names(['timestamp'], inplace=True)
 
         # return df
@@ -115,9 +116,8 @@ class PJMClient(BaseClient):
         df['timestamp'] = df.apply(f, axis=1)
         df.set_index('timestamp', inplace=True)
         df = self.utcify_index(df)
-#        df.index = df.index.tz_convert('utc')
 
-        # drop unneded cols
+        # drop unneeded cols
         drop_col = ['datetime_str', 'DATE', 'hour', 'variable', 'COMP']
         df.drop(drop_col, axis=1, inplace=True)
 
