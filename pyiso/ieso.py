@@ -24,7 +24,7 @@ class IESOClient(BaseClient):
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
             response = self.request(url=self.output_capability_latest_url)
-            fuel_mix = self.parse_output_capability_report(response.content)
+            fuel_mix = self.parse_output_capability_report(response.content, latest=latest)
             return fuel_mix
         else:
             raise NotImplementedError('Only the latest generation fuel mix data is currently implemented.')
@@ -35,11 +35,12 @@ class IESOClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def parse_output_capability_report(self, xml_content):
+    def parse_output_capability_report(self, xml_content, latest=False):
         """
         Parse the Generator Output and Capability Report, aggregating output hourly by fuel type.
 
-        :param str xml_content: An XML string of the Generator Output and Capability Report.
+        :param str xml_content: The XML content of the Generator Output and Capability Report.
+        :param bool latest: Indicates whether the returned fule mix should be trimmed to only contain the latest values.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
            Timestamps are in UTC.
         :rtype: list
@@ -69,24 +70,42 @@ class IESOClient(BaseClient):
         # Iterate over aggregated results to create generation fuel mix format
         fuel_mix = list([])
         for fuel in fuels_hourly.keys():
-            for idx, fuel_gen_mw in enumerate(fuels_hourly[fuel]):
+            fuel_hourly = fuels_hourly[fuel]
+            if latest:
+                idx = len(fuel_hourly) - 1
+                latest_fuel_gen_mw = fuel_hourly[idx]
                 report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                report_ts_utc = self.utcify(local_ts_str=report_ts_local, is_dst=False)
-                fuel_mix.append({
-                    'ba_name': self.NAME,
-                    'timestamp': report_ts_utc,
-                    'freq': self.FREQUENCY_CHOICES.hourly,
-                    'market': self.MARKET_CHOICES.hourly,
-                    'fuel_name': self.fuels[fuel],
-                    'gen_MW': fuel_gen_mw
-                })
+                self.append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=latest_fuel_gen_mw)
+            else:
+                for idx, fuel_gen_mw in enumerate(fuels_hourly[fuel]):
+                    report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
+                    self.append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
 
         return fuel_mix
 
+    def append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel):
+        """
+        Parse the Generator Output and Capability Report, aggregating output hourly by fuel type.
 
-# def main():
-#     client = IESOClient()
-#     client.get_generation(latest=True)
-#
-# if __name__ == '__main__':
-#     main()
+        :param list fuel_mix: The generation fuel mix list to have a value appended.
+        :param str ts_local: A local (EST) timestamp in 'yyyy-MM-dd hh:mm' format.
+        :param float gen_mw: Electricity generation in megawatts (MW)
+        :param string fuel: IESO fuel name (will be converted to WattTime name).
+        """
+        report_ts_utc = self.utcify(local_ts_str=ts_local, is_dst=False)
+        fuel_mix.append({
+            'ba_name': self.NAME,
+            'timestamp': report_ts_utc,
+            'freq': self.FREQUENCY_CHOICES.hourly,
+            'market': self.MARKET_CHOICES.hourly,
+            'fuel_name': self.fuels[fuel],
+            'gen_MW': gen_mw
+        })
+
+
+def main():
+    client = IESOClient()
+    client.get_generation(latest=True)
+
+if __name__ == '__main__':
+    main()
