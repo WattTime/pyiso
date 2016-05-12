@@ -11,7 +11,7 @@ class TestIESO(TestCase):
         # Open a simplified, offline copy of complete April 29, 2016 report
         xml = open('./resources/ieso/reduced_GenOutputCapability_20160429.xml')
 
-        fuel_mix = self.c.parse_output_capability_report(xml.read())
+        fuel_mix = self.c._parse_output_capability_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 72)  # 24 hours of three fuels
         for val in fuel_mix:  # Spot check known values
@@ -32,7 +32,7 @@ class TestIESO(TestCase):
         # Open a simplified, offline copy of partial May 1, 2016 report
         xml = open('./resources/ieso/reduced_GenOutputCapability_20160501.xml')
 
-        fuel_mix = self.c.parse_output_capability_report(xml.read())
+        fuel_mix = self.c._parse_output_capability_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 12)  # 4 hours of three fuels
         for val in fuel_mix:  # Spot check known values
