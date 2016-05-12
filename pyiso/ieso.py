@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from lxml import objectify
 
 from pyiso.base import BaseClient
@@ -5,11 +7,9 @@ from pyiso.base import BaseClient
 
 class IESOClient(BaseClient):
     NAME = 'IESO'
-    TZ_NAME = 'America/Toronto'
+    TZ_NAME = 'EST'
 
     base_url = 'http://reports.ieso.ca/public/'
-    output_capability_url = base_url + 'GenOutputCapability/'
-    output_capability_latest_url = output_capability_url + 'PUB_GenOutputCapability.xml'
 
     # In Ontario, references to SOLAR are all solar PV.
     fuels = {
@@ -23,17 +23,37 @@ class IESOClient(BaseClient):
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
-            response = self.request(url=self.output_capability_latest_url)
-            fuel_mix = self._parse_output_capability_report(response.content, latest=latest)
-            return fuel_mix
+            filename = self._output_capability_filename()
+        elif yesterday:
+            yesterday_date = (self.local_now() - timedelta(days=1)).date()
+            filename = self._output_capability_filename(local_date=yesterday_date)
         else:
             raise NotImplementedError('Only the latest generation fuel mix data is currently implemented.')
+
+        output_capability_url = self.base_url + 'GenOutputCapability/' + filename
+        response = self.request(url=output_capability_url)
+        fuel_mix = self._parse_output_capability_report(response.content, latest=latest)
+        return fuel_mix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
+
+    @staticmethod
+    def _output_capability_filename(local_date=None):
+        """
+        Transforms a date to the filename format usable for requesting a day's Generator Output and Capability Report.
+
+        :param datetime local_date: A local date object.
+        :return: Generator Output and Capability Report filename for the date (eg. PUB_GenOutputCapability_20161231.xml)
+        :rtype: str
+        """
+        if local_date is not None:
+            return local_date.strftime('PUB_GenOutputCapability_%Y%m%d.xml')
+        else:
+            return 'PUB_GenOutputCapability.xml'
 
     def _parse_output_capability_report(self, xml_content, latest=False):
         """
@@ -105,7 +125,7 @@ class IESOClient(BaseClient):
 
 # def main():
 #     client = IESOClient()
-#     client.get_generation(latest=True)
+#     client.get_generation(yesterday=True)
 #
 # if __name__ == '__main__':
 #     main()
