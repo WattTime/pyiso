@@ -1,4 +1,3 @@
-import copy
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
 from pyiso import LOGGER
@@ -6,7 +5,6 @@ import pandas as pd
 from dateutil.parser import parse
 import pytz
 from datetime import datetime, timedelta
-from StringIO import StringIO
 
 
 class PJMClient(BaseClient):
@@ -26,7 +24,8 @@ class PJMClient(BaseClient):
         'DAY': 34508503,
         'DEOK': 124076095,
         'DOM': 34964545,
-        'DPL': 51293, }
+        'DPL': 51293,
+    }
 
     def time_as_of(self, content):
         """
@@ -80,50 +79,49 @@ class PJMClient(BaseClient):
             return pd.Series()
 
         # parse html to df
-        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=True)
-        df = self.utcify_index(dfs[0], tz_name='utc')
+        dfs = pd.read_html(response.content, header=0, index_col=0)
+        df = dfs[0]
+        df.index = pd.to_datetime(df.index, utc=True)
+        df.index.set_names(['timestamp'], inplace=True)
 
         # return df
         return df
 
-    def fetch_historical_load(self, year):
+    def fetch_historical_load(self, year, region_name='RTO'):
+        # get RTO data
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
-        response = self.request(url)
-        dfs = pd.read_excel(StringIO(response.content), sheetname=None)
+        df = pd.read_excel(url, sheetname=region_name)
 
-        # Strip all subregions, except PJM RTO total
-        df = dfs['RTO']
+        # drop unneded cols
         drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30',
                     'MAX', 'HOUR', 'DATE.1', 'Unnamed: 34', 'MIN', 'HOUR.1', 'DATE.2']
         df.drop(drop_col, axis=1, inplace=True)
 
+        # reshape from wide to tall
         df = pd.melt(df, id_vars=['DATE', 'COMP'])
 
-        # Get datetime format
+        # HE01, HE02, ... HE24; hour ending in local time
+        # convert to hour beginning as integer
         df['hour'] = df['variable'].str.strip('HE').astype(int) - 1
+
+        # set naive local datetime column
         df['datetime_str'] = (pd.to_datetime(df['DATE']).astype(str) + ':' +
                               df['hour'].astype(str).str.zfill(2))
         df['timestamp'] = pd.to_datetime(df['datetime_str'], format='%Y-%m-%d:%H')
 
-        # todo handle DST transitions properly, this just returns Not a Time
+        # utcify
+        # TODO handle DST transitions properly, this just returns Not a Time
+        # and utcify_index fails with AmbiguousTimeError, even with ambiguous='infer'
         f = lambda x: pytz.timezone(self.TZ_NAME).localize(x['timestamp'])
         df['timestamp'] = df.apply(f, axis=1)
+        df.set_index('timestamp', inplace=True)
+        df = self.utcify_index(df)
 
-        # pandas time series functions only work on index
-        df.index = df['timestamp']
-        df['timestamp'] = df.index.tz_convert('utc')
-
+        # drop unneeded cols
         drop_col = ['datetime_str', 'DATE', 'hour', 'variable', 'COMP']
         df.drop(drop_col, axis=1, inplace=True)
 
         # add formatting
-        extras = {
-                'freq': self.FREQUENCY_CHOICES.hourly,
-                'market': self.MARKET_CHOICES.dam,
-                'ba_name': self.NAME,
-            }
-        for key in extras:
-            df[key] = extras[key]
         df.rename(columns={'value': 'load_MW'}, inplace=True)
 
         # Drop the couple of times around DST transition that we don't handle correctly
@@ -141,7 +139,6 @@ class PJMClient(BaseClient):
             df = self.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
             sliced = self.slice_times(df)
             sliced.columns = ['load_MW']
-            sliced.index.set_names(['timestamp'], inplace=True)
 
             # format
             extras = {
@@ -150,15 +147,24 @@ class PJMClient(BaseClient):
                 'ba_name': self.NAME,
             }
             data = self.serialize_faster(sliced, extras=extras)
+
             # return
             return data
-        elif start_at and start_at < datetime.now(pytz.utc) - timedelta(hours=1):
-            df = self.fetch_historical_load(start_at.year)
 
-            df = self.slice_times(df)
-            # drop the index
-            df.reset_index(drop=True, inplace=True)
-            return df.to_dict(orient='records')
+        elif end_at and end_at < datetime.now(pytz.utc) - timedelta(hours=1):
+            df = self.fetch_historical_load(start_at.year)
+            sliced = self.slice_times(df)
+
+            # format
+            extras = {
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.dam,
+                'ba_name': self.NAME,
+            }
+            data = self.serialize_faster(sliced, extras=extras)
+
+            # return
+            return data
 
         else:
             # handle real-time
@@ -268,24 +274,27 @@ class PJMClient(BaseClient):
     def handle_options(self, **kwargs):
         super(PJMClient, self).handle_options(**kwargs)
 
-        if 'market' not in self.options:
-            self.options['market'] = self.MARKET_CHOICES.dam
+        # lmp specific options
+        if self.options['data'] == 'lmp':
+            if 'market' not in self.options:
+                self.options['market'] = self.MARKET_CHOICES.dam
 
-        if 'freq' not in self.options:
-            self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            if 'freq' not in self.options:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
 
-        if self.options['market'] in (self.MARKET_CHOICES.dam, self.MARKET_CHOICES.hourly):
-            # set correct endpoint for lmp data
-            endpoints = {
-                self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
-                self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily', }
-            self.options['endpoint'] = endpoints[self.options['market']]
+            if self.options['market'] in (self.MARKET_CHOICES.dam, self.MARKET_CHOICES.hourly):
+                # set correct endpoint for lmp data
+                endpoints = {
+                    self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
+                    self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily'
+                }
+                self.options['endpoint'] = endpoints[self.options['market']]
 
-        # special handling for five minute lmps
-        elif self.options['market'] == self.MARKET_CHOICES.fivemin:
-            self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
-            # no historical data for 5min lmp
-            self.options['latest'] = True
+            # special handling for five minute lmps
+            elif self.options['market'] == self.MARKET_CHOICES.fivemin:
+                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+                # no historical data for 5min lmp
+                self.options['latest'] = True
 
     def fetch_oasis_data(self):
         response = self.request(self.oasis_url)

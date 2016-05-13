@@ -158,6 +158,10 @@ class CAISOClient(BaseClient):
 
     def get_lmp_loc(self):
         """
+        CURRENTLY INCONSISTENTLY FAILING
+        status 401, response content "Access is restricted to authorized clients."
+
+        FORMERLY CONSISTENT BEHAVIOR:
         Returns a list of dictionaries containing node atlas data.  Each
         dictionary will contain
 
