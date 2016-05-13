@@ -3,6 +3,8 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
+import requests_mock
+from tests import test_trade_responses as responses
 
 
 class TestBaseTrade(TestCase):
@@ -162,11 +164,16 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_date_range(self):
+    @requests_mock.mock()
+    def test_date_range(self, mocker):
+        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
+               '/20160513ExternalLimitsFlows.csv')
+        mocker.get(url, text=responses.test_date_range_short[1])
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('NYISO', start_at=today-timedelta(days=2),
-                                  end_at=today-timedelta(days=1))
+        now = responses.test_date_range_short[0]
+        # basic test
+        data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
+                                  end_at=now-timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -177,9 +184,13 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_date_range_short(self):
+    @requests_mock.mock()
+    def test_date_range_short(self, mocker):
+        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
+               '/20160513ExternalLimitsFlows.csv')
+        mocker.get(url, text=responses.test_date_range_short[1])
         # basic test
-        now = pytz.utc.localize(datetime.utcnow())
+        now = responses.test_date_range_short[0]
         data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
                                   end_at=now-timedelta(minutes=5))
 
