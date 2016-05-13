@@ -11,6 +11,7 @@ env.sh
 
 # Packages
 *.egg
+.eggs
 *.egg-info
 dist
 build
@@ -45,6 +46,12 @@ nosetests.xml
 *.csv
 *.dump
 *.sqlite
+cache
 
 # coverage files
 htmlcov
+
+# Certificate key files
+*.pem
+
+
