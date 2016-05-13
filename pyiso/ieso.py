@@ -113,7 +113,7 @@ class IESOClient(BaseClient):
         :param float gen_mw: Electricity generation in megawatts (MW)
         :param string fuel: IESO fuel name (will be converted to WattTime name).
         """
-        report_ts_utc = self.utcify(local_ts_str=ts_local, is_dst=False)
+        report_ts_utc = self.utcify(local_ts_str=ts_local)
         fuel_mix.append({
             'ba_name': self.NAME,
             'timestamp': report_ts_utc,
