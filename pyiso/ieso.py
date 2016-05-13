@@ -11,13 +11,12 @@ class IESOClient(BaseClient):
 
     base_url = 'http://reports.ieso.ca/public/'
 
-    # In Ontario, references to SOLAR are all solar PV.
     fuels = {
         'NUCLEAR': 'nuclear',
         'GAS': 'natgas',
         'HYDRO': 'hydro',
         'WIND': 'wind',
-        'SOLAR': 'solarpv',
+        'SOLAR': 'solar',
         'BIOFUEL': 'biomass'
     }
 
