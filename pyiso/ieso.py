@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from lxml import objectify
 
@@ -21,10 +21,12 @@ class IESOClient(BaseClient):
     }
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        if latest:
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+
+        if self.options.get('latest'):
             filename = self._output_capability_filename()
-        elif yesterday:
-            yesterday_date = (self.local_now() - timedelta(days=1)).date()
+        elif self.options.get('yesterday'):
+            yesterday_date = self.options.get('start_at').date()
             filename = self._output_capability_filename(local_date=yesterday_date)
         else:
             raise NotImplementedError('Only the latest generation fuel mix data is currently implemented.')
