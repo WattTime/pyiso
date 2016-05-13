@@ -7,7 +7,7 @@ from pyiso.base import BaseClient
 
 class IESOClient(BaseClient):
     NAME = 'IESO'
-    TZ_NAME = 'EST'
+    TZ_NAME = 'EST'  # IESO is always in standard time.
 
     base_url = 'http://reports.ieso.ca/public/'
 
