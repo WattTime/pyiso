@@ -44,10 +44,11 @@ class IESOClient(BaseClient):
     @staticmethod
     def _output_capability_filename(local_date=None):
         """
-        Transforms a date to the filename format usable for requesting a day's Generator Output and Capability Report.
+        Builds a filename usable for requesting a day's Generator Output and Capability Report.
 
-        :param datetime local_date: A local date object.
-        :return: Generator Output and Capability Report filename for the date (eg. PUB_GenOutputCapability_20161231.xml)
+        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
+            If not, the latest report will be built.
+        :return: Generator Output and Capability Report filename.
         :rtype: str
         """
         if local_date is not None:
