@@ -87,10 +87,10 @@ class PJMClient(BaseClient):
         # return df
         return df
 
-    def fetch_historical_load(self, year):
+    def fetch_historical_load(self, year, region_name='RTO'):
         # get RTO data
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
-        df = pd.read_excel(url, sheetname='RTO')
+        df = pd.read_excel(url, sheetname=region_name)
 
         # drop unneded cols
         drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30',
