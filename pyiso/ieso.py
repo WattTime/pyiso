@@ -275,10 +275,10 @@ class IESOClient(BaseClient):
         response = self.request(url=base_output_by_fuel_url + filename)
         return self._parse_output_by_fuel_report(response.content)
 
-def main():
-    client = IESOClient()
-    client.get_generation(start_at=client.utcify(local_ts_str='2015-02-03 15:00:00'),
-                          end_at=client.utcify(local_ts_str='2016-03-15 01:00:00'))
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     client = IESOClient()
+#     client.get_generation(start_at=client.utcify(local_ts_str='2015-02-03 15:00:00'),
+#                           end_at=client.utcify(local_ts_str='2016-03-15 01:00:00'))
+#
+# if __name__ == '__main__':
+#     main()
