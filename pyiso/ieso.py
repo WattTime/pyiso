@@ -27,12 +27,15 @@ class IESOClient(BaseClient):
         fuel_mix = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         local_now_dt = self.local_now()  # timezone aware
+
         if latest:
             self.options['end_at'] = local_now_dt
             self.options['start_at'] = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
+
         elif yesterday:
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
+
         elif (start_at != False) & (end_at != False) & (self._is_in_generation_mix_time_range(self.options['end_at'])):
             # using options values in all cases, known to be timezone aware and in UTC
             if local_now_dt < self.options['start_at']:  # forecast only
@@ -52,10 +55,13 @@ class IESOClient(BaseClient):
                 if self._is_same_day_local(local_now_dt, self.options['end_at']):
                     # end_at is in the current day, which requires requesting the current output capability report
                     fuel_mix = self._day_generation_mix(dt=self.options['end_at'])
+
         elif (end_at != False) & (self._is_in_generation_mix_time_range(self.options['end_at']) == False):
             LOGGER.warn('Generator Output and Capability Report can only be requested up to one year in the past.')
+
         else:
             LOGGER.warn('No valid options were supplied.')
+
         return fuel_mix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
@@ -226,10 +232,10 @@ class IESOClient(BaseClient):
         response = self.request(url=base_output_by_fuel_url + filename)
         return self._parse_output_by_fuel_report(response.content)
 
-# def main():
-#     client = IESOClient()
-#     client.get_generation(start_at=client.utcify(local_ts_str='2016-02-03 15:00:00'),
-#                           end_at=client.utcify(local_ts_str='2016-03-15 01:00:00'))
-#
-# if __name__ == '__main__':
-#     main()
+def main():
+    client = IESOClient()
+    client.get_generation(start_at=client.utcify(local_ts_str='2015-02-03 15:00:00'),
+                          end_at=client.utcify(local_ts_str='2016-03-15 01:00:00'))
+
+if __name__ == '__main__':
+    main()
