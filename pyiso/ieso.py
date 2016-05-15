@@ -20,7 +20,8 @@ class IESOClient(BaseClient):
         'HYDRO': 'hydro',
         'WIND': 'wind',
         'SOLAR': 'solar',
-        'BIOFUEL': 'biomass'
+        'BIOFUEL': 'biomass',
+        'OTHER': 'other'
     }
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
@@ -71,6 +72,19 @@ class IESOClient(BaseClient):
         pass
 
     @staticmethod
+    def _adequacy_filename(local_date=None):
+        """
+        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
+            If not, the latest report filename will be built.
+        :return: Adequacy Report filename.
+        :rtype: str
+        """
+        if local_date is not None:
+            return local_date.strftime('PUB_Adequacy_%Y%m%d.xml')
+        else:
+            return 'PUB_Adequacy.xml'
+
+    @staticmethod
     def _output_capability_filename(local_date=None):
         """
         :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
@@ -95,6 +109,32 @@ class IESOClient(BaseClient):
             return 'PUB_GenOutputbyFuelHourly_' + str(local_year) + '.xml'
         else:
             return 'PUB_GenOutputbyFuelHourly.xml'
+
+    def _parse_adequacy_report(self, xml_content):
+        """
+        Parse the Adequacy Report which contains forecast data.
+
+        :param str xml_content: The XML content of the Adequacy Report.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
+           Timestamps are in UTC.
+        :rtype: list
+        """
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+
+        fuel_mix = list([])
+        day = doc_body.DeliveryDate
+        for system in doc_body.System:
+            if system.SystemName == 'Ontario':
+                for internal_resource in system.InternalResources.InternalResource:
+                    fuel = str.upper(internal_resource.FuelType.text)
+                    if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
+                        for scheduled in internal_resource.FuelScheduled.Scheduled:
+                            ts_local = day + ' ' + str(scheduled.DeliveryHour - 1).zfill(2) + ':00'
+                            fuel_gen_mw = scheduled.EnergyMW
+                            self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
+                                                  market=self.MARKET_CHOICES.dam)
+        return fuel_mix
 
     def _parse_output_capability_report(self, xml_content):
         """
@@ -135,11 +175,13 @@ class IESOClient(BaseClient):
                 idx = len(fuel_hourly) - 1
                 latest_fuel_gen_mw = fuel_hourly[idx]
                 report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=latest_fuel_gen_mw)
+                self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=latest_fuel_gen_mw,
+                                      market=self.MARKET_CHOICES.hourly)
             else:
                 for idx, fuel_gen_mw in enumerate(fuels_hourly[fuel]):
                     report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
+                                          market=self.MARKET_CHOICES.hourly)
         return fuel_mix
 
     def _parse_output_by_fuel_report(self, xml_content):
@@ -162,11 +204,12 @@ class IESOClient(BaseClient):
                 for fuel_total in hourly_data.FuelTotal:
                     fuel = fuel_total.Fuel
                     fuel_gen_mw = fuel_total.EnergyValue.Output
-                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
+                                          market=self.MARKET_CHOICES.hourly)
 
         return fuel_mix
 
-    def _append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel):
+    def _append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel, market):
         """
         Conditionally appends a generation mix value to a list if it falls within the 'start_at' and 'end_at' datetime
         options.
@@ -182,7 +225,7 @@ class IESOClient(BaseClient):
                 'ba_name': self.NAME,
                 'timestamp': report_dt_utc,
                 'freq': self.FREQUENCY_CHOICES.hourly,
-                'market': self.MARKET_CHOICES.hourly,
+                'market': market,
                 'fuel_name': self.fuels[fuel],
                 'gen_MW': gen_mw
             })
