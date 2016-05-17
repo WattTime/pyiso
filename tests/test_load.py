@@ -402,7 +402,7 @@ class TestEULoad(TestBaseLoad):
         super(TestEULoad, self).setUp()
         self.BA_CHOICES = EUClient.CONTROL_AREAS.keys()
 
-    @unittest.expectedFailure
+    @unittest.skip
     def test_latest(self):
         # basic test
         data = self._run_test('EU', latest=True, market=self.MARKET_CHOICES.hourly,
@@ -428,7 +428,7 @@ class TestEULoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    @unittest.expectedFailure
+    @unittest.expectedskip
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
