@@ -1,4 +1,5 @@
 *.swp
+*.swo
 *.py[cod]
 *~
 *.db
@@ -53,5 +54,7 @@ htmlcov
 
 # Certificate key files
 *.pem
+
+
 
 
