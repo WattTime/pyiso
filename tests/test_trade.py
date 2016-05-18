@@ -4,7 +4,7 @@ from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
 import requests_mock
-from tests import test_trade_responses as responses
+from responses import test_trade_responses as responses
 import requests_cache
 
 class TestBaseTrade(TestCase):

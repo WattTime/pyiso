@@ -3,7 +3,8 @@ from pyiso.base import FUEL_CHOICES, BaseClient
 from unittest import TestCase, skip
 import pytz
 from datetime import datetime, timedelta
-
+import requests_mock
+import requests_cache
 
 class TestBaseGenMix(TestCase):
     def setUp(self):
@@ -86,19 +87,26 @@ class TestMISOGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
-    def test_forecast(self):
-        # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('MISO', start_at=today + timedelta(hours=2),
-                              end_at=today+timedelta(days=2))
+    @requests_mock.mock()
+    def test_forecast(self, mocker):
+        with requests_cache.disabled():
 
-        # test timestamps are not equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
+            url = ('https://www.misoenergy.org/Library/Repository/Market%20Reports/'
+                   '20160517_da_ex.xls')
+            print url
+            mocker.get(url, content=open('responses/20160517_da_ex.xls', 'r').read())
+            # basic test
+            today = datetime.today().replace(tzinfo=pytz.utc)
+            data = self._run_test('MISO', start_at=today + timedelta(hours=10),
+                                  end_at=today+timedelta(days=1))
 
-        # test timestamps in range
-        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=2))
-        self.assertLessEqual(min(timestamps), today+timedelta(days=2))
+            # test timestamps are not equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
+
+            # test timestamps in range
+            self.assertGreaterEqual(min(timestamps), today+timedelta(hours=10))
+            self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
 
 @skip

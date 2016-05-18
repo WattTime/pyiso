@@ -3,6 +3,7 @@ from unittest import TestCase
 import pytz
 from datetime import datetime
 from io import StringIO
+import pandas as pd
 
 
 class TestBPABase(TestCase):
@@ -147,7 +148,7 @@ Date/Time   TOTAL WIND GENERATION  BASEPOINT (FORECAST) IN BPA CONTROL AREA (MW;
 
     def test_parse_xls(self):
         c = client_factory('BPA')
-        xd = c.fetch_xls(c.base_url + 'wind/WindGenTotalLoadYTD_2014.xls')
+        xd = pd.ExcelFile('responses/WindGenTotalLoadYTD_2014_short.xls')
 
         # parse xls
         df = c.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names, skiprows=18,
