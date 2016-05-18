@@ -346,15 +346,8 @@ class BaseClient(object):
             df = pd.concat(pieces)
 
             # parse date index
-            if parse_dates:
-                idx = []
-                for t in df.index:
-                    try:
-                        idx.append(pd.to_datetime(t))
-                    except (ValueError, TypeError):
-                        # not a datetime
-                        idx.append('')
-                df.index = idx
+
+            df.index = pd.to_datetime(df.index, infer_datetime_format=True, errors='coerce')
 
         # set names
         if header_names is not None:
