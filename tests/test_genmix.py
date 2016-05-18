@@ -4,7 +4,8 @@ from unittest import TestCase, skip
 import pytz
 from datetime import datetime, timedelta
 import requests_mock
-import requests_cache
+import mock
+import freezegun
 
 class TestBaseGenMix(TestCase):
     def setUp(self):
@@ -44,9 +45,9 @@ class TestBaseGenMix(TestCase):
 
             # test earlier than now
             if c.options.get('forecast', False):
-                self.assertGreater(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertGreater(dp['timestamp'], datetime.now(pytz.utc))
             else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertLess(dp['timestamp'], datetime.now(pytz.utc))
 
         # return
         return data
@@ -87,26 +88,25 @@ class TestMISOGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
+    @freezegun.freeze_time('2016-05-17 06:00', tz_offset=0, tick=True)
     @requests_mock.mock()
     def test_forecast(self, mocker):
-        with requests_cache.disabled():
+        url = ('https://www.misoenergy.org/Library/Repository/Market%20Reports/'
+               '20160517_da_ex.xls')
+        mocker.get(url, content=open('responses/20160517_da_ex.xls', 'r').read())
+        mocker.get(url.replace('0517', '0518'), status_code=404)
+        # basic test
+        today = datetime.now(pytz.utc)
+        data = self._run_test('MISO', start_at=today + timedelta(hours=10),
+                              end_at=today+timedelta(days=1))
 
-            url = ('https://www.misoenergy.org/Library/Repository/Market%20Reports/'
-                   '20160517_da_ex.xls')
-            print url
-            mocker.get(url, content=open('responses/20160517_da_ex.xls', 'r').read())
-            # basic test
-            today = datetime.today().replace(tzinfo=pytz.utc)
-            data = self._run_test('MISO', start_at=today + timedelta(hours=10),
-                                  end_at=today+timedelta(days=1))
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
 
-            # test timestamps are not equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertGreater(len(set(timestamps)), 1)
-
-            # test timestamps in range
-            self.assertGreaterEqual(min(timestamps), today+timedelta(hours=10))
-            self.assertLessEqual(min(timestamps), today+timedelta(days=2))
+        # test timestamps in range
+        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=10))
+        self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
 
 @skip
@@ -345,9 +345,19 @@ class TestNYISOGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    def test_date_range_farpast(self):
+    @freezegun.freeze_time('2016-05-18 12:00', tz_offset=0, tick=True)
+    @requests_mock.mock()
+    def test_date_range_farpast(self, mocker):
+        mocker.get(
+            'http://mis.nyiso.com/public/csv/rtfuelmix/20160428rtfuelmix.csv',
+            text='Too far back',
+            status_code=404)
+        mocker.get(
+            'http://mis.nyiso.com/public/csv/rtfuelmix/20160401rtfuelmix_csv.zip',
+            content=open('responses/20160401rtfuelmix.csv.zip', 'rb').read())
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
+
         data = self._run_test('NYISO', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=18))
 

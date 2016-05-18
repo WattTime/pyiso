@@ -1,5 +1,5 @@
 from pyiso import client_factory
-from unittest import TestCase, expectedFailure
+from unittest import TestCase, expectedFailure, skip
 from io import StringIO
 import pandas as pd
 import pytz
@@ -704,7 +704,7 @@ class TestCAISOBase(TestCase):
                                           market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})
 
-    @expectedFailure
+    @skip
     def test_lmp_loc(self):
         c = client_factory('CAISO')
         loc_data = c.get_lmp_loc()

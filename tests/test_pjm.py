@@ -3,7 +3,6 @@ from unittest import TestCase
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-import requests_cache
 import unittest
 
 
@@ -121,12 +120,11 @@ class TestPJM(TestCase):
         self.assertEqual(df.index[-1], pytz.utc.localize(datetime(2015, 12, 12, 0, 00)))
 
     def test_fetch_edata_series_timezone(self):
-        with requests_cache.disabled():
-            data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
+        data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
 
-            # check that latest forecast is within 1 hour, 1 minute of now
-            td = data.index[0] - pytz.utc.localize(datetime.utcnow())
-            self.assertLessEqual(td, timedelta(hours=1, minutes=1))
+        # check that latest forecast is within 1 hour, 1 minute of now
+        td = data.index[0] - pytz.utc.localize(datetime.utcnow())
+        self.assertLessEqual(td, timedelta(hours=1, minutes=1))
 
     def test_missing_time_is_none(self):
         ts = self.c.time_as_of('')
@@ -150,15 +148,14 @@ class TestPJM(TestCase):
         self.assertGreaterEqual(max(timestamps), end_at)
 
     def test_get_lmp_oasis(self):
-        with requests_cache.disabled():
-            now = datetime.now(pytz.utc)
-            data = self.c.get_lmp(node_id=33092371, market='RT5M')
+        now = datetime.now(pytz.utc)
+        data = self.c.get_lmp(node_id=33092371, market='RT5M')
 
-            timestamps = [d['timestamp'] for d in data]
+        timestamps = [d['timestamp'] for d in data]
 
-            # no historical data
-            self.assertEqual(len(set(timestamps)), 1)
-            self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*10)
+        # no historical data
+        self.assertEqual(len(set(timestamps)), 1)
+        self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*10)
 
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)

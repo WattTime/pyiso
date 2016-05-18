@@ -5,7 +5,6 @@ import pytz
 from datetime import datetime, timedelta
 import requests_mock
 from responses import test_trade_responses as responses
-import requests_cache
 
 class TestBaseTrade(TestCase):
     def setUp(self):
@@ -166,51 +165,49 @@ class TestNYISOTrade(TestBaseTrade):
 
     @requests_mock.mock()
     def test_date_range(self, mocker):
-        with requests_cache.disabled():
-            url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
-                   '/20160513ExternalLimitsFlows.csv')
-            mocker.get(url, text=responses.test_date_range_short[1])
+        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
+               '/20160513ExternalLimitsFlows.csv')
+        mocker.get(url, text=responses.test_date_range_short[1])
 
-            mocker.get(url.replace('13', '11'),
-                       text=responses.test_date_range_short[1].replace('05/13', '05/11'))
+        mocker.get(url.replace('13', '11'),
+                   text=responses.test_date_range_short[1].replace('05/13', '05/11'))
 
-            mocker.get(url.replace('13', '12'),
-                       text=responses.test_date_range_short[1].replace('05/13', '05/12'))
+        mocker.get(url.replace('13', '12'),
+                   text=responses.test_date_range_short[1].replace('05/13', '05/12'))
 
-            # basic test
-            now = responses.test_date_range_short[0]
-            # basic test
-            data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
-                                      end_at=now-timedelta(days=1))
+        # basic test
+        now = responses.test_date_range_short[0]
+        # basic test
+        data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
+                                  end_at=now-timedelta(days=1))
 
-            # test timestamps are not equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertGreater(len(set(timestamps)), 1)
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
 
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     @requests_mock.mock()
     def test_date_range_short(self, mocker):
-        with requests_cache.disabled():
-            url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
-                   '/20160513ExternalLimitsFlows.csv')
-            mocker.get(url, text=responses.test_date_range_short[1])
-            # basic test
-            now = responses.test_date_range_short[0]
-            data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
-                                      end_at=now-timedelta(minutes=5))
+        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
+               '/20160513ExternalLimitsFlows.csv')
+        mocker.get(url, text=responses.test_date_range_short[1])
+        # basic test
+        now = responses.test_date_range_short[0]
+        data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
+                                  end_at=now-timedelta(minutes=5))
 
-            # test timestamps are not equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertEqual(len(set(timestamps)), 1)
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
 
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range_future(self):
         # basic test

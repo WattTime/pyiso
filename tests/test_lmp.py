@@ -3,7 +3,6 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
-import requests_cache
 
 
 class TestBaseLMP(TestCase):
@@ -178,33 +177,31 @@ class TestNYISOLMP(TestBaseLMP):
 
 class TestPJMLMP(TestBaseLMP):
     def test_latest(self):
-        with requests_cache.disabled():
-            # basic test
-            data = self._run_test('PJM', node_id='COMED',
-                                  market=self.MARKET_CHOICES.fivemin)
+        # basic test
+        data = self._run_test('PJM', node_id='COMED',
+                              market=self.MARKET_CHOICES.fivemin)
 
-            # test all timestamps are equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertEqual(len(set(timestamps)), 1)
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
 
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_latest_oasis(self):
-        with requests_cache.disabled():
-            data = self._run_test('PJM', node_id=None, tol_min=10,
-                                  market=self.MARKET_CHOICES.fivemin)
+        data = self._run_test('PJM', node_id=None, tol_min=10,
+                              market=self.MARKET_CHOICES.fivemin)
 
-            # test all timestamps are equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertEqual(len(set(timestamps)), 1)
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
 
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     # def test_forecast(self):
     #     # basic test
@@ -245,35 +242,32 @@ class TestPJMLMP(TestBaseLMP):
         self.assertGreater(len(set(timestamps)), 1)
 
     def test_multiple_lmp_realtime(self):
-        with requests_cache.disabled():
-            node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
-                         'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
-                         'PEPCO', 'PPL', 'PSEG', 'RECO']
-            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
-                                  market=self.MARKET_CHOICES.fivemin)
+        node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
+                     'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
+                     'PEPCO', 'PPL', 'PSEG', 'RECO']
+        data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
 
-            nodes_returned = [d['node_id'] for d in data]
-            for node in nodes_returned:
-                self.assertIn(node, nodes_returned)
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
 
     def test_multiple_lmp_realtime_mixed(self):
-        with requests_cache.disabled():
-            node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
-                         'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
-                         'PEPCO', 'PPL', 'PSEG', 'RECO', '33092371']
-            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
-                                  market=self.MARKET_CHOICES.fivemin)
+        node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
+                     'DOM', 'DPL', 'DUQ', 'EKPC', 'JCPL', 'METED', 'PECO', 'PENELEC',
+                     'PEPCO', 'PPL', 'PSEG', 'RECO', '33092371']
+        data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
 
-            nodes_returned = [d['node_id'] for d in data]
-            for node in nodes_returned:
-                self.assertIn(node, nodes_returned)
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
 
     def test_multiple_lmp_realtime_oasis(self):
-        with requests_cache.disabled():
-            node_list = ['MERIDIAN EWHITLEY', 'LANSDALE']
-            data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
-                                  market=self.MARKET_CHOICES.fivemin)
+        node_list = ['MERIDIAN EWHITLEY', 'LANSDALE']
+        data = self._run_test('PJM', tol_min=10, node_id=node_list, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
 
-            nodes_returned = [d['node_id'] for d in data]
-            for node in nodes_returned:
-                self.assertIn(node, nodes_returned)
+        nodes_returned = [d['node_id'] for d in data]
+        for node in nodes_returned:
+            self.assertIn(node, nodes_returned)
