@@ -5,7 +5,7 @@ try:
     from urllib2 import HTTPError
 except ImportError:
     from urllib.error import HTTPError
-from io import StringIO
+from StringIO import StringIO
 from datetime import datetime
 import pytz
 
@@ -134,12 +134,14 @@ class MISOClient(BaseClient):
         datestr = date.strftime('%Y%m%d')
         url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
 
-        # make request
-        try:
-            xls = pd.read_excel(url)
-        except HTTPError:
+        # make request with self.request for easier debugging, mocking
+        response = self.request(url)
+
+        if response.status_code == 404:
             LOGGER.debug('No MISO forecast data available at %s' % datestr)
             return pd.DataFrame()
+
+        xls = pd.read_excel(StringIO(response.content))
 
         # clean header
         header_df = xls.iloc[:5]
