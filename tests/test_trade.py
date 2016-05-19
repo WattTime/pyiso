@@ -143,7 +143,7 @@ class TestCAISOTrade(TestBaseTrade):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-       # test flags
+        # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
@@ -237,7 +237,7 @@ class TestMISOTrade(TestBaseTrade):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-       # test flags
+        # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
