@@ -2,7 +2,7 @@ from pyiso.base import BaseClient
 import numpy as np
 import pandas as pd
 from datetime import timedelta
-
+import re
 
 class NYISOClient(BaseClient):
     NAME = 'NYISO'
@@ -302,15 +302,23 @@ class NYISOClient(BaseClient):
         if self.options['latest']:
             df = df.truncate(after=self.local_now())
 
-        # select name for node id
-        node_df = df[df['Name'] == self.options['node_id']]
+        # strip out unwated nodes
+        if getattr(self.options, 'node_id', False):
+            if not isinstance(self.options['node_id'], list):
+                self.options['node_id'] = [self.options['node_id']]
+            reg = re.compile('|'.join(self.options['node_id']))
+            df = df.ix[df['node_id'].str.contains(reg)]
 
-        # pull out column
-        final_df = pd.DataFrame({
-            'lmp': node_df['LBMP ($/MWHr)'],
-            'node_id': node_df['Name'],
-            'lmp_type': 'energy',
-        })
+        rename_d = {'LBMP ($/MWHr)': 'lmp',
+                    'Name': 'node_id'}
+        df.rename(columns=rename_d, inplace=True)
+        df['lmp_type'] = 'energy'
+
+        df.drop([u'PTID', u'Marginal Cost Losses ($/MWHr)'], axis=1, inplace=True)
+        try:
+            df.drop(u'Marginal Cost Congestion ($/MWHr)', axis=1, inplace=True)
+        except ValueError:
+            df.drop(u'Marginal Cost Congestion ($/MWH', axis=1, inplace=True)
 
         # return
-        return final_df
+        return df
