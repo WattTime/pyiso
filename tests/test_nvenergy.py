@@ -7,6 +7,7 @@ try:
 except ImportError:
     from urllib.error import HTTPError
 import pytz
+import requests_mock
 
 
 one_day = StringIO(u"""
@@ -3832,10 +3833,12 @@ class TestNVEnergy(TestCase):
         self.assertIn(last_month_date.strftime('%m_01_%Y'), url)
         self.assertEqual(mode, 'historical')
 
-    def test_fetch_df_today(self):
+    @requests_mock.mock()
+    def test_fetch_df_today(self, mocker):
         # set up df from StringIO
         one_day.seek(0)
-        df, mode = self.c.fetch_df(self.today, url=one_day, mode='recent')
+        mocker.get('http://mockurl', text=one_day.read())
+        df, mode = self.c.fetch_df(self.today, url='http://mockurl', mode='recent')
 
         # test index and columns
         self.assertEqual(list(df.index),
@@ -3848,13 +3851,15 @@ class TestNVEnergy(TestCase):
 
     def test_fetch_df_bad(self):
         # no data in year 2020
-        self.assertRaises(HTTPError, self.c.fetch_df, self.today,
+        self.assertRaises(ValueError, self.c.fetch_df, self.today,
                           self.c.BASE_URL + 'native_system_load_and_ties_for_01_01_2020_.html')
 
-    def test_parse_load_today(self):
+    @requests_mock.mock()
+    def test_parse_load_today(self, mocker):
         # set up df from StringIO
         one_day.seek(0)
-        df, mode = self.c.fetch_df(self.today, url=one_day)
+        mocker.get('http://mockurl', text=one_day.read())
+        df, mode = self.c.fetch_df(self.today, url='http://mockurl')
 
         # set up options
         self.c.handle_options(latest=True)
@@ -3868,10 +3873,12 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
-    def test_parse_load_tomorrow(self):
+    @requests_mock.mock()
+    def test_parse_load_tomorrow(self, mocker):
         # set up df from StringIO
         tomorrow.seek(0)
-        df, mode = self.c.fetch_df(self.tomorrow, tomorrow, 'tomorrow')
+        mocker.get('http://mockurl', text=tomorrow.read())
+        df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
 
         # set up options
         self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
@@ -3885,10 +3892,12 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Forecast System Load', idp+1])
 
-    def test_parse_load_last_month(self):
+    @requests_mock.mock()
+    def test_parse_load_last_month(self, mocker):
         # set up df from StringIO
         one_month.seek(0)
-        df, mode = self.c.fetch_df(self.last_month, one_month, 'historical')
+        mocker.get('http://mockurl', text=one_month.read())
+        df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
 
         # set up options
         self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
@@ -3902,10 +3911,12 @@ class TestNVEnergy(TestCase):
             self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
-    def test_parse_trade_today(self):
+    @requests_mock.mock()
+    def test_parse_trade_today(self, mocker):
         # set up df from StringIO
         one_day.seek(0)
-        df, mode = self.c.fetch_df(self.today, url=one_day)
+        mocker.get('http://mockurl', text=one_day.read())
+        df, mode = self.c.fetch_df(self.today, url='http://mockurl')
 
         # set up options
         self.c.handle_options(latest=True)
@@ -3922,10 +3933,12 @@ class TestNVEnergy(TestCase):
             idx = idp % 18 + 1
             self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
-    def test_parse_trade_tomorrow(self):
+    @requests_mock.mock()
+    def test_parse_trade_tomorrow(self, mocker):
         # set up df from StringIO
         tomorrow.seek(0)
-        df, mode = self.c.fetch_df(self.tomorrow, tomorrow, 'tomorrow')
+        mocker.get('http://mockurl', text=tomorrow.read())
+        df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
 
         # set up options
         self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
@@ -3933,10 +3946,12 @@ class TestNVEnergy(TestCase):
         # no trade data tomorrow
         self.assertRaises(KeyError, self.c.parse_trade, df, self.tomorrow, 'tomorrow')
 
-    def test_parse_trade_last_month(self):
+    @requests_mock.mock()
+    def test_parse_trade_last_month(self, mocker):
         # set up df from StringIO
         one_month.seek(0)
-        df, mode = self.c.fetch_df(self.last_month, one_month, 'historical')
+        mocker.get('http://mockurl', text=one_month.read())
+        df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
 
         # set up options
         self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
