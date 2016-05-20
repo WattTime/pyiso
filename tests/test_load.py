@@ -5,6 +5,8 @@ from unittest import TestCase
 import unittest
 import pytz
 from datetime import datetime, timedelta
+import freezegun
+import requests_mock
 
 
 class TestBaseLoad(TestCase):
@@ -120,10 +122,16 @@ class TestCAISOLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    def test_forecast(self):
+    @freezegun.freeze_time('2015-05-20 14:30', tz_offset=0, tick=True)
+    @requests_mock.mock()
+    def test_forecast(self, mocker):
+        url = 'http://oasis.caiso.com/oasisapi/SingleZip'
+        with open('responses/SLD_FCST.zip', 'rb') as ffile:
+            mocker.get(url, content=ffile.read())
+
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today + timedelta(hours=20),
+        data = self._run_test('CAISO', start_at=today + timedelta(hours=4),
                               end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
