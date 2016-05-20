@@ -71,7 +71,6 @@ setup(
         'xlrd',
         'lxml',
         'html5lib',
-        'requests-cache',
         'mock',
     ],
 )
