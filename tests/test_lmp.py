@@ -94,7 +94,7 @@ class TestCAISOLMP(TestBaseLMP):
         # basic test
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              start_at=now+timedelta(hours=2),
+                              start_at=now+timedelta(hours=20),
                               end_at=now+timedelta(days=2),
                               market=self.MARKET_CHOICES.dam)
 
@@ -203,20 +203,21 @@ class TestPJMLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    # def test_forecast(self):
-    #     # basic test
-    #     now = pytz.utc.localize(datetime.utcnow())
-    #     data = self._run_test('PJM', node_id=33092371,
-    #                           start_at=now, end_at=now+timedelta(days=1))
 
-    #     # test all timestamps are equal
-    #     timestamps = [d['timestamp'] for d in data]
-    #     self.assertGreater(len(set(timestamps)), 1)
+    def forecast(self):  # skip
+        # basic test
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('PJM', node_id=33092371,
+                              start_at=now, end_at=now+timedelta(days=1))
 
-    #     # test flags
-    #     for dp in data:
-    #         self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-    #         self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def test_date_range_dayahead_hourly(self):
         # basic test
@@ -271,3 +272,34 @@ class TestPJMLMP(TestBaseLMP):
         nodes_returned = [d['node_id'] for d in data]
         for node in nodes_returned:
             self.assertIn(node, nodes_returned)
+
+
+class TestMISOLMP(TestBaseLMP):
+    def test_latest(self):
+        # basic test
+        data = self._run_test('MISO', node_id=None,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def forecast(self):  # skip
+        # basic test
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('MISO', node_id=None,
+                              start_at=now, end_at=now+timedelta(days=1))
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
