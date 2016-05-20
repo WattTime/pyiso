@@ -119,7 +119,8 @@ class NVEnergyClient(BaseClient):
             url, mode = self.data_url(this_date, mode=mode)
 
         # carry out request and parse html tables
-        dfs = pd.read_html(url, index_col=0)
+        response = self.request(url)
+        dfs = pd.read_html(response.content, index_col=0)
 
         # choose df based on mode
         if mode == 'recent':
