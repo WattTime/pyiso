@@ -582,6 +582,7 @@ class TestCAISOBase(TestCase):
         c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime.utcnow())
         lmp = c.get_lmp_as_dataframe('SLAP_PGP2-APND')
+        lmp = c._standardize_lmp_dataframe(lmp)
         self.assertEqual(len(lmp), 1)
 
         self.assertGreaterEqual(lmp.iloc[0]['lmp'], -300)
@@ -597,6 +598,7 @@ class TestCAISOBase(TestCase):
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False,
                                       start_at=start, end_at=ts,)
+        lmps = c._standardize_lmp_dataframe(lmps)
         self.assertEqual(len(lmps), 24)
 
         self.assertGreaterEqual(lmps['lmp'].max(), 0)
@@ -611,8 +613,9 @@ class TestCAISOBase(TestCase):
         ts = pytz.utc.localize(datetime(2016, 3, 1, 12))
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
-        self.assertEqual(len(lmps), 8)
+        lmps = c._standardize_lmp_dataframe(lmps)
 
+        self.assertEqual(len(lmps), 8)
         self.assertGreaterEqual(lmps['lmp'].max(), 0)
         self.assertLess(lmps['lmp'].max(), 1500)
         self.assertGreaterEqual(lmps['lmp'].min(), -300)
@@ -719,7 +722,7 @@ class TestCAISOBase(TestCase):
                                           market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})
 
-    @skip
+    @skip('Not ready yet')
     def test_lmp_loc(self):
         c = client_factory('CAISO')
         loc_data = c.get_lmp_loc()
