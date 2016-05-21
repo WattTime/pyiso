@@ -25,6 +25,7 @@ class ISONEClient(BaseClient):
     }
 
     locations = {
+        'INTERNALHUB': 4000,
         'MAINE': 4001,
         'NEWHAMPSHIRE': 4002,
         'VERMONT': 4003,
@@ -217,7 +218,7 @@ class ISONEClient(BaseClient):
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE lmp data %s' % data)
 
-    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False, **kwargs):
+    def get_lmp(self, node_id='INTERNALHUB', latest=True, start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -231,7 +232,6 @@ class ISONEClient(BaseClient):
         # set up storage
         raw_data = []
         parsed_data = []
-
         # collect raw data
         for endpoint in self.request_endpoints(locationid):
             # carry out request
