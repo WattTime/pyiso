@@ -135,10 +135,6 @@ class NYISOClient(BaseClient):
                 'market': self.MARKET_CHOICES.fivemin,
             }
 
-        # strip out unwanted nodes
-        if node_id:
-            reg = re.compile('|'.join(node_id))
-            df = df.ix[df['node_id'].str.contains(reg)]
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
@@ -320,5 +316,10 @@ class NYISOClient(BaseClient):
         except ValueError:
             df.drop(u'Marginal Cost Congestion ($/MWH', axis=1, inplace=True)
 
+        # strip out unwanted nodes
+        node_id = self.options['node_id']
+        if node_id:
+            reg = re.compile('|'.join(node_id))
+            df = df.ix[df['node_id'].str.contains(reg)]
         # return
         return df

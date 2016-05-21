@@ -414,7 +414,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_lmp(self):
         c = client_factory('NYISO')
-        c.options = {'data': 'lmp', 'node_id': 'LONGIL', 'latest': True}
+        c.options = {'data': 'lmp', 'node_id': ['LONGIL'], 'latest': True}
         df = c.parse_lmp(self.lmp_csv)
 
         for idx, row in df.iterrows():
