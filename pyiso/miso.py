@@ -2,14 +2,11 @@ from collections import namedtuple
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
-try:
-    from urllib2 import HTTPError
-except ImportError:
-    from urllib.error import HTTPError
 from StringIO import StringIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from dateutil.parser import parse
+import re
 
 IntervalChoices = namedtuple('IntervalChoices',
                              ['hourly', 'fivemin', 'tenmin', 'na', 'dam', 'dam_exante'])
@@ -199,7 +196,7 @@ class MISOClient(BaseClient):
         if 'freq' not in self.options:
             self.options['freq'] = self.FREQUENCY_CHOICES.hourly
 
-    def get_realtime_lmp(self, node_id, **kwargs):
+    def get_realtime_lmp(self, **kwargs):
         # get csv with latest 5 minute data
         url = self.base_url + '/ria/Consolidated.aspx?format=csv'
         response = self.request(url)
@@ -297,15 +294,19 @@ class MISOClient(BaseClient):
 
         return df
 
-    def get_lmp(self, node_id, latest=True, **kwargs):
+    def get_lmp(self, node_id=None, latest=True, **kwargs):
         self.handle_options(latest=latest, **kwargs)
 
         if self.options['latest']:
-            df = self.get_realtime_lmp(node_id, **kwargs)
+            df = self.get_realtime_lmp(**kwargs)
 
         else:
             df = self.get_historical_lmp()
 
+        # strip out unwated nodes
         if node_id:
-            df = df[df['node_id'] == node_id]
+            if not isinstance(node_id, list):
+                node_id = [node_id]
+            reg = re.compile('|'.join(node_id))
+            df = df.ix[df['node_id'].str.contains(reg)]
         return df.to_dict(orient='records')
