@@ -584,8 +584,8 @@ class TestCAISOBase(TestCase):
         lmp = c.get_lmp_as_dataframe('SLAP_PGP2-APND')
         self.assertEqual(len(lmp), 1)
 
-        self.assertGreaterEqual(lmp.iloc[0]['LMP_PRC'], -300)
-        self.assertLessEqual(lmp.iloc[0]['LMP_PRC'], 1500)
+        self.assertGreaterEqual(lmp.iloc[0]['lmp'], -300)
+        self.assertLessEqual(lmp.iloc[0]['lmp'], 1500)
 
         # lmp is a dataframe, lmp.iloc[0] is a Series, Series.name is the index of that entry
         self.assertGreater(lmp.iloc[0].name, ts - timedelta(minutes=5))
@@ -595,12 +595,27 @@ class TestCAISOBase(TestCase):
         c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
-        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
+        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False,
+                                      start_at=start, end_at=ts,)
         self.assertEqual(len(lmps), 24)
 
-        self.assertGreaterEqual(lmps['LMP_PRC'].max(), 0)
-        self.assertLess(lmps['LMP_PRC'].max(), 1500)
-        self.assertGreaterEqual(lmps['LMP_PRC'].min(), -300)
+        self.assertGreaterEqual(lmps['lmp'].max(), 0)
+        self.assertLess(lmps['lmp'].max(), 1500)
+        self.assertGreaterEqual(lmps['lmp'].min(), -300)
+
+        self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
+        self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
+
+    def test_get_lmp_dataframe_fifteen(self):
+        c = client_factory('CAISO')
+        ts = pytz.utc.localize(datetime(2016, 3, 1, 12))
+        start = ts - timedelta(hours=2)
+        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
+        self.assertEqual(len(lmps), 8)
+
+        self.assertGreaterEqual(lmps['lmp'].max(), 0)
+        self.assertLess(lmps['lmp'].max(), 1500)
+        self.assertGreaterEqual(lmps['lmp'].min(), -300)
 
         self.assertGreaterEqual(lmps.index.to_pydatetime().min(), start)
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)

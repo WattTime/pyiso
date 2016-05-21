@@ -16,7 +16,7 @@ except ImportError:
     from urllib.request import urlopen  # Changed from urllib2 for python3.x
 
 # named tuple for time period interval labels
-IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
+IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'fifteenmin', 'na', 'dam'])
 
 # list of fuel choices
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
@@ -30,8 +30,8 @@ class BaseClient(object):
     Base class for scraper/parser clients.
     """
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
-    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', fifteenmin='RTPD', na='RT5M', dam='DAHR')
+    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', fifteenmin='15m', na='n/a', dam='1hr')
 
     # timezone
     TZ_NAME = 'UTC'
