@@ -3,6 +3,8 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
+import sys
+from nose_parameterized import parameterized
 
 
 class TestBaseLMP(TestCase):
@@ -136,7 +138,7 @@ class TestISONELMP(TestBaseLMP):
 class TestNYISOLMP(TestBaseLMP):
     def test_latest(self):
         # basic test
-        data = self._run_test('NYISO', node_id='LONGIL',
+        data = self._run_test('NYISO', node_id=None,
                               latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
@@ -202,7 +204,6 @@ class TestPJMLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
-
 
     def forecast(self):  # skip
         # basic test
@@ -303,3 +304,107 @@ class TestMISOLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+
+class TestERCOTLMP(TestBaseLMP):
+    def test_latest(self):
+        # basic test
+        data = self._run_test('ERCOT', latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_latest_single_node(self):
+        data = self._run_test('ERCOT', node_id='HB_HOUSTON', latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        self.assertEqual(len(data), 1)
+
+    def test_latest_multi_node(self):
+        data = self._run_test('ERCOT', node_id=['LZ_HOUSTON', 'LZ_NORTH'], latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+
+        self.assertEqual(len(data), 2)
+
+    def test_date_range_dayahead_hourly(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('ERCOT', node_id=['LZ_HOUSTON', 'LZ_NORTH'],
+                              start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(hours=40),
+                              market=self.MARKET_CHOICES.dam)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+    def test_forecast(self):
+        # basic test
+        now = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('ERCOT', node_id=['LZ_HOUSTON', 'LZ_NORTH'],
+                              start_at=now, end_at=now+timedelta(days=1))
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+
+#####################################################################
+# Test minumum LMP functions, test-runner cannot run individual tests
+# with parameterized.expand, so separate out into classes
+
+class TestLatestLMP(TestBaseLMP):
+    @parameterized.expand([
+        ('CAISO', 'CAISO', True),
+        ('MISO', 'MISO', True),
+        ('ERCOT', 'ERCOT', True),
+        ('NYISO', 'NYISO', True),
+        ('ISONE', 'ISONE', True),
+    ])
+    def test_latest(self, name, ba, expected):
+        data = self._run_test(ba, latest=True,
+                              market=self.MARKET_CHOICES.fivemin)
+        self.assertEqual(len(set([t['timestamp'] for t in data])), 1)
+
+
+class TestForecastLMP(TestBaseLMP):
+    @parameterized.expand([
+        ('CAISO', 'CAISO', True),
+        ('MISO', 'MISO', True),
+        ('ERCOT', 'ERCOT', True),
+        ('NYISO', 'NYISO', True),
+        ('ISONE', 'ISONE', True),
+    ])
+    def test_forecast(self, name, ba, expected):
+        now = datetime.now(pytz.utc)
+        data = self._run_test(ba,  start_at=now, end_at=now + timedelta(days=1),
+                              market=self.MARKET_CHOICES.dam)
+        self.assertGreater(len(data), 1)
+
+
+class TestTodayLMP(TestBaseLMP):
+    @parameterized.expand([
+        ('CAISO', 'CAISO', True),
+        ('MISO', 'MISO', True),
+        ('ERCOT', 'ERCOT', True),
+        ('NYISO', 'NYISO', True),
+        ('ISONE', 'ISONE', True),
+    ])
+    def test_today(self, name, ba, expected):
+        now = datetime.now(pytz.utc)
+        data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
+                              market=self.MARKET_CHOICES.hourly)
+        self.assertGreater(len(data), 1)
+
