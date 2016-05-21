@@ -167,6 +167,8 @@ class ISONEClient(BaseClient):
                 base_endpoint = 'fiveminutelmp'
             elif self.options['market'] == self.MARKET_CHOICES.dam:
                 base_endpoint = 'hourlylmp/da/final'
+            elif self.options['market'] == self.MARKET_CHOICES.hourly:
+                base_endpoint = 'hourlylmp/rt/prelim'
         elif self.options['data'] == 'load':
             if self.options['market'] == self.MARKET_CHOICES.dam:
                 base_endpoint = 'hourlyloadforecast'
