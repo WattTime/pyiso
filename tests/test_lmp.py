@@ -146,7 +146,6 @@ class TestCAISOLMP(TestBaseLMP):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
 
-
 class TestISONELMP(TestBaseLMP):
     def test_latest(self):
         # basic test
@@ -271,7 +270,7 @@ class TestPJMLMP(TestBaseLMP):
         self.assertGreater(len(set(timestamps)), 1)
 
     def test_date_range_realtime_hourly(self):
-         # basic test
+        # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('PJM', node_id=33092371,
                               start_at=today-timedelta(days=2),
@@ -328,6 +327,12 @@ class TestMISOLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_today(self):
+        now = datetime.now(pytz.utc)
+        data = self._run_test('MISO',  start_at=now - timedelta(days=1), end_at=now,
+                              market=self.MARKET_CHOICES.hourly)
+        self.assertGreater(len(data), 1)
 
     def forecast(self):  # skip
         # basic test
@@ -400,11 +405,7 @@ class TestERCOTLMP(TestBaseLMP):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
 
-#####################################################################
-# Test minumum LMP functions, test-runner cannot run individual tests
-# with parameterized.expand, so separate out into classes
-
-class TestLatestLMP(TestBaseLMP):
+class TestMinimumLMP(TestBaseLMP):
     @parameterized.expand([
         ('CAISO', 'CAISO', True),
         ('MISO', 'MISO', True),
@@ -415,10 +416,9 @@ class TestLatestLMP(TestBaseLMP):
     def test_latest(self, name, ba, expected):
         data = self._run_test(ba, latest=True,
                               market=self.MARKET_CHOICES.fivemin)
+        self.assertEqual(len(set([t['node_id'] for t in data])), 1)
         self.assertEqual(len(set([t['timestamp'] for t in data])), 1)
 
-
-class TestForecastLMP(TestBaseLMP):
     @parameterized.expand([
         ('CAISO', 'CAISO', True),
         ('MISO', 'MISO', True),
@@ -431,13 +431,12 @@ class TestForecastLMP(TestBaseLMP):
         data = self._run_test(ba,  start_at=now, end_at=now + timedelta(days=1),
                               market=self.MARKET_CHOICES.dam)
         self.assertGreater(len(data), 1)
+        self.assertEqual(len(set([t['node_id'] for t in data])), 1)
 
-
-class TestTodayLMP(TestBaseLMP):
     @parameterized.expand([
         ('CAISO', 'CAISO', True),
         ('MISO', 'MISO', True),
-        ('ERCOT', 'ERCOT', True),
+        # ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
     ])
@@ -446,4 +445,4 @@ class TestTodayLMP(TestBaseLMP):
         data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
                               market=self.MARKET_CHOICES.hourly)
         self.assertGreater(len(data), 1)
-
+        self.assertEqual(len(set([t['node_id'] for t in data])), 1)
