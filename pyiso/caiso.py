@@ -198,7 +198,7 @@ class CAISOClient(BaseClient):
 
         return return_list
 
-    def get_lmp(self, node_id=None, **kwargs):
+    def get_lmp(self, node_id='SLAP_PGP2-APND', **kwargs):
         """
         Returns a dictionary with keys of datetime.datetime objects
         Values holds $/MW float
@@ -207,7 +207,7 @@ class CAISOClient(BaseClient):
         if not isinstance(node_id, list):
             node_id = [node_id]
 
-        if len(node_id) > 1:
+        if len(node_id) > 10:
             # CAISO will not accept more than 10 node_ids
             # to do, if less than 10 node_ids, only get requested node ids
             node_list = node_id

@@ -253,7 +253,7 @@ class ERCOTClient(BaseClient):
         df['timestamp'] = df.index
         return df
 
-    def get_lmp(self, node_id=None, **kwargs):
+    def get_lmp(self, node_id='HB_HUBAVG', **kwargs):
         self.handle_options(data='lmp', node_id=node_id, **kwargs)
 
         if self.options['market'] == self.MARKET_CHOICES.fivemin:
@@ -293,7 +293,7 @@ class ERCOTClient(BaseClient):
         if self.options['forecast']:
             df = df[datetime.now(pytz.utc):]
 
-        # strip out unwated nodes
+        # strip out unwanted nodes
         if node_id:
             if not isinstance(node_id, list):
                 node_id = [node_id]

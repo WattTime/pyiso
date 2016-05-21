@@ -9,7 +9,8 @@ from dateutil.parser import parse
 import re
 
 IntervalChoices = namedtuple('IntervalChoices',
-                             ['hourly', 'fivemin', 'tenmin', 'na', 'dam', 'dam_exante'])
+                             ['hourly', 'hourly_prelim', 'fivemin', 'tenmin',
+                              'na', 'dam', 'dam_exante'])
 
 
 class MISOClient(BaseClient):
@@ -25,17 +26,13 @@ class MISOClient(BaseClient):
         'Wind': 'wind',
     }
 
-    TZ_NAME = 'America/New_York'
+    # MISO is always on utc offset is -5
+    # Due to a legacy problem, pytz time zones names are sign reversed
+    TZ_NAME = 'Etc/GMT+5'
 
     MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M',
-                                     dam='DAHR', dam_exante='DAHR_exante')
-
-    def utcify(self, local_ts, **kwargs):
-        # MISO is always on Eastern Standard Time, even during DST
-        # ie UTC offset = -5 always
-        utc_ts = super(MISOClient, self).utcify(local_ts, is_dst=False)
-        utc_ts += utc_ts.astimezone(pytz.timezone(self.TZ_NAME)).dst()  # adjust for EST
-        return utc_ts
+                                     dam='DAHR', hourly_prelim='RTHR_prelim',
+                                     dam_exante='DAHR_exante')
 
     def get_generation(self, latest=False, **kwargs):
         # set args
@@ -237,31 +234,47 @@ class MISOClient(BaseClient):
 
     def get_historical_lmp(self):
         # Etc/GMT+5 is actually GMT - 05:00 which is MISO time
-        tz = pytz.timezone('Etc/GMT+5')
+        tz = pytz.timezone(self.TZ_NAME)
 
         local_start = self.options['start_at'].astimezone(tz).date()
         local_end = self.options['end_at'].astimezone(tz).date()
         # get days between start and end
         days = [local_start + timedelta(days=x) for x in range((local_end-local_start).days + 1)]
-
-        # todo loop over days
-        day = days[0]
-        datestr = day.strftime('%Y%m%d')
-
-        # get the filename extension
         name_dict = {self.MARKET_CHOICES.hourly: '_rt_lmp_final.csv',
+                     self.MARKET_CHOICES.hourly_prelim: '_rt_lmp_prelim.csv',
                      self.MARKET_CHOICES.dam: '_da_expost_lmp.csv',
                      self.MARKET_CHOICES.dam_exante: '_da_exante_lmp.csv'}
-        ext = name_dict[self.options['market']]
+        pieces = []
+        for day in days:
+            # get the filename extension
+            ext = name_dict[self.options['market']]
+            datestr = day.strftime('%Y%m%d')
+            url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
 
-        url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
-        response = self.request(url)
+            print 'requesting', url
+            response = self.request(url)
+            if response.status_code == 404:
+                if self.options['market'] == self.MARKET_CHOICES.hourly:
+                    # try preliminary and tell the user
+                    self.options['market'] = self.MARKET_CHOICES.hourly_prelim
+                    ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
+                    url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+                    print 'requesting', url
+                    response = self.request(url)
 
-        # skip file information
-        udf = pd.read_csv(StringIO(response.text), skiprows=[0, 1, 2, 3])
+            # if that didn't work, don't append to pieces
+            if response.status_code == 404:
+                continue
+            # skip file information
+            udf = pd.read_csv(StringIO(response.text), skiprows=[0, 1, 2, 3])
+            pieces.append(udf)
+
+        df = pd.concat(pieces)
+        if df.empty:
+            return df
 
         # standardize format
-        df = pd.melt(udf, id_vars=['Node', 'Value', 'Type'])
+        df = pd.melt(df, id_vars=['Node', 'Value', 'Type'])
 
         # get naive timestamps, HE_1 = hour ending 1
         df['hour'] = df['variable'].apply(str.replace, args=('HE ', '')).astype(int) - 1
@@ -270,6 +283,7 @@ class MISOClient(BaseClient):
 
         # apply the correct timezone to the naive timestamp, then convert to utc
         df['timestamp'] = df['timestamp'].apply(tz.localize).apply(pytz.utc.localize)
+        df.index = df['timestamp']
 
         # drop MCC and MLC
         df = df[df['Value'] == 'LMP']
@@ -294,7 +308,8 @@ class MISOClient(BaseClient):
 
         return df
 
-    def get_lmp(self, node_id=None, latest=True, **kwargs):
+    def get_lmp(self, node_id='ILLINOIS.HUB', latest=True, **kwargs):
+        """ ILLINOIS.HUB is central """
         self.handle_options(latest=latest, **kwargs)
 
         if self.options['latest']:
@@ -302,6 +317,7 @@ class MISOClient(BaseClient):
 
         else:
             df = self.get_historical_lmp()
+            df = self.slice_times(df)
 
         # strip out unwated nodes
         if node_id:

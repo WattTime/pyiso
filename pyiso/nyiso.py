@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import timedelta
 import re
 
+
 class NYISOClient(BaseClient):
     NAME = 'NYISO'
 
@@ -106,8 +107,10 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
-    def get_lmp(self, latest=False, start_at=False, end_at=False, node_id=None, **kwargs):
-        # set args
+    def get_lmp(self, node_id='CENTRL', latest=False, start_at=False, end_at=False, **kwargs):
+        # node CENTRL is relatively central and seems to have low congestion costs
+        if not isinstance(node_id, list):
+            node_id = [node_id]
         self.handle_options(data='lmp', latest=latest, node_id=node_id,
                             start_at=start_at, end_at=end_at, **kwargs)
 
@@ -132,6 +135,10 @@ class NYISOClient(BaseClient):
                 'market': self.MARKET_CHOICES.fivemin,
             }
 
+        # strip out unwanted nodes
+        if node_id:
+            reg = re.compile('|'.join(node_id))
+            df = df.ix[df['node_id'].str.contains(reg)]
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
@@ -301,13 +308,6 @@ class NYISOClient(BaseClient):
         # if latest, throw out 15 min predicted data
         if self.options['latest']:
             df = df.truncate(after=self.local_now())
-
-        # strip out unwated nodes
-        if getattr(self.options, 'node_id', False):
-            if not isinstance(self.options['node_id'], list):
-                self.options['node_id'] = [self.options['node_id']]
-            reg = re.compile('|'.join(self.options['node_id']))
-            df = df.ix[df['node_id'].str.contains(reg)]
 
         rename_d = {'LBMP ($/MWHr)': 'lmp',
                     'Name': 'node_id'}
