@@ -1,10 +1,8 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
-from pyiso.caiso import CAISOClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
-import sys
 from nose_parameterized import parameterized
 
 
@@ -30,6 +28,7 @@ class TestBaseLMP(TestCase):
             self.assertGreaterEqual(len(data), 1)
         else:
             self.assertEqual(data, [])
+            return data
 
         # test contents
         for dp in data:
@@ -45,16 +44,22 @@ class TestBaseLMP(TestCase):
             # test for numeric price
             self.assertGreaterEqual(dp['lmp']+1, dp['lmp'])
 
-            # test correct temporal relationship to now
-            now = pytz.utc.localize(datetime.utcnow())
-            if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], now)
-            elif c.options['latest']:
-                # within 8 min
-                delta = now - dp['timestamp']
-                self.assertLess(abs(delta.total_seconds()), tol_min*60)
+        # test correct temporal relationship to now
+        timestamps = [t['timestamp'] for t in data]
+        now = pytz.utc.localize(datetime.utcnow())
+        if c.options['forecast']:
+            self.assertGreaterEqual(max(timestamps), now - timedelta(hours=1))
+        elif c.options['latest']:
+            tset = list(set(timestamps))
+            self.assertEqual(len(tset), 1)
+            # within 8 min
+            delta = now - tset[0]
+            self.assertLess(abs(delta.total_seconds()), tol_min*60)
+        else:
+            if 'end_at' in kwargs and kwargs['end_at']:
+                self.assertLess(max(timestamps), kwargs['end_at'] + timedelta(hours=1))
             else:
-                self.assertLess(dp['timestamp'], now)
+                self.assertLess(max(timestamps), now)
 
         # return
         return data
@@ -138,7 +143,7 @@ class TestCAISOLMP(TestBaseLMP):
         self.assertEqual(len(set(timestamps)), 1)
 
         nodes = [d['node_id'] for d in data]
-        self.assertEqual(nodes, node_list)
+        self.assertEqual(nodes.sort(), node_list.sort())
 
         # test flags
         for dp in data:
@@ -353,7 +358,7 @@ class TestMISOLMP(TestBaseLMP):
 class TestERCOTLMP(TestBaseLMP):
     def test_latest(self):
         # basic test
-        data = self._run_test('ERCOT', latest=True,
+        data = self._run_test('ERCOT', latest=True, tol_min=10,
                               market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
@@ -367,12 +372,14 @@ class TestERCOTLMP(TestBaseLMP):
 
     def test_latest_single_node(self):
         data = self._run_test('ERCOT', node_id='HB_HOUSTON', latest=True,
+                              tol_min=10,
                               market=self.MARKET_CHOICES.fivemin)
 
         self.assertEqual(len(data), 1)
 
     def test_latest_multi_node(self):
-        data = self._run_test('ERCOT', node_id=['LZ_HOUSTON', 'LZ_NORTH'], latest=True,
+        data = self._run_test('ERCOT', node_id=['LZ_HOUSTON', 'LZ_NORTH'],
+                              latest=True, tol_min=10,
                               market=self.MARKET_CHOICES.fivemin)
 
         self.assertEqual(len(data), 2)
@@ -414,7 +421,7 @@ class TestMinimumLMP(TestBaseLMP):
         ('ISONE', 'ISONE', True),
     ])
     def test_latest(self, name, ba, expected):
-        data = self._run_test(ba, latest=True,
+        data = self._run_test(ba, latest=True, tol_min=10,
                               market=self.MARKET_CHOICES.fivemin)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
         self.assertEqual(len(set([t['timestamp'] for t in data])), 1)
@@ -429,7 +436,7 @@ class TestMinimumLMP(TestBaseLMP):
     def test_forecast(self, name, ba, expected):
         now = datetime.now(pytz.utc)
         data = self._run_test(ba,  start_at=now, end_at=now + timedelta(days=1),
-                              market=self.MARKET_CHOICES.dam)
+                              market=self.MARKET_CHOICES.dam, tol_min=10)
         self.assertGreater(len(data), 1)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
 
@@ -443,6 +450,6 @@ class TestMinimumLMP(TestBaseLMP):
     def test_today(self, name, ba, expected):
         now = datetime.now(pytz.utc)
         data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
-                              market=self.MARKET_CHOICES.hourly)
+                              market=self.MARKET_CHOICES.hourly, tol_min=10)
         self.assertGreater(len(data), 1)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
