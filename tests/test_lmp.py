@@ -278,7 +278,7 @@ class TestPJMLMP(TestBaseLMP):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('PJM', node_id=33092371,
-                              start_at=today-timedelta(days=2),
+                              start_at=today-timedelta(days=3),
                               end_at=today-timedelta(days=1),
                               market=self.MARKET_CHOICES.hourly)
 
