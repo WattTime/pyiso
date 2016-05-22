@@ -239,6 +239,7 @@ class CAISOClient(BaseClient):
 
         # utcify
         df.index = self.utcify_index(df.index, tz_name='UTC')
+        df.sort_index(inplace=True)
 
         # revert MARKET_RUN_ID to standardized markets
         invert_oasis_markets = {v: k for k, v in self.oasis_markets.items() if k != v}
@@ -253,7 +254,6 @@ class CAISOClient(BaseClient):
         df = df[['market', 'freq', 'lmp', 'lmp_type', 'node_id', 'ba_name', 'timestamp']]
 
         return df
-
 
     def get_lmp_as_dataframe(self, node_id, latest=True, start_at=False, end_at=False,
                              lmp_only=True, **kwargs):

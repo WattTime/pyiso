@@ -262,6 +262,8 @@ class PJMClient(BaseClient):
         retdf['market'] = self.options['market']
         retdf['ba_name'] = 'PJM'
 
+        retdf.index = retdf['timestamp']
+
         return retdf
 
     def fetch_dataminer_df(self, endpoint, params):
@@ -353,5 +355,7 @@ class PJMClient(BaseClient):
                       'endDate': self.options['end_at'].strftime(format_str),
                       'pnodeList': node_names}
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
+
+        df = self.slice_times(df)
 
         return df.to_dict(orient='records')

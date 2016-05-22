@@ -109,7 +109,7 @@ class NYISOClient(BaseClient):
 
     def get_lmp(self, node_id='CENTRL', latest=False, start_at=False, end_at=False, **kwargs):
         # node CENTRL is relatively central and seems to have low congestion costs
-        if not isinstance(node_id, list):
+        if node_id and not isinstance(node_id, list):
             node_id = [node_id]
         self.handle_options(data='lmp', latest=latest, node_id=node_id,
                             start_at=start_at, end_at=end_at, **kwargs)
@@ -134,7 +134,6 @@ class NYISOClient(BaseClient):
                 'freq': self.FREQUENCY_CHOICES.fivemin,
                 'market': self.MARKET_CHOICES.fivemin,
             }
-
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
@@ -158,7 +157,7 @@ class NYISOClient(BaseClient):
             # if fetch_csvs cannot get the individual days, it gets the whole month
             # Shortcut the loop if any call to fetch_csvs gets all dates in dates_list
             try:
-                if (pieces[-1].index[-1] + timedelta(days=1)).date() > max(dates_list):
+                if (pieces[-1].index[-1] - timedelta(days=1)).date() > max(dates_list):
                     break
             except IndexError:
                 pass
