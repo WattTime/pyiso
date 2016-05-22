@@ -55,7 +55,6 @@ class SVERIClient(BaseClient):
         # take only data at 5 minute marks
         df = df[df.index.second == 5]
         df = df[df.index.minute % 5 == 0]
-
         # unpivot and rename
         if self.options['data'] == 'gen':
             df.rename(columns=self.fuels, inplace=True)
@@ -97,9 +96,14 @@ class SVERIClient(BaseClient):
         if not response or not response2:
             return []
 
+        if response.text == 'Invalid ids string.' or response2.text == 'Invalid ids string':
+            return []
+
         # parse
-        df = self.parse_to_df(response.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
-        df2 = self.parse_to_df(response2.content, header=0, parse_dates=True, date_parser=self.date_parser, index_col=0)
+        df = self.parse_to_df(response.content, header=0,
+                              parse_dates=True, date_parser=self.date_parser, index_col=0)
+        df2 = self.parse_to_df(response2.content, header=0,
+                               parse_dates=True, date_parser=self.date_parser, index_col=0)
         df = pd.concat([df, df2], axis=1, join='inner')
 
         # clean and serialize
