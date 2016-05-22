@@ -221,9 +221,11 @@ class PJMClient(BaseClient):
 
     def parse_dataminer_df(self, json):
         df = pd.DataFrame(json)
+        if df.empty:
+            return df
 
         # drop CongLMP and LossLMP
-        df = df[df.priceType == 'TotalLMP']
+        df = df[df['priceType'] == 'TotalLMP']
 
         # turn nested prices into DataFrame
         df['lmp'] = df['prices'].apply(lambda x: pd.DataFrame.from_dict(x))
