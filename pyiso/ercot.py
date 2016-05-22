@@ -31,24 +31,30 @@ class ERCOTClient(BaseClient):
         report_list_soup = BeautifulSoup(report_list_contents)
 
         # Round minute down to nearest 5 minute period
-        date_format = '%Y%m%d'
-        date = datetime(date.year, date.month, date.day, date.hour,
-                        date.minute - (date.minute % 5), tzinfo=date.tzinfo)
-        date = pytz.timezone(self.TZ_NAME).normalize(date)
+        if date:
+            date = datetime(date.year, date.month, date.day, date.hour,
+                            date.minute - (date.minute % 5), tzinfo=date.tzinfo)
+            date = pytz.timezone(self.TZ_NAME).normalize(date)
+
+            # DAM reports named 20150520 are for day 20150521
+            if report_type == 'dam_hrly_lmp':
+                date = date - timedelta(days=1)
 
         # find the endpoint to download
         report_endpoint = None
         for elt in report_list_soup.find_all('tr'):
             label = elt.find(class_='labelOptional_ind')
-            if label:
-                if 'csv' in label.string:
-                    if date and label.string.split('.')[3] == date.strftime(date_format):
-                        if report_type == 'rt5m_lmp' and label.string.split('.')[4].startswith(date.strftime('%H%M')):
-                            report_endpoint = self.base_report_url + elt.a.attrs['href']
-                            break
-                        else:
-                            report_endpoint = self.base_report_url + elt.a.attrs['href']
-                            break
+            if label and 'csv' in label.string:
+                if date:
+                    if label.string.split('.')[3] == date.strftime('%Y%m%d'):
+                        # RT5M requires correct 5minute report
+                        if report_type == 'rt5m_lmp':
+                            if label.string.split('.')[4].startswith(date.strftime('%H%M')):
+                                continue
+                    else:
+                        continue
+                report_endpoint = self.base_report_url + elt.a.attrs['href']
+                break
 
         # test endpoint found
         if not report_endpoint:
@@ -272,12 +278,13 @@ class ERCOTClient(BaseClient):
             start = datetime(start.year, start.month, start.day, tzinfo=start.tzinfo)
             end = tz.normalize(self.options['end_at'])
 
-            # start one day behind actual start_at, b/c day file named 05/20 contains data for 05/21
-            days_list = [end - timedelta(days=x) for x in range((end-start).days + 2)]
+            days_list = [end - timedelta(days=x) for x in range((end-start).days + 1)]
             pieces = []
+
             for day in days_list:
                 try:
-                    pieces.append(self._request_report(report_name, day))
+                    report = self._request_report(report_name, day)
+                    pieces.append(report)
                 except ValueError:
                     pass
             report = pd.concat(pieces)
@@ -288,10 +295,7 @@ class ERCOTClient(BaseClient):
         df = self.format_lmp(report)
 
         # strip uneeded times
-        if self.options['latest']:
-            df = df[df.index[-1]:]
-        if self.options['forecast']:
-            df = df[datetime.now(pytz.utc):]
+        df = self.slice_times(df)
 
         # strip out unwanted nodes
         if node_id:
