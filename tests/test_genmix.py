@@ -348,10 +348,11 @@ class TestNYISOGenMix(TestBaseGenMix):
     @freezegun.freeze_time('2016-05-18 12:00', tz_offset=0, tick=True)
     @requests_mock.mock()
     def test_date_range_farpast(self, mocker):
-        mocker.get(
-            'http://mis.nyiso.com/public/csv/rtfuelmix/20160428rtfuelmix.csv',
-            text='Too far back',
-            status_code=404)
+        for n in range(28, 30+1):
+            mocker.get(
+                'http://mis.nyiso.com/public/csv/rtfuelmix/201604%srtfuelmix.csv' % n,
+                text='Too far back',
+                status_code=404)
         mocker.get(
             'http://mis.nyiso.com/public/csv/rtfuelmix/20160401rtfuelmix_csv.zip',
             content=open('responses/20160401rtfuelmix.csv.zip', 'rb').read())
