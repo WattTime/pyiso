@@ -14,6 +14,7 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``CAISO.get_trade``       yes         yes                                yes           yes
 ``CAISO.get_lmp``         yes         yes                                yes           yes
 ``ERCOT.get_generation``  yes         no                                 no            no
+``ERCOT.get_lmp``         yes         yes                                no            yes
 ``ERCOT.get_load``        yes         yes                                no            yes
 ``EU.get_load``           yes         yes                                no            yes
 ``ISONE.get_generation``  yes         yes                                no            no
@@ -22,13 +23,15 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``MISO.get_generation``   yes         yes                                no            yes
 ``MISO.get_load``         yes         yes                                no            yes
 ``MISO.get_trade``        no          yes                                no            yes
+``MISO.get_lmp``          yes         yes                                no            yes
 ``NVEnergy.get_load``     yes         yes                                no            yes
 ``NYISO.get_generation``  yes         yes                                no            no
 ``NYISO.get_load``        yes         yes                                no            yes
-``NYISO.get_lmp``         yes         yes                                no            no
+``NYISO.get_lmp``         yes         yes                                no            yes
 ``NYISO.get_trade``       yes         yes                                no            no
 ``PJM.get_load``          yes         yes                                no            yes
 ``PJM.get_trade``         yes         no                                 no            no
+``PJM.get_lmp``           yes         yes                                no            no
 ``SVERI.get_generation``  yes         yes                                no            no
 ``SVERI.get_load``        yes         yes                                no            no
 ======================== ========== =================================== ============== ============
