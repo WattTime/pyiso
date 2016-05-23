@@ -11,3 +11,6 @@ lxml
 html5lib
 requests-cache
 mock
+requests-mock
+freezegun
+nose_parameterized
