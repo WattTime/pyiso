@@ -15,7 +15,7 @@ class SVERIClient(BaseClient):
     """
     NAME = 'SVERI'
     TZ_NAME = 'America/Phoenix'
-    BASE_URL = 'https://sveri.uaren.org/api?'
+    BASE_URL = 'https://sveri.energy.arizona.edu/api?'
 
     fuels = {
         'Solar Aggregate (MW)': 'solar',
@@ -71,6 +71,10 @@ class SVERIClient(BaseClient):
         return sliced
 
     def _clean_and_serialize(self, df):
+        # if no data, nothing to do
+        if len(df) == 0:
+            return []
+
         # clean
         cleaned_df = self.clean_df(df)
 
