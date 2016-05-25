@@ -87,6 +87,15 @@ class PJMClient(BaseClient):
         # return df
         return df
 
+    def request(self, *args, **kwargs):
+
+        response = super(PJMClient, self).request(*args, **kwargs)
+        if response.status_code == 400:
+            LOGGER.warn('PJM request returned Bad Request %s' % response)
+            return None
+
+        return response
+
     def fetch_historical_load(self, year, region_name='RTO'):
         # get RTO data
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
@@ -271,8 +280,10 @@ class PJMClient(BaseClient):
     def fetch_dataminer_df(self, endpoint, params):
         url = self.base_dataminer_url + endpoint
         response = self.request(url, mode='post', json=params)
-        df = self.parse_dataminer_df(response.json())
 
+        if not response:
+            return pd.DataFrame()
+        df = self.parse_dataminer_df(response.json())
         return df
 
     def handle_options(self, **kwargs):
@@ -327,7 +338,8 @@ class PJMClient(BaseClient):
         df['lmp_type'] = 'TotalLMP'
         return df
 
-    def get_lmp(self, node_id=None, **kwargs):
+    def get_lmp(self, node_id='APS', **kwargs):
+        """ Allegheny Power Systems is APS"""
         self.handle_options(data='lmp', **kwargs)
 
         # standardize node_id
@@ -356,6 +368,7 @@ class PJMClient(BaseClient):
             params = {'startDate': self.options['start_at'].strftime(format_str),
                       'endDate': self.options['end_at'].strftime(format_str),
                       'pnodeList': node_names}
+
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
 
         df = self.slice_times(df)
