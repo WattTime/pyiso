@@ -5,8 +5,8 @@ from unittest import TestCase
 import unittest
 import pytz
 from datetime import datetime, timedelta
-import freezegun
-import requests_mock
+#import freezegun
+#import requests_mock
 
 
 class TestBaseLoad(TestCase):
@@ -122,13 +122,14 @@ class TestCAISOLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    @freezegun.freeze_time('2015-05-20 14:30', tz_offset=0, tick=True)
-    @requests_mock.mock()
-    def test_forecast(self, mocker):
-        url = 'http://oasis.caiso.com/oasisapi/SingleZip'
-        with open('responses/SLD_FCST.zip', 'rb') as ffile:
-            mocker.get(url, content=ffile.read())
-
+#     @freezegun.freeze_time('2015-05-20 14:30', tz_offset=0, tick=True)
+#     @requests_mock.mock()
+#     def test_forecast(self, mocker):
+#         url = 'http://oasis.caiso.com/oasisapi/SingleZip'
+#         with open('responses/SLD_FCST.zip', 'rb') as ffile:
+#             mocker.get(url, content=ffile.read())
+#
+    def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today + timedelta(hours=4),
@@ -241,14 +242,15 @@ class TestNEVPLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    @freezegun.freeze_time('2016-05-20 14:45', tz_offset=0, tick=True)
-    @requests_mock.mock()
-    def test_date_range_farpast(self, mocker):
-        url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
-               'Monthly_Ties_and_Loads_L_from_04_01_2016_to_04_30_2016_.html')
-        with open('responses/NEVP_load_farpast.htm', 'r') as ffile:
-            mocker.get(url, content=ffile.read())
-
+#     @freezegun.freeze_time('2016-05-20 14:45', tz_offset=0, tick=True)
+#     @requests_mock.mock()
+#     def test_date_range_farpast(self, mocker):
+#         url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
+#                'Monthly_Ties_and_Loads_L_from_04_01_2016_to_04_30_2016_.html')
+#         with open('responses/NEVP_load_farpast.htm', 'r') as ffile:
+#             mocker.get(url, content=ffile.read())
+#
+    def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NEVP', start_at=today-timedelta(days=35),
@@ -363,14 +365,14 @@ class TestSPPCLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    @freezegun.freeze_time('2015-05-20 11:30', tz_offset=0, tick=True)
-    @requests_mock.mock()
-    def test_date_range_farpast(self, mocker):
-        url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
-               'Monthly_Ties_and_Loads_L_from_04_01_2015_to_04_30_2015_.html')
-        with open('responses/SPPC_load_farpast.htm', 'r') as ffile:
-            mocker.get(url, content=ffile.read())
-
+#     @freezegun.freeze_time('2015-05-20 11:30', tz_offset=0, tick=True)
+#     @requests_mock.mock()
+#     def test_date_range_farpast(self, mocker):
+#         url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
+#                'Monthly_Ties_and_Loads_L_from_04_01_2015_to_04_30_2015_.html')
+#         with open('responses/SPPC_load_farpast.htm', 'r') as ffile:
+#             mocker.get(url, content=ffile.read())
+    def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('SPPC', start_at=today-timedelta(days=35),
