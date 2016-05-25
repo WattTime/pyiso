@@ -355,8 +355,9 @@ class TestMISOLMP(TestBaseLMP):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def test_historical(self):
-        data = self._run_test('MISO', start_at='2016-05-24', end_at='2016-05-25')
-        self.assertEqual(len(data), 24)
+        start = datetime(2016, 5, 1, 0, tzinfo=pytz.utc)
+        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
+        self.assertEqual(len(data), 25)
 
 
 class TestERCOTLMP(TestBaseLMP):
@@ -423,8 +424,10 @@ class TestERCOTLMP(TestBaseLMP):
         self.assertEqual(len(data), 4)
 
     def test_dam_historical(self):
-        data = self._run_test('ERCOT', start_at='2016-05-01', end_at='2016-05-02')
-        self.assertEuql(len(data), 24)
+        start = datetime(2016, 5, 1, 0, tzinfo=pytz.utc)
+        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
+        # slicing is inclusive
+        self.assertEqual(len(data), 25)
 
 
 class TestMinimumLMP(TestBaseLMP):
