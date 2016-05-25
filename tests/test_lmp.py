@@ -339,21 +339,6 @@ class TestMISOLMP(TestBaseLMP):
                               market=self.MARKET_CHOICES.hourly)
         self.assertGreater(len(data), 1)
 
-    def forecast(self):  # skip
-        # basic test
-        now = pytz.utc.localize(datetime.utcnow())
-        data = self._run_test('MISO', node_id=None,
-                              start_at=now, end_at=now+timedelta(days=1))
-
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-
 
 class TestERCOTLMP(TestBaseLMP):
     def test_latest(self):

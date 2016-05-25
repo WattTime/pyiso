@@ -279,7 +279,10 @@ class ISONEClient(BaseClient):
             except ValueError as e:
                 LOGGER.warn(e)
                 continue
+
+        # parse and slice
         df = self._parse_lmp(raw_data)
         df = self.slice_times(df)
 
+        # return
         return df.to_dict(orient='record')
