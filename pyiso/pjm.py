@@ -271,7 +271,12 @@ class PJMClient(BaseClient):
     def fetch_dataminer_df(self, endpoint, params):
         url = self.base_dataminer_url + endpoint
         response = self.request(url, mode='post', json=params)
-        df = self.parse_dataminer_df(response.json())
+        data = response.json()
+
+        if 'Message' in data and data['Message'] == 'invalid pnodeList[0] argument':
+            raise ValueError('Bad PJM request %s %s: Response %s' % (url, params, data))
+
+        df = self.parse_dataminer_df(data)
 
         return df
 
@@ -343,6 +348,10 @@ class PJMClient(BaseClient):
                 df = self.fetch_oasis_data()
 
         else:
+            # if no node_id provided, default to whole list
+            if node_id == [None]:
+                node_id = self.zonal_aggregate_nodes.keys()
+
             # translate names to id numbers
             node_names = []
             for node in node_id:

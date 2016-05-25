@@ -250,21 +250,6 @@ class TestPJMLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def forecast(self):  # skip
-        # basic test
-        now = pytz.utc.localize(datetime.utcnow())
-        data = self._run_test('PJM', node_id=33092371,
-                              start_at=now, end_at=now+timedelta(days=1))
-
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-
     def test_date_range_dayahead_hourly(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
@@ -406,6 +391,7 @@ class TestMinimumLMP(TestBaseLMP):
         ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
     ])
     def test_latest(self, name, ba, expected):
         data = self._run_test(ba, latest=True, tol_min=10,
@@ -419,10 +405,11 @@ class TestMinimumLMP(TestBaseLMP):
         ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
     ])
     def test_forecast(self, name, ba, expected):
         now = datetime.now(pytz.utc)
-        data = self._run_test(ba,  start_at=now, end_at=now + timedelta(days=1),
+        data = self._run_test(ba, start_at=now, end_at=now+timedelta(days=1),
                               market=self.MARKET_CHOICES.dam, tol_min=10)
         self.assertGreater(len(data), 1)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
@@ -433,10 +420,11 @@ class TestMinimumLMP(TestBaseLMP):
         # ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
     ])
     def test_today(self, name, ba, expected):
         now = datetime.now(pytz.utc)
-        data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
-                              market=self.MARKET_CHOICES.hourly, tol_min=10)
+        data = self._run_test(ba, start_at=now-timedelta(days=1), end_at=now,
+                              tol_min=10, market=self.MARKET_CHOICES.hourly)
         self.assertGreater(len(data), 1)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
