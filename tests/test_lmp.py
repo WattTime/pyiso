@@ -40,6 +40,8 @@ class TestBaseLMP(TestCase):
             # test values
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
             self.assertIn(dp['ba_name'], self.BA_CHOICES)
+            self.assertIn(dp['lmp_type'],
+                          ['LMP', 'prc', 'energy', 'TotalLMP'])
 
             # test for numeric price
             self.assertGreaterEqual(dp['lmp']+1, dp['lmp'])
