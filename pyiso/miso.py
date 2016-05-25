@@ -2,7 +2,7 @@ from collections import namedtuple
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
-from StringIO import StringIO
+from io import StringIO
 from datetime import datetime, timedelta
 import pytz
 from dateutil.parser import parse
