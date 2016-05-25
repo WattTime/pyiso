@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import requests_mock
 from responses import test_trade_responses as responses
 
+
 class TestBaseTrade(TestCase):
     def setUp(self):
         # set up expected values from base client

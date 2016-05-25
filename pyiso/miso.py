@@ -251,6 +251,7 @@ class MISOClient(BaseClient):
             datestr = day.strftime('%Y%m%d')
             url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
 
+            print 'requesting', url
             response = self.request(url)
             if response.status_code == 404:
                 if self.options['market'] == self.MARKET_CHOICES.hourly:
@@ -258,6 +259,7 @@ class MISOClient(BaseClient):
                     self.options['market'] = self.MARKET_CHOICES.hourly_prelim
                     ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
                     url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+                    print 'requesting', url
                     response = self.request(url)
 
             # if that didn't work, don't append to pieces
@@ -279,10 +281,10 @@ class MISOClient(BaseClient):
         df = pd.concat(pieces)
         if df.empty:
             return df
-        # apply the correct timezone to the naive timestamp, then convert to utc
-        df.index = df['timestamp']
-        df.index = df.index.tz_localize(self.TZ_NAME).tz_convert('utc')
-        df['timestamp'] = df.index
+        # utcify
+        df.set_index('timestamp', inplace=True)
+        df.index = self.utcify_index(df.index)
+
 
         # drop MCC and MLC
         df = df[df['Value'] == 'LMP']
@@ -301,10 +303,6 @@ class MISOClient(BaseClient):
         df['market'] = self.options['market']
         df['ba_name'] = 'MISO'
 
-        # strip values outside of start_at, end_at
-        df = df[df['timestamp'] > self.options['start_at']]
-        df = df[df['timestamp'] < self.options['end_at']]
-
         return df
 
     def get_lmp(self, node_id='ILLINOIS.HUB', latest=True, **kwargs):
@@ -317,6 +315,7 @@ class MISOClient(BaseClient):
         else:
             df = self.get_historical_lmp()
             df = self.slice_times(df)
+            df.reset_index(inplace=True)
 
         # strip out unwated nodes
         if node_id:

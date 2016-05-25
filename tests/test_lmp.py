@@ -40,6 +40,8 @@ class TestBaseLMP(TestCase):
             # test values
             self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
             self.assertIn(dp['ba_name'], self.BA_CHOICES)
+            self.assertIn(dp['lmp_type'],
+                          ['LMP', 'prc', 'energy', 'TotalLMP'])
 
             # test for numeric price
             self.assertGreaterEqual(dp['lmp']+1, dp['lmp'])
@@ -247,21 +249,6 @@ class TestPJMLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
-
-    def forecast(self):  # skip
-        # basic test
-        now = pytz.utc.localize(datetime.utcnow())
-        data = self._run_test('PJM', node_id=33092371,
-                              start_at=now, end_at=now+timedelta(days=1))
-
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def test_date_range_dayahead_hourly(self):
         # basic test
@@ -476,4 +463,3 @@ class TestMinimumLMP(TestBaseLMP):
                               market=self.MARKET_CHOICES.hourly, tol_min=10)
         self.assertGreater(len(data), 5)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
-

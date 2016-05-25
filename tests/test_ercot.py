@@ -164,7 +164,7 @@ ga('send', 'pageview');
             self.assertIn(key, df.columns)
 
     def test_request_report_dam_hrl_lmp(self):
-        now = datetime.now(pytz.utc)
+        now = datetime.now(pytz.timezone(self.c.TZ_NAME))
         df = self.c._request_report('dam_hrly_lmp', now)
         s = pd.to_datetime(df['DeliveryDate'], utc=True)
 

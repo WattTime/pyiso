@@ -284,6 +284,7 @@ class PJMClient(BaseClient):
         if not response:
             return pd.DataFrame()
         df = self.parse_dataminer_df(response.json())
+
         return df
 
     def handle_options(self, **kwargs):
@@ -368,7 +369,6 @@ class PJMClient(BaseClient):
             params = {'startDate': self.options['start_at'].strftime(format_str),
                       'endDate': self.options['end_at'].strftime(format_str),
                       'pnodeList': node_names}
-
             df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
 
         df = self.slice_times(df)

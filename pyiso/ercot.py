@@ -217,7 +217,6 @@ class ERCOTClient(BaseClient):
         if 'forecast' not in self.options:
             self.options['forecast'] = False
 
-
     def _parse_dam_times(self, df):
         # Construct datetime string and convert to naive datetime
         df['hour'] = (df['HourEnding'].str.replace(':', '.').astype(float) - 1).astype(int)
@@ -242,7 +241,6 @@ class ERCOTClient(BaseClient):
         return df
 
     def format_lmp(self, df):
-
         if 'SCEDTimestamp' in df.columns:
             df = self._parse_rtm_times(df)
         else:
@@ -317,4 +315,3 @@ class ERCOTClient(BaseClient):
             df = df.ix[df['node_id'].str.contains(reg)]
 
         return df.to_dict(orient='records')
-
