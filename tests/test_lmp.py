@@ -461,5 +461,5 @@ class TestMinimumLMP(TestBaseLMP):
         now = datetime.now(pytz.utc)
         data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
                               market=self.MARKET_CHOICES.hourly, tol_min=10)
-        self.assertGreater(len(data), 5)
+        self.assertGreater(len(data), 4)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)

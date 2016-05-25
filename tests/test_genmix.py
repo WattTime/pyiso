@@ -293,7 +293,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
 class TestERCOTGenMix(TestBaseGenMix):
     def test_ercot_latest(self):
-        data = self._run_test('ERCOT', latest=True)
+        data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
