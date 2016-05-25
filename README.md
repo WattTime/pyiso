@@ -15,7 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
-* 0.3.0: Major features: Add LMP to all ISO's, license change.  Please contact us for alternative licenses.  Bugfixes.
+* 0.3.0: Major features: Add LMP to all ISO's, license change. Please contact us for alternative licenses. Bugfixes: SVERI has a new URL. Minor features: CAISO has 15-minute RTPD market.
 * 0.2.23: Major fix: ERCOT real-time data format changed, this release is updated to match the new format. Minor fixes to excel date handling with pandas 0.18, and MISO forecast.
 * 0.2.22: Feature: LMP in NYISO, thanks @ecalifornica! Bug fixes for DST transition.
 * 0.2.21: Major feature: generation mix in NYISO. Bug fix: time zone handling in NYISO.
