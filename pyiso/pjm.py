@@ -218,8 +218,9 @@ class PJMClient(BaseClient):
 
         rename_d = {'LMP': 'lmp'}
         df.rename(columns=rename_d, inplace=True)
-        # convert $12.44 to float
-        df['lmp'] = df['lmp'].apply(lambda x: float(x.replace('$', '')))
+
+        # convert $(12.44) to float as -12.44
+        df['lmp'] = df['lmp'].apply(lambda x: float(x.replace('$', '').replace(')', '').replace('(', '-')))
 
         df['node_id'] = df.index
         df['freq'] = self.options['freq']
