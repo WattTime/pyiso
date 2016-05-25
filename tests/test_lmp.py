@@ -339,7 +339,7 @@ class TestMISOLMP(TestBaseLMP):
                               market=self.MARKET_CHOICES.hourly)
         self.assertGreater(len(data), 1)
 
-    def forecast(self):  # skip
+    def test_forecast(self):
         # basic test
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('MISO', node_id=None,
@@ -353,6 +353,10 @@ class TestMISOLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_historical(self):
+        data = self._run_test('MISO', start_at='2016-05-24', end_at='2016-05-25')
+        self.assertEqual(len(data), 24)
 
 
 class TestERCOTLMP(TestBaseLMP):
@@ -411,6 +415,17 @@ class TestERCOTLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
+    def test_rt5m_historical(self):
+        now = pytz.utc.localize(datetime.utcnow()) - timedelta(hours=1)
+        data = self._run_test('ERCOT', start_at=now - timedelta(minutes=20),
+                              end_at=now,
+                              market=self.MARKET_CHOICES.fivemin)
+        self.assertEqual(len(data), 4)
+
+    def test_dam_historical(self):
+        data = self._run_test('ERCOT', start_at='2016-05-01', end_at='2016-05-02')
+        self.assertEuql(len(data), 24)
+
 
 class TestMinimumLMP(TestBaseLMP):
     @parameterized.expand([
@@ -419,10 +434,12 @@ class TestMinimumLMP(TestBaseLMP):
         ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
     ])
     def test_latest(self, name, ba, expected):
         data = self._run_test(ba, latest=True, tol_min=10,
                               market=self.MARKET_CHOICES.fivemin)
+        self.assertEqual(len(data), 1)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
         self.assertEqual(len(set([t['timestamp'] for t in data])), 1)
 
@@ -432,12 +449,14 @@ class TestMinimumLMP(TestBaseLMP):
         ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
+
     ])
     def test_forecast(self, name, ba, expected):
         now = datetime.now(pytz.utc)
         data = self._run_test(ba,  start_at=now, end_at=now + timedelta(days=1),
                               market=self.MARKET_CHOICES.dam, tol_min=10)
-        self.assertGreater(len(data), 1)
+        self.assertGreater(len(data), 10)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
 
     @parameterized.expand([
@@ -446,10 +465,12 @@ class TestMinimumLMP(TestBaseLMP):
         # ('ERCOT', 'ERCOT', True),
         ('NYISO', 'NYISO', True),
         ('ISONE', 'ISONE', True),
+        ('PJM', 'PJM', True),
     ])
     def test_today(self, name, ba, expected):
         now = datetime.now(pytz.utc)
         data = self._run_test(ba,  start_at=now - timedelta(days=1), end_at=now,
                               market=self.MARKET_CHOICES.hourly, tol_min=10)
-        self.assertGreater(len(data), 1)
+        self.assertGreater(len(data), 5)
         self.assertEqual(len(set([t['node_id'] for t in data])), 1)
+

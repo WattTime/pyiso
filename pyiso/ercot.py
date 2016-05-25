@@ -49,7 +49,7 @@ class ERCOTClient(BaseClient):
                     if label.string.split('.')[3] == date.strftime('%Y%m%d'):
                         # RT5M requires correct 5minute report
                         if report_type == 'rt5m_lmp':
-                            if label.string.split('.')[4].startswith(date.strftime('%H%M')):
+                            if not label.string.split('.')[4].startswith(date.strftime('%H%M')):
                                 continue
                     else:
                         continue
@@ -205,7 +205,7 @@ class ERCOTClient(BaseClient):
             if self.options['forecast']:
                 self.options['market'] = self.MARKET_CHOICES.dam
             else:
-                self.options['market'] = self.MARKET_CHOICES.fivemin
+                self.options['market'] = self.MARKET_CHOICES.dam
         if 'freq' not in self.options:
             if self.options['forecast']:
                 self.options['freq'] = self.FREQUENCY_CHOICES.hourly
@@ -275,18 +275,30 @@ class ERCOTClient(BaseClient):
             # get start and end days in local time
             tz = pytz.timezone(self.TZ_NAME)
             start = tz.normalize(self.options['start_at'])
-            start = datetime(start.year, start.month, start.day, tzinfo=start.tzinfo)
             end = tz.normalize(self.options['end_at'])
 
-            days_list = [end - timedelta(days=x) for x in range((end-start).days + 1)]
             pieces = []
+            if self.options['market'] == self.MARKET_CHOICES.fivemin:
+                # warning, this could take a long time
+                fivemin_periods = int((end-start).total_seconds()/(60*5)) + 1
+                p_list = [end - timedelta(minutes=5*x) for x in range(fivemin_periods)]
 
-            for day in days_list:
-                try:
-                    report = self._request_report(report_name, day)
-                    pieces.append(report)
-                except ValueError:
-                    pass
+                for period in p_list:
+                    try:
+                        report = self._request_report(report_name, date=period)
+                        pieces.append(report)
+                    except ValueError:
+                        pass
+
+            else:
+                start = datetime(start.year, start.month, start.day, tzinfo=start.tzinfo)
+                days_list = [end - timedelta(days=x) for x in range((end-start).days + 1)]
+                for day in days_list:
+                    try:
+                        report = self._request_report(report_name, day)
+                        pieces.append(report)
+                    except ValueError:
+                        pass
             report = pd.concat(pieces)
         else:
             report = self._request_report(report_name, self.now)
