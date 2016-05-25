@@ -251,7 +251,6 @@ class MISOClient(BaseClient):
             datestr = day.strftime('%Y%m%d')
             url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
 
-            print 'requesting', url
             response = self.request(url)
             if response.status_code == 404:
                 if self.options['market'] == self.MARKET_CHOICES.hourly:
@@ -259,7 +258,6 @@ class MISOClient(BaseClient):
                     self.options['market'] = self.MARKET_CHOICES.hourly_prelim
                     ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
                     url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
-                    print 'requesting', url
                     response = self.request(url)
 
             # if that didn't work, don't append to pieces
@@ -267,23 +265,24 @@ class MISOClient(BaseClient):
                 continue
             # skip file information
             udf = pd.read_csv(StringIO(response.text), skiprows=[0, 1, 2, 3])
+
+            # standardize format
+            udf = pd.melt(udf, id_vars=['Node', 'Value', 'Type'])
+
+            # get naive timestamps, HE_1 = hour ending 1
+            udf['hour'] = udf['variable'].apply(str.replace, args=('HE ', '')).astype(int) - 1
+            udf['timestamp'] = udf['hour'].apply(lambda x: timedelta(hours=x)) + day
+            udf.drop(['hour', 'variable'], axis=1, inplace=True)
+
             pieces.append(udf)
 
         df = pd.concat(pieces)
         if df.empty:
             return df
-
-        # standardize format
-        df = pd.melt(df, id_vars=['Node', 'Value', 'Type'])
-
-        # get naive timestamps, HE_1 = hour ending 1
-        df['hour'] = df['variable'].apply(str.replace, args=('HE ', '')).astype(int) - 1
-        df['timestamp'] = df['hour'].apply(lambda x: timedelta(hours=x)) + day
-        df.drop(['hour', 'variable'], axis=1, inplace=True)
-
         # apply the correct timezone to the naive timestamp, then convert to utc
-        df['timestamp'] = df['timestamp'].apply(tz.localize).apply(pytz.utc.localize)
         df.index = df['timestamp']
+        df.index = df.index.tz_localize(self.TZ_NAME).tz_convert('utc')
+        df['timestamp'] = df.index
 
         # drop MCC and MLC
         df = df[df['Value'] == 'LMP']
