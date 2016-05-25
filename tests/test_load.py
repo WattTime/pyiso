@@ -451,6 +451,7 @@ class TestEULoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    @unittest.expectedFailure
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
