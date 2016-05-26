@@ -16,7 +16,7 @@ except ImportError:
     from urllib.request import urlopen  # Changed from urllib2 for python3.x
 
 # named tuple for time period interval labels
-IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
+IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'fifteenmin', 'na', 'dam'])
 
 # list of fuel choices
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
@@ -30,8 +30,8 @@ class BaseClient(object):
     Base class for scraper/parser clients.
     """
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
-    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', fifteenmin='RTPD', na='RT5M', dam='DAHR')
+    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', fifteenmin='15m', na='n/a', dam='1hr')
 
     # timezone
     TZ_NAME = 'UTC'
@@ -346,15 +346,8 @@ class BaseClient(object):
             df = pd.concat(pieces)
 
             # parse date index
-            if parse_dates:
-                idx = []
-                for t in df.index:
-                    try:
-                        idx.append(pd.to_datetime(t))
-                    except ValueError:
-                        # not a datetime
-                        idx.append('')
-                df.index = idx
+
+            df.index = pd.to_datetime(df.index, infer_datetime_format=True, errors='coerce')
 
         # set names
         if header_names is not None:
@@ -434,7 +427,7 @@ class BaseClient(object):
                 raise ValueError('Slicing by time requires start_at and end_at')
 
         # sort before truncate eliminates DST KeyError
-        sorteddf = df.sort()
+        sorteddf = df.sort_index()
         sliced = sorteddf.truncate(before=start_at, after=end_at)
 
         # return

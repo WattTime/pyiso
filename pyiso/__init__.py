@@ -3,19 +3,11 @@ import os.path
 from os import environ
 import logging
 
-__version__ = '0.2.23'
+__version__ = '0.3.0'
 
 
-if environ.get('DEBUG', False):
-    # For Testing Purposes
-    # Add caching to unittesting
-    # Print every time the testing hits the cache successfully
-    import requests_cache
-    requests_cache.install_cache(expire_after=60*10)
-    LOG_LEVEL = logging.DEBUG
-else:
-    # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
-    LOG_LEVEL = int(environ.get('LOG_LEVEL', logging.INFO))
+# ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
+LOG_LEVEL = int(environ.get('LOG_LEVEL', logging.INFO))
 
 
 # logger: create here to only add the handler once!

@@ -3,6 +3,8 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
+import mock
+from responses import test_trade_responses as responses
 
 
 class TestBaseTrade(TestCase):
@@ -142,7 +144,7 @@ class TestCAISOTrade(TestBaseTrade):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-       # test flags
+        # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
@@ -162,11 +164,20 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_date_range(self):
+    @mock.patch.object(BaseClient, 'request')
+    def test_date_range(self, mocker):
+        def mreq(url):
+            day = url[58:60]
+            text = responses.test_date_range_short[1].replace('05/13', '05/' + day)
+            return mock.Mock(status_code=200, text=text)
+
+#         url = ('http://mis.nyiso.com/publ/ExternalLimitsFlows'
+#                '/20160513ExternalLimitsFlows.csv')
+        mocker.side_effect = mreq
+        now = responses.test_date_range_short[0]
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('NYISO', start_at=today-timedelta(days=2),
-                                  end_at=today-timedelta(days=1))
+        data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
+                                  end_at=now-timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -177,9 +188,12 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_date_range_short(self):
+    @mock.patch.object(BaseClient, 'request')
+    def test_date_range_short(self, mocker):
+        mocker.return_value = mock.Mock(status_code=200,
+                                        text=responses.test_date_range_short[1])
         # basic test
-        now = pytz.utc.localize(datetime.utcnow())
+        now = responses.test_date_range_short[0]
         data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
                                   end_at=now-timedelta(minutes=5))
 
@@ -212,15 +226,15 @@ class TestISONETrade(TestBaseTrade):
 class TestMISOTrade(TestBaseTrade):
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('MISO', start_at=today+timedelta(hours=10),
+        today = pytz.utc.localize(datetime.utcnow())
+        data = self._run_net_test('MISO', start_at=today+timedelta(hours=2),
                                   end_at=today+timedelta(days=2))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-       # test flags
+        # test flags
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)

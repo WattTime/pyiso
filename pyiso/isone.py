@@ -3,6 +3,7 @@ from pyiso import LOGGER
 from os import environ
 from datetime import datetime
 import pytz
+import pandas as pd
 
 
 class ISONEClient(BaseClient):
@@ -25,6 +26,7 @@ class ISONEClient(BaseClient):
     }
 
     locations = {
+        'INTERNALHUB': 4000,
         'MAINE': 4001,
         'NEWHAMPSHIRE': 4002,
         'VERMONT': 4003,
@@ -148,6 +150,11 @@ class ISONEClient(BaseClient):
                 else:
                     self.options['frequency'] = self.FREQUENCY_CHOICES.fivemin
 
+        if self.options['data'] == 'lmp':
+            if self.options['market'] == self.MARKET_CHOICES.fivemin:
+                if self.options['forecast']:
+                    raise ValueError('ISONE does not produce forecast five minute lmps')
+
     def request_endpoints(self, location_id=None):
         """Returns a list of endpoints to query, based on handled options"""
         # base endpoint
@@ -155,12 +162,20 @@ class ISONEClient(BaseClient):
         if self.options['data'] == 'gen':
             base_endpoint = 'genfuelmix'
         elif self.options['data'] == 'lmp' and location_id is not None:
-            base_endpoint = 'fiveminutelmp'
             ext = '/location/%s' % location_id
-        elif self.options['market'] == self.MARKET_CHOICES.dam:
-            base_endpoint = 'hourlyloadforecast'
+            if self.options['market'] == self.MARKET_CHOICES.fivemin:
+                base_endpoint = 'fiveminutelmp'
+            elif self.options['market'] == self.MARKET_CHOICES.dam:
+                base_endpoint = 'hourlylmp/da/final'
+            elif self.options['market'] == self.MARKET_CHOICES.hourly:
+                base_endpoint = 'hourlylmp/rt/prelim'
+        elif self.options['data'] == 'load':
+            if self.options['market'] == self.MARKET_CHOICES.dam:
+                base_endpoint = 'hourlyloadforecast'
+            else:
+                base_endpoint = 'fiveminutesystemload'
         else:
-            base_endpoint = 'fiveminutesystemload'
+            raise ValueError('Data type not recognized %s' % self.options['data'])
 
         # set up storage
         request_endpoints = []
@@ -210,18 +225,41 @@ class ISONEClient(BaseClient):
         Raise ValueError if parser fails.
         """
         try:
-            if self.options.get('latest'):
-                return data['FiveMinLmp']
+            if self.options['market'] == self.MARKET_CHOICES.fivemin:
+                if self.options.get('latest'):
+                    return data['FiveMinLmp']
+                else:
+                    return data['FiveMinLmps']['FiveMinLmp']
             else:
-                return data['FiveMinLmps']['FiveMinLmp']
+                return data['HourlyLmps']['HourlyLmp']
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE lmp data %s' % data)
 
-    def get_lmp(self, node_id, latest=True, start_at=False, end_at=False, **kwargs):
+    def _parse_lmp(self, json):
+        df = pd.DataFrame(json)
+        # Get datetimes
+        df.index = df['BeginDate']
+        df.index = pd.to_datetime(df.index, utc=True)
+        df['timestamp'] = df.index
+
+        df.rename(columns={'LmpTotal': 'lmp'}, inplace=True)
+        df['ba_name'] = self.NAME
+        df['market'] = self.options['market']
+        df['freq'] = self.options['frequency']
+        df['node_id'] = self.options['node_id']
+        df['lmp_type'] = 'energy'
+
+        # drop unwanted columns
+        df.drop([u'BeginDate', u'CongestionComponent', u'EnergyComponent',
+                 u'Location', u'LossComponent', ],
+                axis=1, inplace=True)
+
+        return df
+
+    def get_lmp(self, node_id='INTERNALHUB', latest=True, start_at=False, end_at=False, **kwargs):
         # set args
         self.handle_options(data='lmp', latest=latest,
-                            start_at=start_at, end_at=end_at, **kwargs)
-
+                            start_at=start_at, end_at=end_at, node_id=node_id, **kwargs)
         # get location id
         try:
             locationid = self.locations[node_id.upper()]
@@ -230,8 +268,6 @@ class ISONEClient(BaseClient):
 
         # set up storage
         raw_data = []
-        parsed_data = []
-
         # collect raw data
         for endpoint in self.request_endpoints(locationid):
             # carry out request
@@ -244,26 +280,9 @@ class ISONEClient(BaseClient):
                 LOGGER.warn(e)
                 continue
 
-        # parse data
-        for raw_dp in raw_data:
-            # set up storage
-            parsed_dp = {}
+        # parse and slice
+        df = self._parse_lmp(raw_data)
+        df = self.slice_times(df)
 
-            # add values
-            parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
-            parsed_dp['lmp'] = raw_dp['LmpTotal']
-            parsed_dp['ba_name'] = self.NAME
-            parsed_dp['market'] = self.options['market']
-            parsed_dp['freq'] = self.options['frequency']
-            parsed_dp['node_id'] = node_id
-            parsed_dp['lmp_type'] = 'energy'
-
-            # add to full storage
-            to_store = True
-            if self.options['sliceable']:
-                if self.options['start_at'] > parsed_dp['timestamp'] or self.options['end_at'] < parsed_dp['timestamp']:
-                    to_store = False
-            if to_store:
-                parsed_data.append(parsed_dp)
-
-        return parsed_data
+        # return
+        return df.to_dict(orient='record')
