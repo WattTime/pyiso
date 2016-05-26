@@ -18,7 +18,7 @@ class TestGenerationTask(TestCase):
         expected = client_factory(ba).get_generation(**kwargs)
         received = tasks.get_generation(ba, **kwargs)
 
-        for i in range(len(expected)):
+        for i in range(len(received)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
                 self.assertEqual(expected[i]['gen_MW'], received[i]['gen_MW'])
                 self.assertEqual(expected[i]['fuel_name'], received[i]['fuel_name'])
