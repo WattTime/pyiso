@@ -2,7 +2,7 @@ from collections import namedtuple
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
-from io import StringIO
+from io import BytesIO
 from datetime import datetime, timedelta
 import pytz
 from dateutil.parser import parse
@@ -143,7 +143,7 @@ class MISOClient(BaseClient):
             LOGGER.debug('No MISO forecast data available at %s' % datestr)
             return pd.DataFrame()
 
-        xls = pd.read_excel(StringIO(response.content))
+        xls = pd.read_excel(BytesIO(response.content))
 
         # clean header
         header_df = xls.iloc[:5]
