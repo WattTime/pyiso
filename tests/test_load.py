@@ -5,8 +5,9 @@ from unittest import TestCase
 import unittest
 import pytz
 from datetime import datetime, timedelta
-#import freezegun
-#import requests_mock
+import libfaketime
+import requests_mock
+libfaketime.reexec_if_needed()
 
 
 class TestBaseLoad(TestCase):
@@ -19,7 +20,7 @@ class TestBaseLoad(TestCase):
         # set up other expected values
         self.BA_CHOICES = BALANCING_AUTHORITIES.keys()
 
-    def _run_test(self, ba_name, expect_data=True, **kwargs):
+    def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
         # set up
         c = client_factory(ba_name)
 
@@ -48,7 +49,8 @@ class TestBaseLoad(TestCase):
 
             # test correct temporal relationship to now
             if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertGreaterEqual(dp['timestamp'],
+                                        pytz.utc.localize(datetime.utcnow())-timedelta(minutes=tol_min))
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
 
@@ -132,8 +134,9 @@ class TestCAISOLoad(TestBaseLoad):
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today + timedelta(hours=4),
-                              end_at=today+timedelta(days=2))
+        data = self._run_test('CAISO', start_at=today+timedelta(hours=4),
+                              end_at=today+timedelta(days=2),
+                              tol_min=4*60)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -242,19 +245,19 @@ class TestNEVPLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-#     @freezegun.freeze_time('2016-05-20 14:45', tz_offset=0, tick=True)
-#     @requests_mock.mock()
-#     def test_date_range_farpast(self, mocker):
-#         url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
-#                'Monthly_Ties_and_Loads_L_from_04_01_2016_to_04_30_2016_.html')
-#         with open('responses/NEVP_load_farpast.htm', 'r') as ffile:
-#             mocker.get(url, content=ffile.read())
-#
-    def test_date_range_farpast(self):
+    @libfaketime.fake_time('2016-05-20 14:45')
+    @requests_mock.mock()
+    def test_date_range_farpast(self, mocker):
+        url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
+               'Monthly_Ties_and_Loads_L_from_04_01_2016_to_04_30_2016_.html')
+        with open('responses/NEVP_load_farpast.htm', 'r') as ffile:
+            mocker.get(url, content=ffile.read())
+
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NEVP', start_at=today-timedelta(days=35),
                               end_at=today-timedelta(days=33))
+        self.assertEqual(len(data), 2*24)
 
 
 class TestNYISOLoad(TestBaseLoad):
