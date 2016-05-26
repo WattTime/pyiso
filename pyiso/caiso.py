@@ -5,7 +5,7 @@ import copy
 import re
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
-import pandas
+import pandas as pd
 import pytz
 
 
@@ -235,7 +235,7 @@ class CAISOClient(BaseClient):
         if df.index.name != 'INTERVALSTARTTIME_GMT':
             df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
             df.index.name = 'INTERVALSTARTTIME_GMT'
-        df.index = pandas.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index)
 
         # utcify
         df.index = self.utcify_index(df.index, tz_name='UTC')
@@ -285,23 +285,23 @@ class CAISOClient(BaseClient):
         if lmp_only is True:
             # Turn into pandas Dataframe
             if len(data) == 0:
-                return pandas.DataFrame()
+                return pd.DataFrame()
 
             try:
                 str_data = BytesIO(data)    # Changed from StringIO for Python 3.4
             except TypeError:
                 str_data = StringIO(data)
 
-            df = pandas.DataFrame.from_csv(str_data, sep=",")
+            df = pd.DataFrame.from_csv(str_data, sep=",")
 
             # strip congestion and loss prices
             try:
                 df = df.ix[df['LMP_TYPE'] == 'LMP']
             except KeyError:  # no good data
-                return pandas.DataFrame()
+                return pd.DataFrame()
         else:
             # data is an array of csv-derived strings
-            df = pandas.DataFrame()
+            df = pd.DataFrame()
             for thisFile in data:
                 # Turn into pandas Dataframe
                 try:
@@ -309,14 +309,14 @@ class CAISOClient(BaseClient):
                 except TypeError:
                     str_data = StringIO(thisFile)
 
-                tempDf = pandas.DataFrame.from_csv(str_data, sep=",")
+                tempDf = pd.DataFrame.from_csv(str_data, sep=",")
 
-                df = pandas.concat([df, tempDf])
+                df = pd.concat([df, tempDf])
             # Check to ensure good data
             try:
                 df['LMP_TYPE'][0]
             except KeyError:  # no good data
-                return pandas.DataFrame()
+                return pd.DataFrame()
 
         return df
 
@@ -351,7 +351,7 @@ class CAISOClient(BaseClient):
         data = self.fetch_oasis(payload=payload)
 
         if len(data) == 0:
-            return pandas.DataFrame()
+            return pd.DataFrame()
 
         # Turn into pandas Dataframe
         try:
@@ -359,13 +359,13 @@ class CAISOClient(BaseClient):
         except TypeError:
             str_data = StringIO(data)
 
-        df = pandas.DataFrame.from_csv(str_data, sep=",")
+        df = pd.DataFrame.from_csv(str_data, sep=",")
 
         # Get all data indexed on 'INTERVALSTARTTIME_GMT' as panda datetime
         if df.index.name != 'INTERVALSTARTTIME_GMT':
             df.set_index('INTERVALSTARTTIME_GMT', inplace=True)
             df.index.name = 'INTERVALSTARTTIME_GMT'
-        df.index = pandas.to_datetime(df.index)
+        df.index = pd.to_datetime(df.index)
 
         # utcify
         df.index = self.utcify_index(df.index, tz_name='UTC')
