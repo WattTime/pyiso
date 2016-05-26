@@ -251,7 +251,6 @@ class MISOClient(BaseClient):
             datestr = day.strftime('%Y%m%d')
             url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
 
-            print 'requesting', url
             response = self.request(url)
             if response.status_code == 404:
                 if self.options['market'] == self.MARKET_CHOICES.hourly:
@@ -259,7 +258,6 @@ class MISOClient(BaseClient):
                     self.options['market'] = self.MARKET_CHOICES.hourly_prelim
                     ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
                     url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
-                    print 'requesting', url
                     response = self.request(url)
 
             # if that didn't work, don't append to pieces
