@@ -90,6 +90,12 @@ class TestBaseClient(TestCase):
         self.assertEqual(bc.options['end_at'], midnight_today + timedelta(days=2))
         self.assertTrue(bc.options['forecast'])
 
+    def test_handle_options_set_forecast(self):
+        bc = BaseClient()
+        start = datetime(2016, 05, 26, 0, 0, tzinfo=pytz.utc)
+        bc.handle_options(start_at=start, end_at=start+timedelta(days=2))
+        self.assertTrue(bc.options['forecast'])
+
     def test_bad_zipfile(self):
         bc = BaseClient()
         badzip = 'I am not a zipfile'
