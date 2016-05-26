@@ -3,7 +3,7 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
-import requests_mock
+import mock
 from responses import test_trade_responses as responses
 
 
@@ -164,19 +164,16 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    @requests_mock.mock()
+    @mock.patch.object(BaseClient, 'request')
     def test_date_range(self, mocker):
-        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
-               '/20160513ExternalLimitsFlows.csv')
-        mocker.get(url, text=responses.test_date_range_short[1])
+        def mreq(url):
+            day = url[58:60]
+            text = responses.test_date_range_short[1].replace('05/13', '05/' + day)
+            return mock.Mock(status_code=200, text=text)
 
-        mocker.get(url.replace('13', '11'),
-                   text=responses.test_date_range_short[1].replace('05/13', '05/11'))
-
-        mocker.get(url.replace('13', '12'),
-                   text=responses.test_date_range_short[1].replace('05/13', '05/12'))
-
-        # basic test
+#         url = ('http://mis.nyiso.com/publ/ExternalLimitsFlows'
+#                '/20160513ExternalLimitsFlows.csv')
+        mocker.side_effect = mreq
         now = responses.test_date_range_short[0]
         # basic test
         data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
@@ -191,11 +188,10 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    @requests_mock.mock()
+    @mock.patch.object(BaseClient, 'request')
     def test_date_range_short(self, mocker):
-        url = ('http://mis.nyiso.com/public/csv/ExternalLimitsFlows'
-               '/20160513ExternalLimitsFlows.csv')
-        mocker.get(url, text=responses.test_date_range_short[1])
+        mocker.return_value = mock.Mock(status_code=200,
+                                        text=responses.test_date_range_short[1])
         # basic test
         now = responses.test_date_range_short[0]
         data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),

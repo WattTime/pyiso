@@ -1,4 +1,5 @@
 from pyiso import client_factory
+from pyiso import nvenergy
 from unittest import TestCase
 from io import StringIO
 from datetime import datetime, timedelta
@@ -7,8 +8,8 @@ try:
 except ImportError:
     from urllib.error import HTTPError
 import pytz
-import requests_mock
-
+import mock
+from requests import Response
 
 one_day = StringIO(u"""
 <table><tr><td><p>08/02/2015</p></td></tr><tr><td><html>
@@ -3833,140 +3834,142 @@ class TestNVEnergy(TestCase):
         self.assertIn(last_month_date.strftime('%m_01_%Y'), url)
         self.assertEqual(mode, 'historical')
 
-    @requests_mock.mock()
-    def test_fetch_df_today(self, mocker):
-        # set up df from StringIO
-        one_day.seek(0)
-        mocker.get('http://mockurl', text=one_day.read())
-        df, mode = self.c.fetch_df(self.today, url='http://mockurl', mode='recent')
+    def test_fetch_df_today(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            one_day.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=one_day.read())
 
-        # test index and columns
-        self.assertEqual(list(df.index),
-                         [u'Actual Native Load', u'Actual System Load',
-                          u'Forecast Native Load', u'Forecast System Load',
-                          u'Tie Line', u'Tie Line', u'Tie Line', u'Tie Line',
-                          u'Tie Line', u'Tie Line', u'Tie Line'])
-        self.assertEqual(list(df.columns),
-                         [u'Counterparty'] + list(range(1, 25)) + [u'Total'])
+            df, mode = self.c.fetch_df(self.today, url='http://mockurl', mode='recent')
+
+            # test index and columns
+            self.assertEqual(list(df.index),
+                             [u'Actual Native Load', u'Actual System Load',
+                              u'Forecast Native Load', u'Forecast System Load',
+                              u'Tie Line', u'Tie Line', u'Tie Line', u'Tie Line',
+                              u'Tie Line', u'Tie Line', u'Tie Line'])
+            self.assertEqual(list(df.columns),
+                             [u'Counterparty'] + list(range(1, 25)) + [u'Total'])
 
     def test_fetch_df_bad(self):
         # no data in year 2020
         self.assertRaises(ValueError, self.c.fetch_df, self.today,
                           self.c.BASE_URL + 'native_system_load_and_ties_for_01_01_2020_.html')
 
-    @requests_mock.mock()
-    def test_parse_load_today(self, mocker):
-        # set up df from StringIO
-        one_day.seek(0)
-        mocker.get('http://mockurl', text=one_day.read())
-        df, mode = self.c.fetch_df(self.today, url='http://mockurl')
+    def test_parse_load_today(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            one_day.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=one_day.read())
+            df, mode = self.c.fetch_df(self.today, url='http://mockurl')
 
-        # set up options
-        self.c.handle_options(latest=True)
-        data = self.c.parse_load(df, self.today)
+            # set up options
+            self.c.handle_options(latest=True)
+            data = self.c.parse_load(df, self.today)
 
-        # test
-        self.assertEqual(len(data), 18)
+            # test
+            self.assertEqual(len(data), 18)
         for idp, dp in enumerate(data):
             self.assertEqual(dp['market'], 'RTHR')
             self.assertEqual(dp['freq'], '1hr')
             self.assertEqual(dp['ba_name'], 'NEVP')
             self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
-    @requests_mock.mock()
-    def test_parse_load_tomorrow(self, mocker):
-        # set up df from StringIO
-        tomorrow.seek(0)
-        mocker.get('http://mockurl', text=tomorrow.read())
-        df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
+    def test_parse_load_tomorrow(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            tomorrow.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=tomorrow.read())
+            df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
 
-        # set up options
-        self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
-        data = self.c.parse_load(df, self.tomorrow, 'tomorrow')
+            # set up options
+            self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
+            data = self.c.parse_load(df, self.tomorrow, 'tomorrow')
 
-        # test
-        self.assertEqual(len(data), 24)
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NEVP')
-            self.assertEqual(dp['load_MW'], df.ix['Forecast System Load', idp+1])
+            # test
+            self.assertEqual(len(data), 24)
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertEqual(dp['ba_name'], 'NEVP')
+                self.assertEqual(dp['load_MW'], df.ix['Forecast System Load', idp+1])
 
-    @requests_mock.mock()
-    def test_parse_load_last_month(self, mocker):
-        # set up df from StringIO
-        one_month.seek(0)
-        mocker.get('http://mockurl', text=one_month.read())
-        df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
+    def test_parse_load_last_month(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            one_month.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=one_month.read())
+            df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
 
-        # set up options
-        self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
-        data = self.c.parse_load(df, self.last_month)
+            # set up options
+            self.c.handle_options(start_at=self.last_month,
+                                  end_at=self.last_month+timedelta(days=2))
+            data = self.c.parse_load(df, self.last_month)
 
-        # test
-        self.assertEqual(len(data), 18)
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NEVP')
-            self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
+            # test
+            self.assertEqual(len(data), 18)
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertEqual(dp['ba_name'], 'NEVP')
+                self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
-    @requests_mock.mock()
-    def test_parse_trade_today(self, mocker):
-        # set up df from StringIO
-        one_day.seek(0)
-        mocker.get('http://mockurl', text=one_day.read())
-        df, mode = self.c.fetch_df(self.today, url='http://mockurl')
+    def test_parse_trade_today(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            one_day.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=one_day.read())
+            df, mode = self.c.fetch_df(self.today, url='http://mockurl')
 
-        # set up options
-        self.c.handle_options(latest=True)
-        data = self.c.parse_trade(df, self.today)
+            # set up options
+            self.c.handle_options(latest=True)
+            data = self.c.parse_trade(df, self.today)
 
-        # test
-        self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
+            # test
+            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
-            dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-            idx = idp % 18 + 1
-            self.assertEqual(dp['export_MW'], df.ix[dest, idx])
+                dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
+                idx = idp % 18 + 1
+                self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
-    @requests_mock.mock()
-    def test_parse_trade_tomorrow(self, mocker):
-        # set up df from StringIO
-        tomorrow.seek(0)
-        mocker.get('http://mockurl', text=tomorrow.read())
-        df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
+    def test_parse_trade_tomorrow(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            tomorrow.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=tomorrow.read())
+            df, mode = self.c.fetch_df(self.tomorrow, 'http://mockurl', 'tomorrow')
 
-        # set up options
-        self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
+            # set up options
+            self.c.handle_options(start_at=self.today, end_at=self.tomorrow+timedelta(days=1))
 
-        # no trade data tomorrow
-        self.assertRaises(KeyError, self.c.parse_trade, df, self.tomorrow, 'tomorrow')
+            # no trade data tomorrow
+            self.assertRaises(KeyError, self.c.parse_trade, df, self.tomorrow, 'tomorrow')
 
-    @requests_mock.mock()
-    def test_parse_trade_last_month(self, mocker):
-        # set up df from StringIO
-        one_month.seek(0)
-        mocker.get('http://mockurl', text=one_month.read())
-        df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
+    def test_parse_trade_last_month(self):
+        with mock.patch.object(self.c, 'request') as mocker:
+            # set up df from StringIO
+            one_month.seek(0)
+            mocker.return_value = mock.Mock(status_code=200, content=one_month.read())
+            df, mode = self.c.fetch_df(self.last_month, 'http://mockurl', 'historical')
 
-        # set up options
-        self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
-        data = self.c.parse_trade(df, self.last_month)
+            # set up options
+            self.c.handle_options(start_at=self.last_month, end_at=self.last_month+timedelta(days=2))
+            data = self.c.parse_trade(df, self.last_month)
 
-        # test
-        self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
+            # test
+            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
-            dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-            idx = idp % 18 + 1
-            self.assertEqual(dp['export_MW'], df.ix[dest, idx])
+                dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
+                idx = idp % 18 + 1
+                self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_time_subset_latest(self):
         """Subset should return all elements with latest ts"""
