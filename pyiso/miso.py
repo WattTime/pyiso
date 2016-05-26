@@ -2,7 +2,7 @@ from collections import namedtuple
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
-from io import BytesIO
+from io import BytesIO, StringIO
 from datetime import datetime, timedelta
 import pytz
 from dateutil.parser import parse
@@ -110,7 +110,11 @@ class MISOClient(BaseClient):
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(StringIO(response.text), header=0, index_col=0, parse_dates=True)
+        try:
+            text = BytesIO(response.text)
+        except TypeError:
+            text = StringIO(response.text)
+        df = pd.read_csv(text, header=0, index_col=0, parse_dates=True)
 
         # set index
         df.index = self.utcify_index(df.index)
