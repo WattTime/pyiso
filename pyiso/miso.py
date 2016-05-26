@@ -110,7 +110,7 @@ class MISOClient(BaseClient):
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(StringIO(response.text), header=0, index_col=0, parse_dates=True)
+        df = pd.read_csv(BytesIO(response.content), header=0, index_col=0, parse_dates=True)
 
         # set index
         df.index = self.utcify_index(df.index)
@@ -199,7 +199,7 @@ class MISOClient(BaseClient):
         response = self.request(url)
 
         # parse data into DataFrame
-        data = StringIO(response.text)
+        data = BytesIO(response.content)
         df = pd.read_csv(data, skiprows=[1, 3], header=None)
 
         # parse timestamp from column name, add timezone
@@ -264,7 +264,7 @@ class MISOClient(BaseClient):
             if response.status_code == 404:
                 continue
             # skip file information
-            udf = pd.read_csv(StringIO(response.text), skiprows=[0, 1, 2, 3])
+            udf = pd.read_csv(BytesIO(response.content), skiprows=[0, 1, 2, 3])
 
             # standardize format
             udf = pd.melt(udf, id_vars=['Node', 'Value', 'Type'])
