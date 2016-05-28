@@ -1,13 +1,16 @@
+from collections import namedtuple
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import pandas as pd
-try:
-    from urllib2 import HTTPError
-except ImportError:
-    from urllib.error import HTTPError
-from io import StringIO
-from datetime import datetime
+from io import BytesIO
+from datetime import datetime, timedelta
 import pytz
+from dateutil.parser import parse
+import re
+
+IntervalChoices = namedtuple('IntervalChoices',
+                             ['hourly', 'hourly_prelim', 'fivemin', 'tenmin',
+                              'na', 'dam', 'dam_exante'])
 
 
 class MISOClient(BaseClient):
@@ -23,14 +26,13 @@ class MISOClient(BaseClient):
         'Wind': 'wind',
     }
 
-    TZ_NAME = 'America/New_York'
+    # MISO is always on utc offset is -5
+    # Due to a legacy problem, pytz time zones names are sign reversed
+    TZ_NAME = 'Etc/GMT+5'
 
-    def utcify(self, local_ts, **kwargs):
-        # MISO is always on Eastern Standard Time, even during DST
-        # ie UTC offset = -5 always
-        utc_ts = super(MISOClient, self).utcify(local_ts, is_dst=False)
-        utc_ts += utc_ts.astimezone(pytz.timezone(self.TZ_NAME)).dst()  # adjust for EST
-        return utc_ts
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M',
+                                     dam='DAHR', hourly_prelim='RTHR_prelim',
+                                     dam_exante='DAHR_exante')
 
     def get_generation(self, latest=False, **kwargs):
         # set args
@@ -108,7 +110,7 @@ class MISOClient(BaseClient):
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(StringIO(response.text), header=0, index_col=0, parse_dates=True)
+        df = pd.read_csv(BytesIO(response.content), header=0, index_col=0, parse_dates=True)
 
         # set index
         df.index = self.utcify_index(df.index)
@@ -134,12 +136,14 @@ class MISOClient(BaseClient):
         datestr = date.strftime('%Y%m%d')
         url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
 
-        # make request
-        try:
-            xls = pd.read_excel(url)
-        except HTTPError:
+        # make request with self.request for easier debugging, mocking
+        response = self.request(url)
+
+        if response.status_code == 404:
             LOGGER.debug('No MISO forecast data available at %s' % datestr)
             return pd.DataFrame()
+
+        xls = pd.read_excel(BytesIO(response.content))
 
         # clean header
         header_df = xls.iloc[:5]
@@ -168,7 +172,8 @@ class MISOClient(BaseClient):
             return sliced[['gen_MW', 'fuel_name']]
 
         elif self.options['data'] == 'load':
-            sliced['load_MW'] = 1000.0 * (sliced['Demand Cleared (GWh) - Physical - Fixed'] + sliced['Demand Cleared (GWh) - Physical - Price Sen.'])
+            sliced['load_MW'] = 1000.0 * (sliced['Demand Cleared (GWh) - Physical - Fixed'] +
+                                          sliced['Demand Cleared (GWh) - Physical - Price Sen.'])
             return sliced['load_MW']
 
         elif self.options['data'] == 'trade':
@@ -176,4 +181,144 @@ class MISOClient(BaseClient):
             return sliced['net_exp_MW']
 
         else:
-            raise ValueError('Can only parse MISO forecast gen, load, or trade data, not %s' % self.options['data'])
+            raise ValueError('Can only parse MISO forecast gen, load, or trade data, not %s'
+                             % self.options['data'])
+
+    def handle_options(self, **kwargs):
+        super(MISOClient, self).handle_options(**kwargs)
+        if 'market' not in self.options:
+            self.options['market'] = self.MARKET_CHOICES.dam
+            self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+
+        if 'freq' not in self.options:
+            self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+
+    def get_realtime_lmp(self, **kwargs):
+        # get csv with latest 5 minute data
+        url = self.base_url + '/ria/Consolidated.aspx?format=csv'
+        response = self.request(url)
+
+        # parse data into DataFrame
+        data = BytesIO(response.content)
+        df = pd.read_csv(data, skiprows=[1, 3], header=None)
+
+        # parse timestamp from column name, add timezone
+        ts = df.iloc[0, 13]
+        ts = ts.replace('RefId=', '')
+        ts = parse(ts, ignoretz=True)
+        ts = self.utcify(ts)
+
+        # MEC = Marginal Energy Component (unconstrained LMP)
+        # MCC = Marginal Congestion Component (GSF X Marginal Value)
+        # drop MEC and MCC prices
+        drop_col = [2, 3, 5, 6, 8, 9, 11, 12, 13]
+
+        # drop Ex/Post Ante prices
+        drop_col += [4, 7, 10]
+        df.drop(drop_col, axis=1, inplace=True)
+
+        # drop 'header' rows
+        df.drop([0, 1], axis=0, inplace=True)
+
+        # add columns
+        df.rename(columns={0: 'node_id', 1: 'lmp'}, inplace=True)
+        df['timestamp'] = ts
+        df['ba_name'] = 'MISO'
+        df['lmp_type'] = 'TotalLMP'
+        df['freq'] = self.FREQUENCY_CHOICES.fivemin
+        df['market'] = self.MARKET_CHOICES.fivemin
+
+        # parse lmp as int
+        df['lmp'] = df['lmp'].astype(float)
+        return df
+
+    def get_historical_lmp(self):
+        # Etc/GMT+5 is actually GMT - 05:00 which is MISO time
+        tz = pytz.timezone(self.TZ_NAME)
+
+        local_start = self.options['start_at'].astimezone(tz).date()
+        local_end = self.options['end_at'].astimezone(tz).date()
+        # get days between start and end
+        days = [local_start + timedelta(days=x) for x in range((local_end-local_start).days + 1)]
+        name_dict = {self.MARKET_CHOICES.hourly: '_rt_lmp_final.csv',
+                     self.MARKET_CHOICES.hourly_prelim: '_rt_lmp_prelim.csv',
+                     self.MARKET_CHOICES.dam: '_da_expost_lmp.csv',
+                     self.MARKET_CHOICES.dam_exante: '_da_exante_lmp.csv'}
+        pieces = []
+        for day in days:
+            # get the filename extension
+            ext = name_dict[self.options['market']]
+            datestr = day.strftime('%Y%m%d')
+            url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+
+            response = self.request(url)
+            if response.status_code == 404:
+                if self.options['market'] == self.MARKET_CHOICES.hourly:
+                    # try preliminary and tell the user
+                    self.options['market'] = self.MARKET_CHOICES.hourly_prelim
+                    ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
+                    url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+                    response = self.request(url)
+
+            # if that didn't work, don't append to pieces
+            if response.status_code == 404:
+                continue
+            # skip file information
+            udf = pd.read_csv(BytesIO(response.content), skiprows=[0, 1, 2, 3])
+
+            # standardize format
+            udf = pd.melt(udf, id_vars=['Node', 'Value', 'Type'])
+
+            # get naive timestamps, HE_1 = hour ending 1
+            udf['hour'] = udf['variable'].apply(str.replace, args=('HE ', '')).astype(int) - 1
+            udf['timestamp'] = udf['hour'].apply(lambda x: timedelta(hours=x)) + day
+            udf.drop(['hour', 'variable'], axis=1, inplace=True)
+
+            pieces.append(udf)
+
+        df = pd.concat(pieces)
+        if df.empty:
+            return df
+        # utcify
+        df.set_index('timestamp', inplace=True)
+        df.index = self.utcify_index(df.index)
+
+
+        # drop MCC and MLC
+        df = df[df['Value'] == 'LMP']
+
+        # drop node type
+        df.drop('Type', axis=1, inplace=True)
+
+        # standardize names
+        rename_dict = {'Node': 'node_id',
+                       'Value': 'lmp_type',
+                       'value': 'lmp', }
+        df.rename(columns=rename_dict, inplace=True)
+
+        # add columns
+        df['freq'] = self.options['freq']
+        df['market'] = self.options['market']
+        df['ba_name'] = 'MISO'
+
+        return df
+
+    def get_lmp(self, node_id='ILLINOIS.HUB', latest=True, **kwargs):
+        """ ILLINOIS.HUB is central """
+        self.handle_options(latest=latest, **kwargs)
+
+        if self.options['latest']:
+            df = self.get_realtime_lmp(**kwargs)
+
+        else:
+            df = self.get_historical_lmp()
+            df = self.slice_times(df)
+            df.reset_index(inplace=True)
+
+        # strip out unwated nodes
+        if node_id:
+            if not isinstance(node_id, list):
+                node_id = [node_id]
+            reg = re.compile('|'.join(node_id))
+            df = df.ix[df['node_id'].str.contains(reg)]
+        return df.to_dict(orient='records')

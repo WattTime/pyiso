@@ -67,15 +67,6 @@ class TestSVERI(TestCase):
             self.assertEquals(dp['market'], extras['market'])
             self.assertEquals(dp['freq'], extras['freq'])
 
-    def test_get_response(self):
-        self.c.handle_options(data='gen', latest=False, yesterday=False,
-                              start_at=self.sample_start, end_at=self.sample_end)
-        payloads = self.c.get_gen_payloads()
-        response = self.c.request(self.c.BASE_URL, params=payloads[0])
-
-        # python3-compatible string containment test
-        self.assertNotEqual(response.content.find(self.sample), -1)
-
     def test_get_payloads_latest(self):
         # latest
         self.c.handle_options(data='gen', latest=True, yesterday=False,

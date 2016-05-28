@@ -2,6 +2,7 @@ from pyiso.base import BaseClient
 import numpy as np
 import pandas as pd
 from datetime import timedelta
+import re
 
 
 class NYISOClient(BaseClient):
@@ -106,8 +107,10 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
-    def get_lmp(self, latest=False, start_at=False, end_at=False, node_id=None, **kwargs):
-        # set args
+    def get_lmp(self, node_id='CENTRL', latest=False, start_at=False, end_at=False, **kwargs):
+        # node CENTRL is relatively central and seems to have low congestion costs
+        if node_id and not isinstance(node_id, list):
+            node_id = [node_id]
         self.handle_options(data='lmp', latest=latest, node_id=node_id,
                             start_at=start_at, end_at=end_at, **kwargs)
 
@@ -131,7 +134,6 @@ class NYISOClient(BaseClient):
                 'freq': self.FREQUENCY_CHOICES.fivemin,
                 'market': self.MARKET_CHOICES.fivemin,
             }
-
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
@@ -146,10 +148,19 @@ class NYISOClient(BaseClient):
         # fetch and parse all csvs
         for date in dates_list:
             for csv in self.fetch_csvs(date, label):
+
                 try:
                     pieces.append(parser(csv))
                 except AttributeError:
                     pass
+
+            # if fetch_csvs cannot get the individual days, it gets the whole month
+            # Shortcut the loop if any call to fetch_csvs gets all dates in dates_list
+            try:
+                if (pieces[-1].index[-1] - timedelta(days=1)).date() > max(dates_list):
+                    break
+            except IndexError:
+                pass
 
         # combine pieces
         df = pd.concat(pieces)
@@ -293,15 +304,21 @@ class NYISOClient(BaseClient):
         if self.options['latest']:
             df = df.truncate(after=self.local_now())
 
-        # select name for node id
-        node_df = df[df['Name'] == self.options['node_id']]
+        rename_d = {'LBMP ($/MWHr)': 'lmp',
+                    'Name': 'node_id'}
+        df.rename(columns=rename_d, inplace=True)
+        df['lmp_type'] = 'energy'
 
-        # pull out column
-        final_df = pd.DataFrame({
-            'lmp': node_df['LBMP ($/MWHr)'],
-            'node_id': node_df['Name'],
-            'lmp_type': 'energy',
-        })
+        df.drop([u'PTID', u'Marginal Cost Losses ($/MWHr)'], axis=1, inplace=True)
+        try:
+            df.drop(u'Marginal Cost Congestion ($/MWHr)', axis=1, inplace=True)
+        except ValueError:
+            df.drop(u'Marginal Cost Congestion ($/MWH', axis=1, inplace=True)
 
+        # strip out unwanted nodes
+        node_id = self.options['node_id']
+        if node_id:
+            reg = re.compile('|'.join(node_id))
+            df = df.ix[df['node_id'].str.contains(reg)]
         # return
-        return final_df
+        return df

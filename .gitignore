@@ -1,4 +1,5 @@
 *.swp
+*.swo
 *.py[cod]
 *~
 *.db
@@ -11,6 +12,7 @@ env.sh
 
 # Packages
 *.egg
+.eggs
 *.egg-info
 dist
 build
@@ -30,8 +32,10 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+.coveragerc
 .tox
 nosetests.xml
+htmlcov/*
 
 # Translations
 *.mo
@@ -48,3 +52,10 @@ nosetests.xml
 
 # coverage files
 htmlcov
+
+# Certificate key files
+*.pem
+
+
+
+

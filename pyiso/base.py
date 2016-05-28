@@ -16,7 +16,7 @@ except ImportError:
     from urllib.request import urlopen  # Changed from urllib2 for python3.x
 
 # named tuple for time period interval labels
-IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'na', 'dam'])
+IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 'fifteenmin', 'na', 'dam'])
 
 # list of fuel choices
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
@@ -30,8 +30,8 @@ class BaseClient(object):
     Base class for scraper/parser clients.
     """
     # choices for market and frequency interval labels
-    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', na='RT5M', dam='DAHR')
-    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', na='n/a', dam='1hr')
+    MARKET_CHOICES = IntervalChoices(hourly='RTHR', fivemin='RT5M', tenmin='RT5M', fifteenmin='RTPD', na='RT5M', dam='DAHR')
+    FREQUENCY_CHOICES = IntervalChoices(hourly='1hr', fivemin='5m', tenmin='10m', fifteenmin='15m', na='n/a', dam='1hr')
 
     # timezone
     TZ_NAME = 'UTC'
@@ -108,6 +108,28 @@ class BaseClient(object):
 
         """
         raise NotImplementedError('Derived classes must implement the get_trade method.')
+
+    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+        """
+        Scrape and parse location marginal price data.
+        To request a specific LMP node, include kwarg `node_id`.
+
+        :param bool latest: If True, only get LMP at the one most recent available time point.
+           Available for all regions.
+        :param bool yesterday: If True, get LMP for every time point yesterday.
+           Not available for all regions.
+        :param datetime start_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :param datetime end_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
+           If using, must provide both ``start_at`` and ``end_at`` parameters.
+           Not available for all regions.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, lmp, lmp_type]``.
+           Timestamps are in UTC.
+        :rtype: list
+
+        """
+        raise NotImplementedError('Derived classes must implement the get_lmp method.')
 
     def handle_options(self, **kwargs):
         """
@@ -346,15 +368,8 @@ class BaseClient(object):
             df = pd.concat(pieces)
 
             # parse date index
-            if parse_dates:
-                idx = []
-                for t in df.index:
-                    try:
-                        idx.append(pd.to_datetime(t))
-                    except ValueError:
-                        # not a datetime
-                        idx.append('')
-                df.index = idx
+
+            df.index = pd.to_datetime(df.index, infer_datetime_format=True, errors='coerce')
 
         # set names
         if header_names is not None:
@@ -434,7 +449,7 @@ class BaseClient(object):
                 raise ValueError('Slicing by time requires start_at and end_at')
 
         # sort before truncate eliminates DST KeyError
-        sorteddf = df.sort()
+        sorteddf = df.sort_index()
         sliced = sorteddf.truncate(before=start_at, after=end_at)
 
         # return
