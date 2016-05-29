@@ -1,5 +1,6 @@
 from copy import copy
 from datetime import datetime
+from datetime import timedelta
 
 import pytz
 from lxml import objectify
@@ -24,42 +25,38 @@ class IESOClient(BaseClient):
         'OTHER': 'other'
     }
 
+    def handle_options(self, **kwargs):
+        # regular handle options
+        super(IESOClient, self).handle_options(**kwargs)
+
+        local_now_dt = self.local_now()  # timezone aware
+        local_current_day_start_dt = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        if self.options.get('latest', None):
+            self.options['end_at'] = local_now_dt
+            self.options['start_at'] = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.options['current_day'] = True
+            self.options['historical'] = False
+            self.options['forecast'] = False
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
+            if self.options['start_at'] < local_current_day_start_dt:
+                self.options['historical'] = True
+            if self.options['end_at'] >= local_current_day_start_dt:
+                self.options['current_day'] = True
+
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         fuel_mix = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
-        local_now_dt = self.local_now()  # timezone aware
 
-        if latest:
-            self.options['end_at'] = local_now_dt
-            self.options['start_at'] = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        if self.options.get('latest', None):
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
-
-        elif yesterday:
-            fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
-
-        elif (start_at != False) & (end_at != False) & (self._is_in_generation_mix_time_range(self.options['end_at'])):
-            # using options values in all cases, known to be timezone aware and in UTC
-            if local_now_dt < self.options['start_at']:  # forecast only
-                raise NotImplementedError('Generation forecast not currently implemented')
-            elif local_now_dt < self.options['end_at']:  # history with forecast
-                raise NotImplementedError('Generation forecast not currently implemented')
-            elif self._is_same_day_local(self.options['start_at'], self.options['end_at']):  # same day is only one call
-                fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
-            else:  # not a forecast and not the same day, guaranteed to at least be 2nd day of the year
-                iter_dt = copy(self.options['start_at'])
-                while iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year <= \
-                        self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)).year:
-                    if self._is_in_generation_mix_time_range(iter_dt):
-                        fuel_mix += self._year_generation_mix(local_year=
-                                                              iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
-                    iter_dt = iter_dt.replace(year=iter_dt.year + 1)
-                if self._is_same_day_local(local_now_dt, self.options['end_at']):
-                    # end_at is in the current day, which requires requesting the current output capability report
-                    fuel_mix = self._day_generation_mix(dt=self.options['end_at'])
-
-        elif (end_at != False) & (self._is_in_generation_mix_time_range(self.options['end_at']) == False):
-            LOGGER.warn('Generator Output and Capability Report can only be requested up to one year in the past.')
-
+        elif self.options.get('latest', None) or (self.options.get('start_at', None) and self.options.get('end_at', None)):
+            if self.options.get('historical', False):
+                self._generation_historical(fuel_mix=fuel_mix)
+            if self.options.get('current_day', False):
+                fuel_mix += self._day_generation_mix(dt=self.local_now())
+            if self.options.get('forecast', False):
+                self._generation_forecast(fuel_mix=fuel_mix)
         else:
             LOGGER.warn('No valid options were supplied.')
 
@@ -83,6 +80,34 @@ class IESOClient(BaseClient):
             return local_date.strftime('PUB_Adequacy_%Y%m%d.xml')
         else:
             return 'PUB_Adequacy.xml'
+
+    def _generation_forecast(self, fuel_mix):
+        """
+        Iterate over calls to _year_generation_mix for all historical dates in the start_at to end_at range.
+
+        :param list fuel_mix: The list of dicts to append results to.
+        """
+        local_last_forecast_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999) \
+            + timedelta(days=1)  # Last possible forecast is the end of the next day.
+        iter_dt = copy(self.local_now())
+        while iter_dt <= self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)) \
+                and iter_dt <= local_last_forecast_dt:
+            fuel_mix += self._forecast_generation_mix(dt=iter_dt)
+            iter_dt = iter_dt.replace(day=iter_dt.day + 1)
+
+    def _generation_historical(self, fuel_mix):
+        """
+        Iterate over calls to _year_generation_mix for all historical dates in the start_at to end_at range.
+
+        :param list fuel_mix: The list of dicts to append results to.
+        """
+        iter_dt = copy(self.options['start_at'])
+        while iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year <= \
+                self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)).year:
+            if self._is_in_generation_mix_time_range(iter_dt):
+                fuel_mix += self._year_generation_mix(local_year=
+                                                      iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
+            iter_dt = iter_dt.replace(year=iter_dt.year + 1)
 
     @staticmethod
     def _output_capability_filename(local_date=None):
@@ -203,7 +228,10 @@ class IESOClient(BaseClient):
                 ts_local = day + ' ' + str(hourly_data.Hour - 1).zfill(2) + ':00'
                 for fuel_total in hourly_data.FuelTotal:
                     fuel = fuel_total.Fuel
-                    fuel_gen_mw = fuel_total.EnergyValue.Output
+                    try:
+                        fuel_gen_mw = fuel_total.EnergyValue.Output
+                    except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
+                        fuel_gen_mw = 0
                     self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
                                           market=self.MARKET_CHOICES.hourly)
 
@@ -230,19 +258,10 @@ class IESOClient(BaseClient):
                 'gen_MW': gen_mw
             })
 
-    def _is_same_day_local(self, dt1, dt2):
-        """
-        :param datetime dt1: A timezone-aware datetime value.
-        :param datetime dt2: A timezone-aware datetime value.
-        :return: Whether or not the two datetimes fall on the same day when converted to the local timezone.
-        :rtype: bool
-        """
-        return dt1.astimezone(pytz.timezone(self.TZ_NAME)).date() == dt2.astimezone(pytz.timezone(self.TZ_NAME)).date()
-
     def _is_in_generation_mix_time_range(self, dt):
         """
         :param datetime dt: A timezone-aware datetime value.
-        :return: Whether a datetime falls within the reporting time range for generation fuel mix, the curren year or
+        :return: Whether a datetime falls within the reporting time range for generation fuel mix, the current year or
         previous year.
         :rtype: bool
         """
@@ -262,23 +281,40 @@ class IESOClient(BaseClient):
         response = self.request(url=base_output_capability_url + filename)
         return self._parse_output_capability_report(response.content)
 
+    def _forecast_generation_mix(self, dt):
+        """
+        For generation mix times in the future, the Adequacy Report must be parsed for forecast values.
+
+        :param datetime dt: The datetime (local) of the Adequacy Report to parse.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
+           Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+        :rtype: list
+        """
+        base_adequacy_url = self.base_url + 'Adequacy/'
+        filename = self._adequacy_filename(local_date=dt.astimezone(pytz.timezone(self.TZ_NAME)))
+        response = self.request(url=base_adequacy_url + filename)
+        return self._parse_adequacy_report(response.content)
+
     def _year_generation_mix(self, local_year):
         """
         For long generation mix time ranges at least one day in the past, it is most efficient to request the Generator
         Output by Fuel Type Hourly Report summary rather than the detailed Generator Output and Capability Report.
 
-        :param local_year:
-        :return:
+        :param local_year: The year (local) of the Generator Output and Capability Report to parse.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
+           Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+        :rtype: list
         """
         base_output_by_fuel_url = self.base_url + 'GenOutputbyFuelHourly/'
         filename = self._output_by_fuel_filename(local_year=local_year)
         response = self.request(url=base_output_by_fuel_url + filename)
         return self._parse_output_by_fuel_report(response.content)
 
-# def main():
-#     client = IESOClient()
-#     client.get_generation(start_at=client.utcify(local_ts_str='2015-02-03 15:00:00'),
-#                           end_at=client.utcify(local_ts_str='2016-03-15 01:00:00'))
-#
-# if __name__ == '__main__':
-#     main()
+
+def main():
+    client = IESOClient()
+    client.get_generation(start_at=client.utcify(local_ts_str='2016-05-28 05:00:00'),
+                          end_at=client.utcify(local_ts_str='2016-05-29 01:00:00'))
+
+if __name__ == '__main__':
+    main()
