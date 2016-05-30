@@ -156,7 +156,7 @@ class IESOClient(BaseClient):
                     if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
                         for scheduled in internal_resource.FuelScheduled.Scheduled:
                             ts_local = day + ' ' + str(scheduled.DeliveryHour - 1).zfill(2) + ':00'
-                            fuel_gen_mw = scheduled.EnergyMW
+                            fuel_gen_mw = scheduled.EnergyMW.pyval
                             self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
                                                   market=self.MARKET_CHOICES.dam)
         return fuel_mix
