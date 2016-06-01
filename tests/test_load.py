@@ -6,7 +6,6 @@ import unittest
 import pytz
 from datetime import datetime, timedelta
 import libfaketime
-import requests_mock
 libfaketime.reexec_if_needed()
 
 
@@ -388,12 +387,10 @@ class TestSVERILoad(TestBaseLoad):
         super(TestSVERILoad, self).setUp()
         self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
 
-    @unittest.expectedFailure
     def test_latest_all(self):
         for ba in self.bas:
             self._test_latest(ba)
 
-    @unittest.expectedFailure
     def test_date_range_all(self):
         for ba in self.bas:
             self._test_date_range(ba)
