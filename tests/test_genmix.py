@@ -1,10 +1,8 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import FUEL_CHOICES, BaseClient
-from unittest import TestCase, skip, expectedFailure
+from unittest import TestCase, skip
 import pytz
 from datetime import datetime, timedelta
-#import requests_mock
-#import freezegun
 
 
 class TestBaseGenMix(TestCase):
@@ -380,7 +378,6 @@ class TestSVERIGenMix(TestBaseGenMix):
 
     # @freezegun.freeze_time('2016-05-20 12:10', tz_offset=0, tick=True)
     # @requests_mock.mock()
-    @expectedFailure
     def test_latest_all(self):  # , mocker):
         for ba in self.bas:
             # Open both response files and setup mocking
@@ -395,7 +392,6 @@ class TestSVERIGenMix(TestBaseGenMix):
 
     # @freezegun.freeze_time('2016-05-20 09:00', tz_offset=0, tick=True)
     # @requests_mock.mock()
-    @expectedFailure
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
             # Open both response files and setup mocking
