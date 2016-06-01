@@ -60,6 +60,10 @@ class PJMClient(BaseClient):
         # get time as of
         ts = self.time_as_of(response.content)
 
+        # round down to 5min
+        extra_min = ts.minute % 5
+        ts -= timedelta(minutes=extra_min)
+
         # parse html to df
         dfs = pd.read_html(response.content, header=0, index_col=0)
         df = dfs[0]
