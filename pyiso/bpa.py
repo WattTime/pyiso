@@ -3,6 +3,7 @@ import pytz
 from dateutil.parser import parse as dateutil_parse
 import pandas as pd
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 
 
 class BPAClient(BaseClient):
@@ -70,9 +71,13 @@ class BPAClient(BaseClient):
             raise ValueError('Cannot fetch data without a data mode')
 
         # parse like tsv
-        df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
-                              index_col=0, usecols=cols,
-                              date_parser=self.date_parser)
+        if response:
+            df = self.parse_to_df(response.text, skiprows=6, header=0, delimiter='\t',
+                                  index_col=0, usecols=cols,
+                                  date_parser=self.date_parser)
+        else:
+            LOGGER.warn('No recent data found for BPA %s' % self.options)
+            df = pd.DataFrame()
 
         return df
 
@@ -143,6 +148,10 @@ class BPAClient(BaseClient):
 
         # fetch dataframe of data
         df = self.fetcher()()
+
+        # return empty list if null
+        if len(df) == 0:
+            return []
 
         # parse and clean
         df.index = self.utcify_index(df.index)

@@ -2,9 +2,10 @@ from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
 from pyiso.eu import EUClient
 from unittest import TestCase
+from datetime import datetime, timedelta
 import unittest
 import pytz
-from datetime import datetime, timedelta
+import mock
 import libfaketime
 libfaketime.reexec_if_needed()
 
@@ -63,8 +64,25 @@ class TestBaseLoad(TestCase):
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_load)
 
+    def _run_null_repsonse_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_load(**kwargs)
+
+            # test
+            self.assertEqual(data, [])
+
 
 class TestBPALoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('BPA')
+
     def test_latest(self):
         # basic test
         data = self._run_test('BPA', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -100,6 +118,9 @@ class TestBPALoad(TestBaseLoad):
 
 
 class TestCAISOLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('CAISO')
+
     def test_latest(self):
         # basic test
         data = self._run_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -143,6 +164,9 @@ class TestCAISOLoad(TestBaseLoad):
 
 
 class TestERCOTLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('ERCOT')
+
     def test_latest(self):
         # basic test
         data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -172,6 +196,9 @@ class TestERCOTLoad(TestBaseLoad):
 
 
 class TestISONELoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('ISONE')
+
     def test_latest(self):
         # basic test
         data = self._run_test('ISONE', latest=True)
@@ -205,6 +232,9 @@ class TestISONELoad(TestBaseLoad):
 
 
 class TestMISOLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('MISO')
+
     def test_forecast(self):
         # basic test
         today = pytz.utc.localize(datetime.utcnow())
@@ -221,6 +251,9 @@ class TestMISOLoad(TestBaseLoad):
 
 
 class TestNEVPLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('NEVP')
+
     def test_latest(self):
         # basic test
         data = self._run_test('NEVP', latest=True)
@@ -261,6 +294,9 @@ class TestNEVPLoad(TestBaseLoad):
 
 
 class TestNYISOLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('NYISO')
+
     def test_latest(self):
         # basic test
         data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -300,6 +336,9 @@ class TestNYISOLoad(TestBaseLoad):
 
 
 class TestPJMLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('PJM')
+
     def test_latest(self):
         # basic test
         data = self._run_test('PJM', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -345,6 +384,9 @@ class TestSPPLoad(TestBaseLoad):
 
 
 class TestSPPCLoad(TestBaseLoad):
+    def test_null_response(self):
+        self._run_null_repsonse_test('SPPC')
+
     def test_latest(self):
         # basic test
         data = self._run_test('SPPC', latest=True)
@@ -386,6 +428,9 @@ class TestSVERILoad(TestBaseLoad):
     def setUp(self):
         super(TestSVERILoad, self).setUp()
         self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
+
+    def test_null_response(self):
+        self._run_null_repsonse_test('SVERI')
 
     def test_latest_all(self):
         for ba in self.bas:
