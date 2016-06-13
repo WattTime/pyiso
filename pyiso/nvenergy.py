@@ -118,8 +118,12 @@ class NVEnergyClient(BaseClient):
         if not url:
             url, mode = self.data_url(this_date, mode=mode)
 
-        # carry out request and parse html tables
+        # carry out request
         response = self.request(url)
+        if not response:
+            return pd.DataFrame(), 'error'
+
+        # parse html tables
         dfs = pd.read_html(response.content, index_col=0)
 
         # choose df based on mode

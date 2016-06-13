@@ -92,9 +92,8 @@ class PJMClient(BaseClient):
         return df
 
     def request(self, *args, **kwargs):
-
         response = super(PJMClient, self).request(*args, **kwargs)
-        if response.status_code == 400:
+        if response and response.status_code == 400:
             LOGGER.warn('PJM request returned Bad Request %s' % response)
             return None
 
@@ -186,6 +185,9 @@ class PJMClient(BaseClient):
             # fall back to OASIS
             if not (load_ts and load_val):
                 load_ts, load_val = self.fetch_oasis_data()
+            if not (load_ts and load_val):
+                LOGGER.warn('No PJM latest load data')
+                return []
 
             # format and return
             return [{
@@ -335,6 +337,11 @@ class PJMClient(BaseClient):
 
     def fetch_oasis_data(self):
         response = self.request(self.oasis_url)
+        if not response:
+            if self.options['data'] == 'lmp':
+                return pd.DataFrame()
+            else:
+                return None, None
 
         # get timestamp
         ts = self.parse_date_from_oasis(response.content)
