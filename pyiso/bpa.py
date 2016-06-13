@@ -132,6 +132,10 @@ class BPAClient(BaseClient):
         # fetch dataframe of data
         df = self.fetcher()()
 
+        # return empty list if null
+        if len(df) == 0:
+            return []
+
         # parse and clean
         cleaned_df = self.parse_generation(df)
 

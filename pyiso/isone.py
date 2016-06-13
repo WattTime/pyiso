@@ -58,7 +58,13 @@ class ISONEClient(BaseClient):
         for endpoint in self.request_endpoints():
             # carry out request
             data = self.fetch_data(endpoint, self.auth)
-            raw_data += data['GenFuelMixes']['GenFuelMix']
+
+            # pull out data
+            try:
+                raw_data += data['GenFuelMixes']['GenFuelMix']
+            except KeyError as e:
+                LOGGER.warn(e)
+                continue
 
         # parse data
         for raw_dp in raw_data:

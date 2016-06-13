@@ -90,7 +90,10 @@ class ERCOTClient(BaseClient):
             response = self.request(self.real_time_url)
 
             # parse load from response
-            data = self.parse_rtm(response.text)
+            if response:
+                data = self.parse_rtm(response.text)
+            else:
+                data = []
 
         else:
             raise ValueError('Only latest genmix data available in ERCOT')

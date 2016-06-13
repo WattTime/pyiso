@@ -705,7 +705,11 @@ class CAISOClient(BaseClient):
     def fetch_todays_outlook_renewables(self):
         # get renewables data
         response = self.request(self.base_url_outlook+'renewables.html')
-        return BeautifulSoup(response.content)
+        try:
+            return BeautifulSoup(response.content)
+        except AttributeError:
+            LOGGER.warn('No response for CAISO today outlook renewables')
+            return None
 
     def parse_todays_outlook_renewables(self, soup, ts):
         # set up storage
@@ -748,8 +752,12 @@ class CAISOClient(BaseClient):
         self.options['market'] = self.MARKET_CHOICES.tenmin
         self.options['freq'] = self.FREQUENCY_CHOICES.tenmin
 
-        # get and parse "Today's Outlook" data
+        # get "Today's Outlook" data
         soup = self.fetch_todays_outlook_renewables()
+        if not soup:
+            return []
+
+        # parse "Today's Outlook" data
         ts = self.todays_outlook_time()
         parsed_data += self.parse_todays_outlook_renewables(soup, ts)
         if len(parsed_data) == 0:
