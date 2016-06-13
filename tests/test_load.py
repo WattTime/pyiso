@@ -80,8 +80,8 @@ class TestBaseLoad(TestCase):
 
 
 class TestBPALoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('BPA')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('BPA', latest=True)
 
     def test_latest(self):
         # basic test
@@ -118,8 +118,8 @@ class TestBPALoad(TestBaseLoad):
 
 
 class TestCAISOLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('CAISO')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('CAISO', latest=True)
 
     def test_latest(self):
         # basic test
@@ -258,8 +258,8 @@ class TestMISOLoad(TestBaseLoad):
 
 
 class TestNEVPLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('NEVP')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('NEVP', latest=True)
 
     def test_latest(self):
         # basic test
@@ -343,8 +343,8 @@ class TestNYISOLoad(TestBaseLoad):
 
 
 class TestPJMLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('PJM')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('PJM', latest=True)
 
     def test_latest(self):
         # basic test

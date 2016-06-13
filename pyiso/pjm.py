@@ -334,6 +334,11 @@ class PJMClient(BaseClient):
 
     def fetch_oasis_data(self):
         response = self.request(self.oasis_url)
+        if not response:
+            if self.options['data'] == 'lmp':
+                return pd.DataFrame()
+            else:
+                return None, None
 
         # get timestamp
         ts = self.parse_date_from_oasis(response.content)
