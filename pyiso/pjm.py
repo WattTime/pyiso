@@ -185,6 +185,9 @@ class PJMClient(BaseClient):
             # fall back to OASIS
             if not (load_ts and load_val):
                 load_ts, load_val = self.fetch_oasis_data()
+            if not (load_ts and load_val):
+                LOGGER.warn('No PJM latest load data')
+                return []
 
             # format and return
             return [{
