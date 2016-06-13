@@ -92,9 +92,8 @@ class PJMClient(BaseClient):
         return df
 
     def request(self, *args, **kwargs):
-
         response = super(PJMClient, self).request(*args, **kwargs)
-        if response.status_code == 400:
+        if response and response.status_code == 400:
             LOGGER.warn('PJM request returned Bad Request %s' % response)
             return None
 

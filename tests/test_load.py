@@ -164,8 +164,13 @@ class TestCAISOLoad(TestBaseLoad):
 
 
 class TestERCOTLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('ERCOT')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('ERCOT', latest=True)
+
+    def test_null_response_forecast(self):
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self._run_null_repsonse_test('ERCOT', start_at=today + timedelta(hours=20),
+                                     end_at=today+timedelta(days=2))
 
     def test_latest(self):
         # basic test
@@ -196,8 +201,8 @@ class TestERCOTLoad(TestBaseLoad):
 
 
 class TestISONELoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('ISONE')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('ISONE', latest=True)
 
     def test_latest(self):
         # basic test
@@ -232,8 +237,10 @@ class TestISONELoad(TestBaseLoad):
 
 
 class TestMISOLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('MISO')
+    def test_null_response_forecast(self):
+        today = pytz.utc.localize(datetime.utcnow())
+        self._run_null_repsonse_test('MISO', start_at=today + timedelta(hours=2),
+                                     end_at=today+timedelta(days=2))
 
     def test_forecast(self):
         # basic test
@@ -294,8 +301,8 @@ class TestNEVPLoad(TestBaseLoad):
 
 
 class TestNYISOLoad(TestBaseLoad):
-    def test_null_response(self):
-        self._run_null_repsonse_test('NYISO')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('NYISO', latest=True)
 
     def test_latest(self):
         # basic test
@@ -385,7 +392,7 @@ class TestSPPLoad(TestBaseLoad):
 
 class TestSPPCLoad(TestBaseLoad):
     def test_null_response(self):
-        self._run_null_repsonse_test('SPPC')
+        self._run_null_repsonse_test('SPPC', latest=True)
 
     def test_latest(self):
         # basic test
@@ -430,7 +437,7 @@ class TestSVERILoad(TestBaseLoad):
         self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
 
     def test_null_response(self):
-        self._run_null_repsonse_test('SVERI')
+        self._run_null_repsonse_test(self.bas[0], latest=True)
 
     def test_latest_all(self):
         for ba in self.bas:
