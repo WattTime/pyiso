@@ -106,7 +106,7 @@ class TestCAISOLMP(TestBaseLMP):
 
     def test_date_range_rtm(self):
         data = self.date_range(self.MARKET_CHOICES.fivemin)
-        self.assertEqual(len(data), 12*24)
+        self.assertIn(len(data), [278, 288])
 
     def test_date_range_dam(self):
         data = self.date_range(self.MARKET_CHOICES.dam)
