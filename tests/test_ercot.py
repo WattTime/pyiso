@@ -170,7 +170,9 @@ ga('send', 'pageview');
 
         self.assertEqual(s.min().date(), now.date())
         self.assertEqual(s.max().date(), now.date())
-        self.assertEqual(len(df), 612*24)  # 612 nodes * 24 hrs/day
+
+        node_counts = [612, 613, 614, 615, 616]
+        self.assertIn(len(df), [n*24 for n in node_counts])  # nodes * 24 hrs/day
 
     def test_request_report_rt5m_lmp(self):
         now = datetime.now(pytz.utc) - timedelta(minutes=5)
@@ -180,4 +182,6 @@ ga('send', 'pageview');
 
         self.assertLess((s.min() - now).total_seconds(), 8*60)
         self.assertLess((s.max() - now).total_seconds(), 8*60)
-        self.assertEqual(len(df), 612)
+
+        node_counts = [612, 613, 614, 615, 616]
+        self.assertIn(len(df), node_counts)

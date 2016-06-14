@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import pandas as pd
 from io import StringIO
 import re
@@ -308,7 +309,13 @@ class ERCOTClient(BaseClient):
                         pieces.append(report)
                     except ValueError:
                         pass
-            report = pd.concat(pieces)
+
+            # combine pieces, if any
+            if len(pieces) > 0:
+                report = pd.concat(pieces)
+            else:
+                LOGGER.warn('No ERCOT LMP found for %s' % self.options)
+                return []
         else:
             report = self._request_report(report_name, self.now)
             if report is None:
