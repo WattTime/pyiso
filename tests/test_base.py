@@ -92,7 +92,7 @@ class TestBaseClient(TestCase):
 
     def test_handle_options_set_forecast(self):
         bc = BaseClient()
-        start = datetime(2016, 5, 26, 0, 0, tzinfo=pytz.utc)
+        start = datetime(2020, 5, 26, 0, 0, tzinfo=pytz.utc)
         bc.handle_options(start_at=start, end_at=start+timedelta(days=2))
         self.assertTrue(bc.options['forecast'])
 

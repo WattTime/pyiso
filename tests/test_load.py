@@ -476,12 +476,12 @@ class TestSVERILoad(TestBaseLoad):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
 
+@unittest.skip('Not ready')
 class TestEULoad(TestBaseLoad):
     def setUp(self):
         super(TestEULoad, self).setUp()
         self.BA_CHOICES = EUClient.CONTROL_AREAS.keys()
 
-    @unittest.skip('Not ready')
     def test_latest(self):
         # basic test
         data = self._run_test('EU', latest=True, market=self.MARKET_CHOICES.hourly,
@@ -507,7 +507,6 @@ class TestEULoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    @unittest.skip('Not ready')
     def test_forecast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
