@@ -3,14 +3,13 @@ from unittest import TestCase
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-import unittest
 
 
 class TestPJM(TestCase):
     def setUp(self):
         self.edata_inst_load = """
              <h1>Instantaneous Load</h1>
-    <p>As of <span id="ctl00_ContentPlaceHolder1_DateAndTime">12.11.2015 17:15</span> EDT <a href="javascript:location.reload();">Refresh</a></p>
+    <p>As of <span id="ctl00_ContentPlaceHolder1_DateAndTime">12.11.2015 17:23</span> EDT <a href="javascript:location.reload();">Refresh</a></p>
             <table class="edata-table stripped">
                 <thead>
                     <tr>
@@ -96,28 +95,13 @@ class TestPJM(TestCase):
 
     def test_time_as_of(self):
         ts = self.c.time_as_of(self.edata_inst_load)
-        self.assertEqual(ts, datetime(2015, 12, 11, 17, 15, tzinfo=pytz.utc) + timedelta(hours=5))
+        self.assertEqual(ts, datetime(2015, 12, 11, 17, 23, tzinfo=pytz.utc) + timedelta(hours=5))
 
     def test_parse_inst_load(self):
         dfs = pd.read_html(self.edata_inst_load, header=0, index_col=0)
         df = dfs[0]
         self.assertEqual(df.columns, 'MW')
         self.assertEqual(df.loc['PJM RTO Total']['MW'], 91419)
-
-    @unittest.skip('No longer using self.utcify_index')
-    def test_parse_forecast_load(self):
-        dfs = pd.read_html(self.edata_forecast_load, header=0, index_col=0, parse_dates=True)
-        # pandas date parser recognizes the timezone (EST), but returns a naive datetime
-        # in UTC, why?
-        df = self.c.utcify_index(dfs[0])
-        self.assertEqual(df.columns, 'MW')
-        self.assertEqual(df.shape, (3, 1))
-
-        # times
-        # first is 12.11.2015 17:00 EST
-        self.assertEqual(df.index[0], pytz.utc.localize(datetime(2015, 12, 11, 22, 00)))
-        # last is 12.11.2015 19:00 EST
-        self.assertEqual(df.index[-1], pytz.utc.localize(datetime(2015, 12, 12, 0, 00)))
 
     def test_fetch_edata_series_timezone(self):
         data = self.c.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
@@ -134,6 +118,10 @@ class TestPJM(TestCase):
         ts, val = self.c.fetch_edata_point('badtype', 'badkey', 'badheader')
         self.assertIsNone(ts)
         self.assertIsNone(val)
+
+    def test_edata_point_rounds_to_5min(self):
+        ts, val = self.c.fetch_edata_point('InstantaneousLoad', 'PJM RTO Total', 'MW')
+        self.assertEqual(ts.minute % 5, 0)
 
     def test_get_lmp_datasnapshot(self):
         start_at = pytz.timezone('US/Eastern').localize(datetime(2015, 1, 1)

@@ -1,10 +1,9 @@
 from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import FUEL_CHOICES, BaseClient
-from unittest import TestCase, skip, expectedFailure
-import pytz
+from unittest import TestCase, skip
 from datetime import datetime, timedelta
-#import requests_mock
-#import freezegun
+import pytz
+import mock
 
 
 class TestBaseGenMix(TestCase):
@@ -59,9 +58,26 @@ class TestBaseGenMix(TestCase):
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_generation)
 
+    def _run_null_repsonse_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_generation(**kwargs)
+
+            # test
+            self.assertEqual(data, [])
+
 
 class TestISONEGenMix(TestBaseGenMix):
-    def test_isne_latest(self):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('ISONE', latest=True)
+
+    def test_latest(self):
         # basic test
         data = self._run_test('ISONE', latest=True)
 
@@ -69,7 +85,7 @@ class TestISONEGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
-    def test_isne_date_range(self):
+    def test_date_range(self):
         # basic test
         data = self._run_test('ISONE', start_at=datetime.today()-timedelta(days=2),
                               end_at=datetime.today()-timedelta(days=1))
@@ -80,7 +96,10 @@ class TestISONEGenMix(TestBaseGenMix):
 
 
 class TestMISOGenMix(TestBaseGenMix):
-    def test_miso_latest(self):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('MISO', latest=True)
+
+    def test_latest(self):
         # basic test
         data = self._run_test('MISO', latest=True)
 
@@ -111,7 +130,7 @@ class TestMISOGenMix(TestBaseGenMix):
 
 @skip('SPP broken')
 class TestSPPGenMix(TestBaseGenMix):
-    def test_spp_latest_hr(self):
+    def test_latest_hr(self):
         # basic test
         data = self._run_test('SPP', latest=True, market=self.MARKET_CHOICES.hourly)
 
@@ -124,7 +143,7 @@ class TestSPPGenMix(TestBaseGenMix):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
-    def test_spp_date_range_hr(self):
+    def test_date_range_hr(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
@@ -140,7 +159,7 @@ class TestSPPGenMix(TestBaseGenMix):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
-    def test_spp_latest_5min(self):
+    def test_latest_5min(self):
         # basic test
         data = self._run_test('SPP', latest=True, market=self.MARKET_CHOICES.fivemin)
 
@@ -153,7 +172,7 @@ class TestSPPGenMix(TestBaseGenMix):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_spp_yesterday_5min(self):
+    def test_yesterday_5min(self):
         # basic test
         data = self._run_test('SPP', yesterday=True, market=self.MARKET_CHOICES.fivemin)
 
@@ -173,7 +192,10 @@ class TestSPPGenMix(TestBaseGenMix):
 
 
 class TestBPAGenMix(TestBaseGenMix):
-    def test_bpa_latest(self):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('BPA', latest=True)
+
+    def test_latest(self):
         # basic test
         data = self._run_test('BPA', latest=True, market=self.MARKET_CHOICES.fivemin)
 
@@ -186,7 +208,7 @@ class TestBPAGenMix(TestBaseGenMix):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_bpa_date_range(self):
+    def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
@@ -196,7 +218,7 @@ class TestBPAGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    def test_bpa_date_range_farpast(self):
+    def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
@@ -208,7 +230,10 @@ class TestBPAGenMix(TestBaseGenMix):
 
 
 class TestCAISOGenMix(TestBaseGenMix):
-    def test_caiso_date_range(self):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('CAISO', latest=True)
+
+    def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
@@ -230,7 +255,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
-    def test_caiso_yesterday(self):
+    def test_yesterday(self):
         # basic test
         data = self._run_test('CAISO', yesterday=True, market=self.MARKET_CHOICES.hourly)
 
@@ -250,7 +275,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
-    def test_caiso_latest(self):
+    def test_latest(self):
         # basic test
         data = self._run_test('CAISO', latest=True)
 
@@ -269,7 +294,7 @@ class TestCAISOGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
-    def test_caiso_forecast(self):
+    def test_forecast(self):
         # basic test
         now = pytz.utc.localize(datetime.utcnow())
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
@@ -292,7 +317,10 @@ class TestCAISOGenMix(TestBaseGenMix):
 
 
 class TestERCOTGenMix(TestBaseGenMix):
-    def test_ercot_latest(self):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('ERCOT', latest=True)
+
+    def test_latest(self):
         data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
 
         # test all timestamps are equal
@@ -317,6 +345,9 @@ class TestPJMGenMix(TestBaseGenMix):
 
 
 class TestNYISOGenMix(TestBaseGenMix):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('NYISO', latest=True)
+
     def test_latest(self):
         # basic test
         data = self._run_test('NYISO', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -378,9 +409,11 @@ class TestSVERIGenMix(TestBaseGenMix):
         super(TestSVERIGenMix, self).setUp()
         self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
 
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test(self.bas[0], latest=True)
+
     # @freezegun.freeze_time('2016-05-20 12:10', tz_offset=0, tick=True)
     # @requests_mock.mock()
-    @expectedFailure
     def test_latest_all(self):  # , mocker):
         for ba in self.bas:
             # Open both response files and setup mocking
@@ -395,7 +428,6 @@ class TestSVERIGenMix(TestBaseGenMix):
 
     # @freezegun.freeze_time('2016-05-20 09:00', tz_offset=0, tick=True)
     # @requests_mock.mock()
-    @expectedFailure
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
             # Open both response files and setup mocking

@@ -3853,8 +3853,9 @@ class TestNVEnergy(TestCase):
 
     def test_fetch_df_bad(self):
         # no data in year 2020
-        self.assertRaises(ValueError, self.c.fetch_df, self.today,
-                          self.c.BASE_URL + 'native_system_load_and_ties_for_01_01_2020_.html')
+        data, mode = self.c.fetch_df(self.today, self.c.BASE_URL + 'native_system_load_and_ties_for_01_01_2020_.html')
+        self.assertEqual(len(data), 0)
+        self.assertEqual(mode, 'error')
 
     def test_parse_load_today(self):
         with mock.patch.object(self.c, 'request') as mocker:

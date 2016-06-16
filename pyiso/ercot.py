@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import pandas as pd
 from io import StringIO
 import re
@@ -26,9 +27,11 @@ class ERCOTClient(BaseClient):
     def _request_report(self, report_type, date=None):
         # request reports list
         params = {'reportTypeId': self.report_type_ids[report_type]}
-        report_list_contents = self.request(self.base_report_url+'/misapp/GetReports.do',
-                                            params=params).content
-        report_list_soup = BeautifulSoup(report_list_contents)
+        response = self.request(self.base_report_url+'/misapp/GetReports.do',
+                                params=params)
+        if not response:
+            raise ValueError('ERCOT: No report available for %s' % (report_type))
+        report_list_soup = BeautifulSoup(response.content)
 
         # Round minute down to nearest 5 minute period
         if date:
@@ -88,7 +91,10 @@ class ERCOTClient(BaseClient):
             response = self.request(self.real_time_url)
 
             # parse load from response
-            data = self.parse_rtm(response.text)
+            if response:
+                data = self.parse_rtm(response.text)
+            else:
+                data = []
 
         else:
             raise ValueError('Only latest genmix data available in ERCOT')
@@ -105,11 +111,17 @@ class ERCOTClient(BaseClient):
             response = self.request(self.real_time_url)
 
             # parse load from response
-            data = self.parse_rtm(response.text)
+            if response:
+                data = self.parse_rtm(response.text)
+            else:
+                data = []
 
         elif self.options['forecast']:
             # get 7 day forecast load
-            df = self._request_report('load_7day')
+            try:
+                df = self._request_report('load_7day')
+            except ValueError:
+                return []
 
             # convert column of hour ending (1:00-24:00) to hour beginning (0:00-23:00)
             df['HourBeginning'] = df.apply(lambda dp: int(dp['HourEnding'].split(':')[0])-1,
@@ -297,7 +309,13 @@ class ERCOTClient(BaseClient):
                         pieces.append(report)
                     except ValueError:
                         pass
-            report = pd.concat(pieces)
+
+            # combine pieces, if any
+            if len(pieces) > 0:
+                report = pd.concat(pieces)
+            else:
+                LOGGER.warn('No ERCOT LMP found for %s' % self.options)
+                return []
         else:
             report = self._request_report(report_name, self.now)
             if report is None:

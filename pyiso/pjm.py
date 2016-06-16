@@ -60,6 +60,10 @@ class PJMClient(BaseClient):
         # get time as of
         ts = self.time_as_of(response.content)
 
+        # round down to 5min
+        extra_min = ts.minute % 5
+        ts -= timedelta(minutes=extra_min)
+
         # parse html to df
         dfs = pd.read_html(response.content, header=0, index_col=0)
         df = dfs[0]
@@ -88,9 +92,8 @@ class PJMClient(BaseClient):
         return df
 
     def request(self, *args, **kwargs):
-
         response = super(PJMClient, self).request(*args, **kwargs)
-        if response.status_code == 400:
+        if response and response.status_code == 400:
             LOGGER.warn('PJM request returned Bad Request %s' % response)
             return None
 
@@ -144,7 +147,7 @@ class PJMClient(BaseClient):
                             **kwargs)
 
         if self.options['forecast']:
-            # handle forecast
+            # fetch from eData
             df = self.fetch_edata_series('ForecastedLoadHistory', {'name': 'PJM RTO Total'})
             sliced = self.slice_times(df)
             sliced.columns = ['load_MW']
@@ -179,17 +182,21 @@ class PJMClient(BaseClient):
             # handle real-time
             load_ts, load_val = self.fetch_edata_point('InstantaneousLoad', 'PJM RTO Total', 'MW')
 
-            # format and return
-            if load_ts and load_val:
-                return [{
-                        'timestamp': load_ts,
-                        'freq': self.FREQUENCY_CHOICES.fivemin,
-                        'market': self.MARKET_CHOICES.fivemin,
-                        'load_MW': load_val,
-                        'ba_name': self.NAME,
-                        }]
-            else:
+            # fall back to OASIS
+            if not (load_ts and load_val):
+                load_ts, load_val = self.fetch_oasis_data()
+            if not (load_ts and load_val):
+                LOGGER.warn('No PJM latest load data')
                 return []
+
+            # format and return
+            return [{
+                'timestamp': load_ts,
+                'freq': self.FREQUENCY_CHOICES.fivemin,
+                'market': self.MARKET_CHOICES.fivemin,
+                'load_MW': load_val,
+                'ba_name': self.NAME,
+            }]
 
     def get_trade(self, latest=False, **kwargs):
         # set args
@@ -313,18 +320,10 @@ class PJMClient(BaseClient):
                 # no historical data for 5min lmp
                 self.options['latest'] = True
 
-    def fetch_oasis_data(self):
-        response = self.request(self.oasis_url)
-        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=False)
-        df = dfs[1]
-
-        df['node_id'] = df.index
-        df.rename(columns={'5 Minute Weighted Avg. LMP': 'lmp'}, inplace=True)
-        # drop 'Hourly Integrated LMP for Hour Ending XX' and 'Type' columns
-        df.drop([df.columns[2], 'Type'], axis=1, inplace=True)
-
+    def parse_date_from_oasis(self, content):
         # find timestamp
-        soup = BeautifulSoup(response.content)
+        soup = BeautifulSoup(content)
+
         # the datetime is the only bold text on the page, this could break easily
         ts_elt = soup.find('b')
 
@@ -332,13 +331,50 @@ class PJMClient(BaseClient):
         ts = parse(ts_elt.string, ignoretz=True)
         ts = pytz.timezone('US/Eastern').localize(ts)
         ts = ts.astimezone(pytz.utc)
-        df['timestamp'] = ts
 
-        df['freq'] = self.options['freq']
-        df['market'] = self.options['market']
-        df['ba_name'] = 'PJM'
-        df['lmp_type'] = 'TotalLMP'
-        return df
+        # return
+        return ts
+
+    def fetch_oasis_data(self):
+        response = self.request(self.oasis_url)
+        if not response:
+            if self.options['data'] == 'lmp':
+                return pd.DataFrame()
+            else:
+                return None, None
+
+        # get timestamp
+        ts = self.parse_date_from_oasis(response.content)
+
+        # parse to dataframes
+        dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=False)
+
+        if self.options['data'] == 'lmp':
+            # parse LMP
+            df = dfs[1]
+
+            # parse lmp
+            df['node_id'] = df.index
+            df.rename(columns={'5 Minute Weighted Avg. LMP': 'lmp'}, inplace=True)
+
+            # drop 'Hourly Integrated LMP for Hour Ending XX' and 'Type' columns
+            df.drop([df.columns[2], 'Type'], axis=1, inplace=True)
+
+            df['timestamp'] = ts
+            df['freq'] = self.options['freq']
+            df['market'] = self.options['market']
+            df['ba_name'] = 'PJM'
+            df['lmp_type'] = 'TotalLMP'
+            return df
+
+        elif self.options['data'] == 'load':
+            # parse real-time load
+            df = dfs[4]
+            load_val = df.loc['PJM RTO'][0]
+            return ts, load_val
+
+        else:
+            raise ValueError('Cannot parse OASIS LMP data for %s' % self.options['data'])
 
     def get_lmp(self, node_id='APS', **kwargs):
         """ Allegheny Power Systems is APS"""

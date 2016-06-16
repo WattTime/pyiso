@@ -106,7 +106,8 @@ class TestCAISOLMP(TestBaseLMP):
 
     def test_date_range_rtm(self):
         data = self.date_range(self.MARKET_CHOICES.fivemin)
-        self.assertEqual(len(data), 12*24)
+        self.assertGreaterEqual(len(data), 12*23)
+        self.assertLessEqual(len(data), 12*24)
 
     def test_date_range_dam(self):
         data = self.date_range(self.MARKET_CHOICES.dam)
@@ -114,7 +115,8 @@ class TestCAISOLMP(TestBaseLMP):
 
     def test_date_range_hourly(self):
         data = self.date_range(self.MARKET_CHOICES.hourly)
-        self.assertEqual(len(data), 96)
+        self.assertGreaterEqual(len(data), 92)
+        self.assertLessEqual(len(data), 96)
 
     def test_date_range_rtpd(self):
         data = self.date_range(self.MARKET_CHOICES.fifteenmin)
@@ -343,7 +345,7 @@ class TestMISOLMP(TestBaseLMP):
 
     def test_historical(self):
         start = datetime(2016, 5, 1, 0, tzinfo=pytz.utc)
-        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
+        data = self._run_test('MISO', start_at=start, end_at=start+timedelta(days=1))
         self.assertEqual(len(data), 25)
 
 
@@ -411,10 +413,10 @@ class TestERCOTLMP(TestBaseLMP):
         self.assertEqual(len(data), 4)
 
     def test_dam_historical(self):
-        start = datetime(2016, 5, 1, 0, tzinfo=pytz.utc)
+        start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=30)
         data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
         # slicing is inclusive
-        self.assertEqual(len(data), 25)
+        self.assertIn(len(data), [24, 25])
 
 
 class TestMinimumLMP(TestBaseLMP):

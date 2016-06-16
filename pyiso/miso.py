@@ -138,7 +138,8 @@ class MISOClient(BaseClient):
 
         # make request with self.request for easier debugging, mocking
         response = self.request(url)
-
+        if not response:
+            return pd.DataFrame()
         if response.status_code == 404:
             LOGGER.debug('No MISO forecast data available at %s' % datestr)
             return pd.DataFrame()
@@ -167,18 +168,30 @@ class MISOClient(BaseClient):
         sliced = self.slice_times(df)
 
         if self.options['data'] == 'gen':
-            sliced['gen_MW'] = 1000.0 * sliced['Supply Cleared (GWh) - Physical']
-            sliced['fuel_name'] = 'other'
-            return sliced[['gen_MW', 'fuel_name']]
+            try:
+                sliced['gen_MW'] = 1000.0 * sliced['Supply Cleared (GWh) - Physical']
+                sliced['fuel_name'] = 'other'
+                return sliced[['gen_MW', 'fuel_name']]
+            except KeyError:
+                LOGGER.warn('MISO genmix error: missing key %s in %s' % ('Supply Cleared (GWh) - Physical', sliced.columns))
+                return pd.DataFrame()
 
         elif self.options['data'] == 'load':
-            sliced['load_MW'] = 1000.0 * (sliced['Demand Cleared (GWh) - Physical - Fixed'] +
-                                          sliced['Demand Cleared (GWh) - Physical - Price Sen.'])
-            return sliced['load_MW']
+            try:
+                sliced['load_MW'] = 1000.0 * (sliced['Demand Cleared (GWh) - Physical - Fixed'] +
+                                              sliced['Demand Cleared (GWh) - Physical - Price Sen.'])
+                return sliced['load_MW']
+            except KeyError:
+                LOGGER.warn('MISO load error: missing key %s in %s' % ('Demand Cleared (GWh) - Physical - Fixed', sliced.columns))
+                return pd.DataFrame()
 
         elif self.options['data'] == 'trade':
-            sliced['net_exp_MW'] = -1000.0 * sliced['Net Scheduled Imports (GWh)']
-            return sliced['net_exp_MW']
+            try:
+                sliced['net_exp_MW'] = -1000.0 * sliced['Net Scheduled Imports (GWh)']
+                return sliced['net_exp_MW']
+            except KeyError:
+                LOGGER.warn('MISO trade error: missing key %s in %s' % ('Net Scheduled Imports (GWh)', sliced.columns))
+                return pd.DataFrame()
 
         else:
             raise ValueError('Can only parse MISO forecast gen, load, or trade data, not %s'

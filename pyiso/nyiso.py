@@ -163,7 +163,10 @@ class NYISOClient(BaseClient):
                 pass
 
         # combine pieces
-        df = pd.concat(pieces)
+        if len(pieces) > 0:
+            df = pd.concat(pieces)
+        else:
+            return pd.DataFrame()
 
         # genmix may have repeated times, so dedup
         if 'fuel_name' in df.columns:
@@ -188,7 +191,7 @@ class NYISOClient(BaseClient):
         response = self.request(url)
 
         # if 200, return
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             return [response.text]
 
         # if failure, try zipped monthly data
@@ -197,7 +200,10 @@ class NYISOClient(BaseClient):
 
         # make request and unzip
         response_zipped = self.request(url)
-        unzipped = self.unzip(response_zipped.content)
+        if response_zipped:
+            unzipped = self.unzip(response_zipped.content)
+        else:
+            return []
 
         # return
         if unzipped:
