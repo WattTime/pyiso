@@ -163,8 +163,8 @@ class PJMClient(BaseClient):
             # return
             return data
 
-        elif end_at and end_at < datetime.now(pytz.utc) - timedelta(hours=1):
-            df = self.fetch_historical_load(start_at.year)
+        elif self.options['end_at'] and self.options['end_at'] < datetime.now(pytz.utc) - timedelta(hours=1):
+            df = self.fetch_historical_load(self.options['start_at'].year)
             sliced = self.slice_times(df)
 
             # format

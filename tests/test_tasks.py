@@ -13,6 +13,10 @@ class TestGenerationTask(TestCase):
         now = pytz.utc.localize(datetime.utcnow())
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20),
                                 'end_at': now + timedelta(days=1)}
+        self.past_kwargs = {'start_at': now - timedelta(days=1),
+                            'end_at': now - timedelta(hours=1)}
+        self.past_kwargs_str = {'start_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M'),
+                                'end_at': (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')}
 
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_generation(**kwargs)
@@ -26,8 +30,20 @@ class TestGenerationTask(TestCase):
     def test_bpa_latest(self):
         self._run_test('BPA', self.latest_kwargs)
 
+    def test_bpa_past(self):
+        self._run_test('BPA', self.past_kwargs)
+
+    def test_bpa_past_str(self):
+        self._run_test('BPA', self.past_kwargs_str)
+
     def test_caiso_latest(self):
         self._run_test('CAISO', self.latest_kwargs)
+
+    def test_caiso_past(self):
+        self._run_test('CAISO', self.past_kwargs)
+
+    def test_caiso_past_str(self):
+        self._run_test('CAISO', self.past_kwargs_str)
 
     # @freezegun.freeze_time('2016-05-20 12:45', tz_offset=0, tick=True)
     # @requests_mock.mock()
@@ -51,11 +67,23 @@ class TestGenerationTask(TestCase):
     def test_isone_latest(self):
         self._run_test('ISONE', self.latest_kwargs)
 
+    def test_isone_past(self):
+        self._run_test('ISONE', self.past_kwargs)
+
+    def test_isone_past_str(self):
+        self._run_test('ISONE', self.past_kwargs_str)
+
     def test_miso_latest(self):
         self._run_test('MISO', self.latest_kwargs)
 
     def test_sveri_latest(self):
         self._run_test('AZPS', self.latest_kwargs)
+
+    def test_sveri_past(self):
+        self._run_test('AZPS', self.past_kwargs)
+
+    def test_sveri_past_str(self):
+        self._run_test('AZPS', self.past_kwargs_str)
 
 
 class TestLoadTask(TestCase):
@@ -63,6 +91,10 @@ class TestLoadTask(TestCase):
         self.latest_kwargs = {'latest': True}
         now = pytz.utc.localize(datetime.utcnow())
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
+        self.past_kwargs = {'start_at': now - timedelta(days=1),
+                            'end_at': now - timedelta(hours=1)}
+        self.past_kwargs_str = {'start_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M'),
+                                'end_at': (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')}
 
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_load(**kwargs)
@@ -74,17 +106,35 @@ class TestLoadTask(TestCase):
     def test_bpa_latest(self):
         self._run_test('BPA', self.latest_kwargs)
 
+    def test_bpa_past(self):
+        self._run_test('BPA', self.past_kwargs)
+
+    def test_bpa_past_str(self):
+        self._run_test('BPA', self.past_kwargs_str)
+
     def test_caiso_latest(self):
         self._run_test('CAISO', self.latest_kwargs)
 
     def test_caiso_forecast(self):
         self._run_test('CAISO', self.forecast_kwargs)
 
+    def test_caiso_past(self):
+        self._run_test('CAISO', self.past_kwargs)
+
+    def test_caiso_past_str(self):
+        self._run_test('CAISO', self.past_kwargs_str)
+
     def test_isone_latest(self):
         self._run_test('ISONE', self.latest_kwargs)
 
     def test_isone_forecast(self):
         self._run_test('ISONE', self.forecast_kwargs)
+
+    def test_isone_past(self):
+        self._run_test('ISONE', self.past_kwargs)
+
+    def test_isone_past_str(self):
+        self._run_test('ISONE', self.past_kwargs_str)
 
     def test_pjm_latest(self):
         self._run_test('PJM', self.latest_kwargs)
@@ -104,8 +154,20 @@ class TestLoadTask(TestCase):
     def test_nyiso_forecast(self):
         self._run_test('NYISO', self.forecast_kwargs)
 
+    def test_nyiso_past(self):
+        self._run_test('NYISO', self.past_kwargs)
+
+    def test_nyiso_past_str(self):
+        self._run_test('NYISO', self.past_kwargs_str)
+
     def test_sveri_latest(self):
         self._run_test('AZPS', self.latest_kwargs)
+
+    def test_sveri_past(self):
+        self._run_test('AZPS', self.past_kwargs)
+
+    def test_sveri_past_str(self):
+        self._run_test('AZPS', self.past_kwargs_str)
 
 
 class TestTradeTask(TestCase):
@@ -113,6 +175,10 @@ class TestTradeTask(TestCase):
         self.latest_kwargs = {'latest': True}
         now = pytz.utc.localize(datetime.utcnow())
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
+        self.past_kwargs = {'start_at': now - timedelta(days=1),
+                            'end_at': now - timedelta(hours=1)}
+        self.past_kwargs_str = {'start_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M'),
+                                'end_at': (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')}
 
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_trade(**kwargs)
@@ -126,6 +192,12 @@ class TestTradeTask(TestCase):
 
     def test_caiso_forecast(self):
         self._run_test('CAISO', self.forecast_kwargs)
+
+    def test_caiso_past(self):
+        self._run_test('CAISO', self.past_kwargs)
+
+    def test_caiso_past_str(self):
+        self._run_test('CAISO', self.past_kwargs_str)
 
     def test_nyiso_latest(self):
         self._run_test('NYISO', self.latest_kwargs)
@@ -152,5 +224,3 @@ class TestLMPTask(TestCase):
 
     def test_run_caiso(self):
         self._run_test('CAISO', ['SLAP_PGP2-APND'], self.latest_kwargs)
-
-
