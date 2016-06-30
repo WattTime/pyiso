@@ -405,12 +405,12 @@ class TestPJMLoad(TestBaseLoad):
         self.assertEqual(len(set(timestamps)), 364*24-2)
 
     def test_date_range_strings(self):
-        data = self._run_test('PJM', start_at='2015-01-02', end_at='2015-01-05')
+        data = self._run_test('PJM', start_at='2016-06-10', end_at='2016-06-11')
 
         timestamps = [d['timestamp'] for d in data]
 
         # 3 days plus 1 hr
-        self.assertEqual(len(set(timestamps)), 3*24 + 1)
+        self.assertEqual(len(set(timestamps)), 24 + 1)
 
 
 class TestSPPLoad(TestBaseLoad):

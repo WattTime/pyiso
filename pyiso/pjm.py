@@ -104,10 +104,10 @@ class PJMClient(BaseClient):
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
         df = pd.read_excel(url, sheetname=region_name)
 
-        # drop unneded cols
-        drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30',
+        # drop unneeded cols
+        drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30', 'Unnamed: 32',
                     'MAX', 'HOUR', 'DATE.1', 'Unnamed: 34', 'MIN', 'HOUR.1', 'DATE.2']
-        df.drop(drop_col, axis=1, inplace=True)
+        df.drop(drop_col, axis=1, inplace=True, errors='ignore')
 
         # reshape from wide to tall
         df = pd.melt(df, id_vars=['DATE', 'COMP'])
