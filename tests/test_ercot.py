@@ -150,7 +150,7 @@ ga('send', 'pageview');
 
         # test for expected data
         self.assertLessEqual(len(df), 96)
-        for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_BEGINNING']:
+        for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_ENDING']:
             self.assertIn(key, df.columns)
 
     def test_request_report_load_7day(self):

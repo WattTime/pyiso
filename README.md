@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.3.3: Minor feature: all tasks can accept strings for `start_at` and `end_at` kwargs.
 * 0.3.2: Minor feature: `get_lmp` task. Minor bugfixes: safer handling of response errors for load (BPA, ERCOT, MISO, NVEnergy, PJM) and generation (BPA, CAISO, ERCOT, ISONE, NYISO); clean up LMP tests.
 * 0.3.1: Minor changes for PJM real-time load data: fall back to OASIS if Data Snapshot is down, round time down to nearest 5 min period. Major feature: SVERI back up.
 * 0.3.0: Major features: Add LMP to all ISOs, license change. Please contact us for alternative licenses. Bugfixes: SVERI has a new URL. Minor features: CAISO has 15-minute RTPD market.
