@@ -105,9 +105,9 @@ class PJMClient(BaseClient):
         df = pd.read_excel(url, sheetname=region_name)
 
         # drop unneeded cols
-        drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30', 'Unnamed: 32',
-                    'MAX', 'HOUR', 'DATE.1', 'Unnamed: 34', 'MIN', 'HOUR.1', 'DATE.2']
-        df.drop(drop_col, axis=1, inplace=True, errors='ignore')
+        drop_cols = ['Unnamed: %d' % i for i in range(35)]
+        drop_cols += ['MAX', 'HOUR', 'DATE.1', 'MIN', 'HOUR.1', 'DATE.2']
+        df.drop(drop_cols, axis=1, inplace=True, errors='ignore')
 
         # reshape from wide to tall
         df = pd.melt(df, id_vars=['DATE', 'COMP'])
