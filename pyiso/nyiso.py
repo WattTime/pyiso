@@ -1,4 +1,5 @@
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import numpy as np
 import pandas as pd
 from datetime import timedelta
@@ -207,6 +208,7 @@ class NYISOClient(BaseClient):
 
         # return
         if unzipped:
+            LOGGER.info('Failed to find daily %s data for %s but found monthly data, using that' % (self.options['data'], date))
             return unzipped
         else:
             return []
