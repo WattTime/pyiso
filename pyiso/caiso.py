@@ -491,8 +491,11 @@ class CAISOClient(BaseClient):
                 pivoted = self.unpivot(subsetted)
                 pivoted.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
 
+                # slice times
+                sliced = self.slice_times(pivoted)
+
                 # store
-                parsed_data += self.serialize(pivoted,
+                parsed_data += self.serialize(sliced,
                                       header=['timestamp', 'fuel_name', 'gen_MW'],
                                       extras={'ba_name': self.NAME,
                                               'market': self.MARKET_CHOICES.hourly,
