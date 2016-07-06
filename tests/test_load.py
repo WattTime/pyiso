@@ -54,6 +54,13 @@ class TestBaseLoad(TestCase):
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
 
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
         # return
         return data
 
