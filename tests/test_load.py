@@ -54,6 +54,13 @@ class TestBaseLoad(TestCase):
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
 
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
         # return
         return data
 
@@ -142,7 +149,8 @@ class TestCAISOLoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(days=1),
+                              tol_min=1)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]

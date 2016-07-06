@@ -48,6 +48,13 @@ class TestBaseGenMix(TestCase):
             else:
                 self.assertLess(dp['timestamp'], datetime.now(pytz.utc))
 
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
         # return
         return data
 
@@ -116,7 +123,7 @@ class TestMISOGenMix(TestBaseGenMix):
         # mocker.get(url.replace('0517', '0518'), status_code=404)
         # basic test
         today = datetime.now(pytz.utc)
-        data = self._run_test('MISO', start_at=today + timedelta(hours=10),
+        data = self._run_test('MISO', start_at=today+timedelta(hours=2),
                               end_at=today+timedelta(days=1))
 
         # test timestamps are not equal
@@ -124,7 +131,7 @@ class TestMISOGenMix(TestBaseGenMix):
         self.assertGreater(len(set(timestamps)), 1)
 
         # test timestamps in range
-        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=10))
+        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=2))
         self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
 

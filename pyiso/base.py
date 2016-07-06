@@ -163,7 +163,7 @@ class BaseClient(object):
         # set start_at and end_at for today+tomorrow in local time
         elif self.options.get('forecast', None):
             local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
-            self.options['start_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.options['start_at'] = local_now.replace(microsecond=0)
             self.options['end_at'] = self.options['start_at'] + timedelta(days=2)
             self.options['sliceable'] = True
             self.options['latest'] = False
@@ -468,10 +468,10 @@ class BaseClient(object):
 
         return data
 
-    def serialize_faster(self, df, extras={}):
+    def serialize_faster(self, df, extras={}, drop_index=False):
         """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW).
         Index and columns are already properly named."""
-        df = df.reset_index()
+        df = df.reset_index(drop=drop_index)
         for key in extras:
             df[key] = extras[key]
         return df.to_dict(orient='records')

@@ -84,10 +84,9 @@ class TestBaseClient(TestCase):
         bc = BaseClient()
         bc.handle_options(forecast=True)
         self.assertTrue(bc.options['sliceable'])
-        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc)
-        midnight_today = datetime(local_now.year, local_now.month, local_now.day, 0, tzinfo=pytz.utc)
-        self.assertEqual(bc.options['start_at'], midnight_today)
-        self.assertEqual(bc.options['end_at'], midnight_today + timedelta(days=2))
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc).replace(microsecond=0)
+        self.assertEqual(bc.options['start_at'], local_now)
+        self.assertEqual(bc.options['end_at'], local_now + timedelta(days=2))
         self.assertTrue(bc.options['forecast'])
 
     def test_handle_options_set_forecast(self):
