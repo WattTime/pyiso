@@ -320,6 +320,16 @@ class PJMClient(BaseClient):
                 # no historical data for 5min lmp
                 self.options['latest'] = True
 
+        # load specific options
+        if self.options['data'] == 'load':
+            if not self.options['latest']:
+                # for historical, only DAHR load allowed
+                if self.options.get('market'):
+                    if self.options['market'] != self.MARKET_CHOICES.dam:
+                        raise ValueError('PJM historical load data only available for %s' % self.MARKET_CHOICES.dam)
+                else:
+                    self.options['market'] = self.MARKET_CHOICES.dam
+
     def parse_date_from_oasis(self, content):
         # find timestamp
         soup = BeautifulSoup(content)
