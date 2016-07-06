@@ -74,10 +74,14 @@ class CAISOClient(BaseClient):
         if 'market' not in self.options:
             if self.options['forecast']:
                 self.options['market'] = self.MARKET_CHOICES.dam
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
+                self.options['market'] = self.MARKET_CHOICES.dam
             else:
                 self.options['market'] = self.MARKET_CHOICES.fivemin
         if 'freq' not in self.options:
             if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
                 self.options['freq'] = self.FREQUENCY_CHOICES.hourly
             else:
                 self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
@@ -90,7 +94,7 @@ class CAISOClient(BaseClient):
 
         if self.options['latest']:
             return self._generation_latest()
-        elif self.options['forecast']:
+        elif self.options['forecast'] or self.options['market'] == self.MARKET_CHOICES.dam:
             return self._generation_forecast()
         else:
             return self._generation_historical()

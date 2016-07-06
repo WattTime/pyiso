@@ -240,7 +240,7 @@ class TestCAISOGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
         self._run_null_repsonse_test('CAISO', latest=True)
 
-    def test_date_range(self):
+    def test_date_range_rthr(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
@@ -259,6 +259,29 @@ class TestCAISOGenMix(TestBaseGenMix):
         fuels = set([d['fuel_name'] for d in data])
         expected_fuels = ['solarpv', 'solarth', 'geo', 'smhydro', 'wind', 'biomass', 'biogas',
                           'thermal', 'hydro', 'nuclear']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+
+    def test_date_range_dahr(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO',
+                              start_at=today-timedelta(days=3, hours=3),
+                              end_at=today-timedelta(days=3, hours=1),
+                              market=self.MARKET_CHOICES.dam)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['wind', 'solar', 'other']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
