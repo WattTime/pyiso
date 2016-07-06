@@ -149,7 +149,8 @@ class TestCAISOLoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(days=1),
+                              tol_min=1)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
