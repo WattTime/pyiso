@@ -56,6 +56,22 @@ class TestISONE(TestCase):
         self.assertEqual(len(endpoints), 1)
         self.assertIn('/fiveminutesystemload/current.json', endpoints)
 
+    def test_endpoints_gen_range(self):
+        self.c.handle_options(data='gen',
+                              start_at=pytz.utc.localize(datetime(2016, 5, 2, 12)),
+                              end_at=pytz.utc.localize(datetime(2016, 5, 2, 14)))
+        endpoints = self.c.request_endpoints()
+        self.assertEqual(len(endpoints), 1)
+        self.assertIn('/genfuelmix/day/20160502.json', endpoints)
+
+    def test_endpoints_load_range(self):
+        self.c.handle_options(data='load',
+                              start_at=pytz.utc.localize(datetime(2016, 5, 2, 12)),
+                              end_at=pytz.utc.localize(datetime(2016, 5, 2, 14)))
+        endpoints = self.c.request_endpoints()
+        self.assertEqual(len(endpoints), 1)
+        self.assertIn('/fiveminutesystemload/day/20160502.json', endpoints)
+
     def test_endpoints_load_forecast(self):
         self.c.handle_options(data='load', forecast=True)
         endpoints = self.c.request_endpoints()
