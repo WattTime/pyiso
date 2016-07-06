@@ -67,22 +67,14 @@ class ISONEClient(BaseClient):
                 continue
 
         # parse data
-        for raw_dp in raw_data:
-            # set up storage
-            parsed_dp = {}
+        try:
+            df = self._parse_json(raw_data)
+        except ValueError:
+            return []
+        df = self.slice_times(df)
 
-            # add values
-            parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
-            parsed_dp['gen_MW'] = raw_dp['GenMw']
-            parsed_dp['fuel_name'] = self.fuels[raw_dp['FuelCategory']]
-            parsed_dp['ba_name'] = self.NAME
-            parsed_dp['market'] = self.options['market']
-            parsed_dp['freq'] = self.options['frequency']
-
-            # add to full storage
-            parsed_data.append(parsed_dp)
-
-        return parsed_data
+        # return
+        return self.serialize_faster(df, drop_index=True)
 
     def get_load(self, latest=False, start_at=False, end_at=False,
                  forecast=False, **kwargs):
@@ -92,7 +84,6 @@ class ISONEClient(BaseClient):
 
         # set up storage
         raw_data = []
-        parsed_data = []
 
         # collect raw data
         for endpoint in self.request_endpoints():
@@ -107,26 +98,14 @@ class ISONEClient(BaseClient):
                 continue
 
         # parse data
-        now = pytz.utc.localize(datetime.utcnow())
-        for raw_dp in raw_data:
-            # set up storage
-            parsed_dp = {}
+        try:
+            df = self._parse_json(raw_data)
+        except ValueError:
+            return []
+        df = self.slice_times(df)
 
-            # add values
-            parsed_dp['timestamp'] = self.utcify(raw_dp['BeginDate'])
-            parsed_dp['load_MW'] = raw_dp['LoadMw']
-            parsed_dp['ba_name'] = self.NAME
-            parsed_dp['market'] = self.options['market']
-            parsed_dp['freq'] = self.options['frequency']
-
-            # add to full storage
-            if self.options['forecast'] and parsed_dp['timestamp'] < now:
-                # don't include past forecast data
-                pass
-            else:
-                parsed_data.append(parsed_dp)
-
-        return parsed_data
+        # return
+        return self.serialize_faster(df, drop_index=True)
 
     def handle_options(self, **kwargs):
         # default options
@@ -156,6 +135,7 @@ class ISONEClient(BaseClient):
                 else:
                     self.options['frequency'] = self.FREQUENCY_CHOICES.fivemin
 
+        # handle lmp
         if self.options['data'] == 'lmp':
             if self.options['market'] == self.MARKET_CHOICES.fivemin:
                 if self.options['forecast']:
@@ -241,24 +221,44 @@ class ISONEClient(BaseClient):
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE lmp data %s' % data)
 
-    def _parse_lmp(self, json):
+    def _parse_json(self, json):
+        if len(json) == 0:
+            raise ValueError('No data found for ISONE %s' % self.options)
+
         df = pd.DataFrame(json)
+
         # Get datetimes
         df.index = df['BeginDate']
         df.index = pd.to_datetime(df.index, utc=True)
         df['timestamp'] = df.index
 
-        df.rename(columns={'LmpTotal': 'lmp'}, inplace=True)
+        # other attributes
         df['ba_name'] = self.NAME
         df['market'] = self.options['market']
         df['freq'] = self.options['frequency']
-        df['node_id'] = self.options['node_id']
-        df['lmp_type'] = 'energy'
+
+        # lmp specific
+        if self.options['data'] == 'lmp':
+            df.rename(columns={'LmpTotal': 'lmp'}, inplace=True)
+            df['node_id'] = self.options['node_id']
+            df['lmp_type'] = 'energy'
+
+        # genmix specific
+        if self.options['data'] == 'gen':
+            df.rename(columns={'GenMw': 'gen_MW'}, inplace=True)
+            df['fuel_name'] = df['FuelCategory'].apply(lambda x: self.fuels[x])
+
+        # load specific
+        if self.options['data'] == 'load':
+            df.rename(columns={'LoadMw': 'load_MW'}, inplace=True)
 
         # drop unwanted columns
-        df.drop([u'BeginDate', u'CongestionComponent', u'EnergyComponent',
-                 u'Location', u'LossComponent', ],
-                axis=1, inplace=True)
+        df.drop(['BeginDate',
+                 'CongestionComponent', 'EnergyComponent', 'LossComponent', 'Location',
+                 'FuelCategory', 'MarginalFlag', 'FuelCategoryRollup',
+                 'NetLoadMw', 'CreationDate', 'NativeLoad', 'ArdDemand',
+                 ],
+                axis=1, inplace=True, errors='ignore')
 
         return df
 
@@ -287,7 +287,7 @@ class ISONEClient(BaseClient):
                 continue
 
         # parse and slice
-        df = self._parse_lmp(raw_data)
+        df = self._parse_json(raw_data)
         df = self.slice_times(df)
 
         # return
