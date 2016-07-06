@@ -376,7 +376,7 @@ class TestCAISOBase(TestCase):
     def test_oasis_payload(self):
         c = client_factory('CAISO')
         c.handle_options(start_at='2014-01-01', end_at='2014-02-01',
-                         market=c.MARKET_CHOICES.fivemin)
+                         market=c.MARKET_CHOICES.fivemin, data='load')
         constructed = c.construct_oasis_payload('SLD_FCST')
         expected = {'queryname': 'SLD_FCST',
                     'market_run_id': 'RTM',
