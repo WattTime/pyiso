@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.3.6: Change: If `forecast=True` is requested without specifying `start_at` or `end_at`, `start_at` will default to the current time; previously it defaulted to midnight in the ISO's local time. Bugfixes: times outside the `start_at`-`end_at` range are no longer returned for ISONE generation and load, CAISO DAHR generation.
 * 0.3.5: Minor feature: all tasks can accept strings for `start_at` and `end_at` kwargs.
 * 0.3.2: Minor feature: `get_lmp` task. Minor bugfixes: safer handling of response errors for load (BPA, ERCOT, MISO, NVEnergy, PJM) and generation (BPA, CAISO, ERCOT, ISONE, NYISO); clean up LMP tests.
 * 0.3.1: Minor changes for PJM real-time load data: fall back to OASIS if Data Snapshot is down, round time down to nearest 5 min period. Major feature: SVERI back up.
