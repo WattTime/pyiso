@@ -21,7 +21,7 @@ install:
 
   # Install
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-  - conda install -n test-environment pandas>=0.18 requests==2.9.1
+  - conda install -n test-environment pandas>=0.18 requests==2.9.1 beautifulsoup4==4.4.1
   - source activate test-environment
   - python setup.py install
   - pip install -r requirements.txt
