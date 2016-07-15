@@ -223,6 +223,17 @@ class TestNYISOLMP(TestBaseLMP):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    def test_farpast_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NYISO', node_id='LONGIL',
+                              start_at=today-timedelta(days=42),
+                              end_at=today-timedelta(days=41))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
 
 class TestPJMLMP(TestBaseLMP):
     def test_latest(self):
