@@ -197,7 +197,10 @@ class NYISOClient(BaseClient):
 
         # if failure, try zipped monthly data
         datestr = date.strftime('%Y%m01')
-        url = '%s/%s/%s%s_csv.zip' % (self.base_url, label, datestr, label)
+        if self.options['data'] == 'lmp':
+            url = '%s/%s/%s%s_zone_csv.zip' % (self.base_url, label, datestr, label)
+        else:
+            url = '%s/%s/%s%s_csv.zip' % (self.base_url, label, datestr, label)
 
         # make request and unzip
         response_zipped = self.request(url)
