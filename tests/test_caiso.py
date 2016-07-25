@@ -424,7 +424,7 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_fcst_xml)
+        soup = BeautifulSoup(self.sld_fcst_xml, 'lxml')
         data = soup.find_all('report_data')
 
         # parse
@@ -442,7 +442,7 @@ class TestCAISOBase(TestCase):
     def test_parse_todays_outlook_renwables(self):
         # set up soup and ts
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.todays_outlook_renewables)
+        soup = BeautifulSoup(self.todays_outlook_renewables, 'lxml')
         ts = c.utcify('2014-05-08 12:00')
 
         # set up options
@@ -527,7 +527,7 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml)
+        soup = BeautifulSoup(self.ene_slrs_xml, 'lxml')
         data = soup.find_all('report_data')
 
         # parse
@@ -545,7 +545,7 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_slrs_trade_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml)
+        soup = BeautifulSoup(self.ene_slrs_xml, 'lxml')
         data = soup.find_all('report_data')
 
         # parse
@@ -563,7 +563,7 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_renewables_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_ren_fcst_xml)
+        soup = BeautifulSoup(self.sld_ren_fcst_xml, 'lxml')
         data = soup.find_all('report_data')
 
         # parse

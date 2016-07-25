@@ -560,7 +560,7 @@ class CAISOClient(BaseClient):
         else:
             # Return XML content
             if return_all_files:
-                raw_data = [BeautifulSoup(thisfile).find_all('report_data') for thisfile in content]
+                raw_data = [BeautifulSoup(thisfile, 'lxml').find_all('report_data') for thisfile in content]
                 return raw_data
             else:
                 raw_data = soup.find_all('report_data')
@@ -702,7 +702,7 @@ class CAISOClient(BaseClient):
         if not response:
             return None
 
-        demand_soup = BeautifulSoup(response.content)
+        demand_soup = BeautifulSoup(response.content, 'lxml')
         for ts_soup in demand_soup.find_all(class_='docdate'):
             match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', ts_soup.string)
             if match:
@@ -713,7 +713,7 @@ class CAISOClient(BaseClient):
         # get renewables data
         response = self.request(self.base_url_outlook+'renewables.html')
         try:
-            return BeautifulSoup(response.content)
+            return BeautifulSoup(response.content, 'lxml')
         except AttributeError:
             LOGGER.warn('No response for CAISO today outlook renewables')
             return None
