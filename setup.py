@@ -62,7 +62,7 @@ setup(
     ],
     test_suite='nose.collector',
     install_requires=[
-        'beautifulsoup4',
+        'beautifulsoup4==4.5.0',
         'pandas>=0.18',
         'python-dateutil',
         'pytz',
