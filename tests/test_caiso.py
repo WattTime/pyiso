@@ -424,8 +424,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_fcst_xml, 'lxml')
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.sld_fcst_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
@@ -527,8 +527,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml, 'lxml')
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='gen', market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
@@ -545,8 +545,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_slrs_trade_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml, 'lxml')
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='trade', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
@@ -563,8 +563,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_renewables_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_ren_fcst_xml, 'lxml')
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.sld_ren_fcst_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='gen', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
