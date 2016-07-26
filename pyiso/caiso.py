@@ -541,7 +541,7 @@ class CAISOClient(BaseClient):
             return default_return_val
 
         # check xml content for errors
-        soup = BeautifulSoup(content[0], 'lxml')
+        soup = BeautifulSoup(content[0], 'xml')
         error = soup.find('m:error')
         if error:
             code = error.find('m:err_code')
@@ -560,10 +560,10 @@ class CAISOClient(BaseClient):
         else:
             # Return XML content
             if return_all_files:
-                raw_data = [BeautifulSoup(thisfile, 'lxml').find_all('report_data') for thisfile in content]
+                raw_data = [BeautifulSoup(thisfile, 'xml').find_all('REPORT_DATA') for thisfile in content]
                 return raw_data
             else:
-                raw_data = soup.find_all('report_data')
+                raw_data = soup.find_all('REPORT_DATA')
                 return raw_data
 
     def parse_oasis_renewable(self, raw_data):
