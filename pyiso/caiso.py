@@ -542,14 +542,13 @@ class CAISOClient(BaseClient):
 
         # check xml content for errors
         soup = BeautifulSoup(content[0], 'xml')
-        error = soup.find('m:error')
+        error = soup.find(['error', 'ERROR'])
         if error:
-            code = error.find('m:err_code')
-            desc = error.find('m:err_desc')
+            code = error.find(['err_code', 'ERR_CODE'])
+            desc = error.find(['err_desc', 'ERR_DESC'])
             msg = 'XML error for CAISO OASIS with payload %s: %s %s' % (payload, code, desc)
             LOGGER.error(msg)
             return default_return_val
-
         # return xml or csv data
         if payload.get('resultformat', False) == 6:
             # If we requested CSV files
@@ -560,10 +559,10 @@ class CAISOClient(BaseClient):
         else:
             # Return XML content
             if return_all_files:
-                raw_data = [BeautifulSoup(thisfile, 'xml').find_all('REPORT_DATA') for thisfile in content]
+                raw_data = [BeautifulSoup(thisfile, 'xml').find_all(['REPORT_DATA', 'report_data']) for thisfile in content]
                 return raw_data
             else:
-                raw_data = soup.find_all('REPORT_DATA')
+                raw_data = soup.find_all(['REPORT_DATA', 'report_data'])
                 return raw_data
 
     def parse_oasis_renewable(self, raw_data):
@@ -576,14 +575,14 @@ class CAISOClient(BaseClient):
 
         for raw_soup_dp in raw_data:
             # set up storage for timestamp
-            ts = self.utcify(raw_soup_dp.find('INTERVAL_START_GMT').string)
+            ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
             if ts not in preparsed_data:
                 preparsed_data[ts] = {'wind': 0, 'solar': 0}
 
             # store generation value
             try:
-                fuel_name = raw_soup_dp.find('RENEWABLE_TYPE').string.lower()
-                gen_MW = float(raw_soup_dp.find('VALUE').string)
+                fuel_name = raw_soup_dp.find(['RENEWABLE_TYPE', 'renewable_type']).string.lower()
+                gen_MW = float(raw_soup_dp.find(['VALUE', 'value']).string)
                 preparsed_data[ts][fuel_name] += gen_MW
             except TypeError:
                 LOGGER.error('Error in schema for CAISO OASIS result %s' % raw_soup_dp.prettify())
@@ -632,16 +631,16 @@ class CAISOClient(BaseClient):
 
         # extract values from xml
         for raw_soup_dp in raw_data:
-            data_item = raw_soup_dp.find('DATA_ITEM').string
+            data_item = raw_soup_dp.find(['DATA_ITEM', 'data_item']).string
             if data_item in data_items:
                 # parse timestamp
-                ts = self.utcify(raw_soup_dp.find('INTERVAL_START_GMT').string)
+                ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
 
                 # parse val
                 if data_item == 'ISO_TOT_IMP_MW':
-                    val = -float(raw_soup_dp.find('VALUE').string)
+                    val = -float(raw_soup_dp.find(['VALUE', 'value']).string)
                 else:
-                    val = float(raw_soup_dp.find('VALUE').string)
+                    val = float(raw_soup_dp.find(['VALUE', 'value']).string)
 
                 # add to storage
                 try:
@@ -677,11 +676,11 @@ class CAISOClient(BaseClient):
 
         # extract values from xml
         for raw_soup_dp in raw_data:
-            if raw_soup_dp.find('DATA_ITEM').string == data_item_key and \
-                    raw_soup_dp.find('RESOURCE_NAME').string == 'CA ISO-TAC':
+            if raw_soup_dp.find(['DATA_ITEM', 'data_item']).string == data_item_key and \
+                    raw_soup_dp.find(['RESOURCE_NAME', 'resource_name']).string == 'CA ISO-TAC':
 
                 # parse timestamp
-                ts = self.utcify(raw_soup_dp.find('INTERVAL_START_GMT').string)
+                ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
@@ -690,7 +689,7 @@ class CAISOClient(BaseClient):
                              'ba_name': self.NAME}
 
                 # store generation value
-                parsed_dp['load_MW'] = float(raw_soup_dp.find('VALUE').string)
+                parsed_dp['load_MW'] = float(raw_soup_dp.find(['VALUE', 'value']).string)
                 parsed_data.append(parsed_dp)
 
         # return

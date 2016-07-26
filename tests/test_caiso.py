@@ -397,7 +397,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 55)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>SYS_FCST_15MIN_MW</data_item>\n\
 <resource_name>CA ISO-TAC</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
@@ -405,7 +405,7 @@ class TestCAISOBase(TestCase):
 <interval_start_gmt>2014-05-08T19:15:00-00:00</interval_start_gmt>\n\
 <interval_end_gmt>2014-05-08T19:30:00-00:00</interval_end_gmt>\n\
 <value>26723</value>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_fetch_oasis_csv(self):
         c = client_factory('CAISO')
@@ -471,7 +471,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 5)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>SYS_FCST_DA_MW</data_item>\n\
 <resource_name>CA ISO-TAC</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
@@ -479,7 +479,7 @@ class TestCAISOBase(TestCase):
 <interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
 <interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
 <value>26559.38</value>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_fetch_oasis_slrs_dam(self):
         c = client_factory('CAISO')
@@ -492,7 +492,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 17)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>ISO_TOT_EXP_MW</data_item>\n\
 <resource_name>Caiso_Totals</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
@@ -500,7 +500,7 @@ class TestCAISOBase(TestCase):
 <interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
 <interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
 <value>1044</value>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_fetch_oasis_ren_dam(self):
         c = client_factory('CAISO')
@@ -513,7 +513,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 4)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>RENEW_FCST_DA_MW</data_item>\n\
 <opr_date>2014-05-08</opr_date>\n\
 <interval_num>13</interval_num>\n\
@@ -522,7 +522,7 @@ class TestCAISOBase(TestCase):
 <value>813.7</value>\n\
 <trading_hub>NP15</trading_hub>\n\
 <renewable_type>Solar</renewable_type>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
