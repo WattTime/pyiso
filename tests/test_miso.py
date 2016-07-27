@@ -21,7 +21,3 @@ class TestMISO(TestCase):
         bad_content = b'header1,header2\nnotadate,2016-01-01'
         data = self.c.parse_latest_fuel_mix(bad_content)
         self.assertEqual(len(data), 0)
-
-    def test_get_latest_fuel_mix(self):
-        content = self.c.get_latest_fuel_mix()
-        self.assertEqual(type(content), str)
