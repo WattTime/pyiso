@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.3.9: Fixes breaking error with BeautifulSoup. Minor fixes: closes issues #79, #84.
 * 0.3.8: Minor feature: Historical NYISO LMP data available farther into the past.
 * 0.3.7: Change: For CAISO historical generation, defaults to DAHR market instead of RTHR if no market is provided.
 * 0.3.6: Change: If `forecast=True` is requested without specifying `start_at` or `end_at`, `start_at` will default to the current time; previously it defaulted to midnight in the ISO's local time. Bugfixes: times outside the `start_at`-`end_at` range are no longer returned for ISONE generation and load, CAISO DAHR generation.
