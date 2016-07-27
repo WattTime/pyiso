@@ -106,3 +106,12 @@ class TestBaseClient(TestCase):
         indf = pd.DataFrame()
         outdf = bc.slice_times(indf, {'latest': True})
         self.assertEqual(len(outdf), 0)
+
+    def test_slice_latest_in_future(self):
+        bc = BaseClient()
+        now = pytz.utc.localize(datetime.utcnow())
+        past = now-timedelta(minutes=1)
+        future = now+timedelta(minutes=1)
+        indf = pd.DataFrame([1, 2], index=[past, future])
+        outdf = bc.slice_times(indf, {'latest': True})
+        self.assertEqual(outdf.index[0], past)

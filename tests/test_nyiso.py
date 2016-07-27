@@ -360,6 +360,8 @@ class TestNYISOBase(TestCase):
         data = c.parse_load_rtm(self.load_csv)
         for idx, row in data.iterrows():
             self.assertEqual(idx.date(), date(2014, 9, 10))
+            self.assertEqual(idx.hour, 4)
+            self.assertIn(idx.minute, [0, 5, 10, 15])
             self.assertGreater(row['load_MW'], 15700)
             self.assertLess(row['load_MW'], 16100)
 
@@ -386,6 +388,8 @@ class TestNYISOBase(TestCase):
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2014, 9, 10))
+            self.assertIn(idx.hour, [4, 23])
+            self.assertIn(idx.minute, [0, 5, 10, 55])
 
             self.assertLess(row['net_exp_MW'], -1400)
             self.assertGreater(row['net_exp_MW'], -6300)
@@ -402,6 +406,8 @@ class TestNYISOBase(TestCase):
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2016, 1, 19))
+            self.assertEqual(idx.hour, 5)
+            self.assertIn(idx.minute, [5, 10, 15])
 
             self.assertLess(row['gen_MW'], 5500)
             self.assertGreater(row['gen_MW'], 100)
@@ -419,6 +425,8 @@ class TestNYISOBase(TestCase):
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2016, 2, 18))
+            self.assertEqual(idx.hour, 5)
+            self.assertIn(idx.minute, [5, 10, 15])
 
             self.assertLess(row['lmp'], 1000)
             self.assertGreater(row['lmp'], -100)

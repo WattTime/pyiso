@@ -439,6 +439,7 @@ class BaseClient(object):
             return df
 
         if options.get('latest', None):
+            df = df.truncate(after=self.local_now())
             start_at = df.iloc[-1].name
             end_at = start_at
         else:

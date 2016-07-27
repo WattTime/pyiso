@@ -29,8 +29,8 @@ class NYISOClient(BaseClient):
 
         # timestamp is end of interval
         freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
-        if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
-            ts -= timedelta(minutes=5)
+        # if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
+        #     ts -= timedelta(minutes=5)
 
         # return
         return ts
@@ -40,9 +40,9 @@ class NYISOClient(BaseClient):
         idx = super(NYISOClient, self).utcify_index(*args, **kwargs)
 
         # timestamp is end of interval
-        freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
-        if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
-            idx -= timedelta(minutes=5)
+        # freq = self.options.get('freq', self.FREQUENCY_CHOICES.fivemin)
+        # if freq == self.FREQUENCY_CHOICES.fivemin and self.options['data'] != 'lmp':
+        #     idx -= timedelta(minutes=5)
 
         # return
         return idx
