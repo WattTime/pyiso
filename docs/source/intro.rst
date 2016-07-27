@@ -31,16 +31,26 @@ Specifically, here are the included balancing authorities and their respective d
 ============================= ======================================== ============
 balancing authority abbrev.    balancing authority name/region          data source
 ============================= ======================================== ============
-    BPA                       Bonneville Power Administration (Pac NW) BPA
-    CAISO                     California ISO                           CAISO
-    ERCOT                     Texas                                    ERCOT
-    EU                        European Union                           ENTSO
-    ISONE                     ISO New England                          ISONE
-    MISO                      Midcontinent ISO                         MISO
-    NEVP                      Nevada Power                             NVEnergy
-    NYISO                     New York ISO                             NYISO
-    PJM                       Mid-Atlantic                             PJM
-    SPPC                      Sierra Pacific Power (NV)                NVEnergy
+      AZPS                      Arizona Public Service                   SVERI
+      BPA                       Bonneville Power Administration (Pac NW) BPA
+      CAISO                     California ISO                           CAISO
+      DEAA                      DECA Arlington Valley (AZ)               SVERI
+      ELE                       El Paso Electric                         SVERI
+      ERCOT                     Texas                                    ERCOT
+      EU                        European Union                           ENTSO
+      HGMA                      Harquahala Generation Maricopa Arizona   SVERI
+      IID                       Imperial Irrigation District (CA)        SVERI
+      ISONE                     ISO New England                          ISONE
+      GRIF                      Griffith Energy (AZ)                       SVERI
+      MISO                      Midcontinent ISO                         MISO
+      NEVP                      Nevada Power                             NVEnergy
+      NYISO                     New York ISO                             NYISO
+      PJM                       Mid-Atlantic                             PJM
+      PNM                       Public Service Co New Mexico             SVERI
+      SPPC                      Sierra Pacific Power (NV)                NVEnergy
+      SRP                       Salt River Project (AZ)                  SVERI
+      TEPC                      Tuscon Electric Power Co                 SVERI
+      WALC                      WAPA Desert Southwest (NV, AZ)           SVERI
 ============================= ======================================== ============
 
 
