@@ -33,7 +33,7 @@ class PJMClient(BaseClient):
         or None if an error was encountered.
         """
         # soup it up
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         # like 12.11.2015 17:15
         ts_elt = soup.find(id='ctl00_ContentPlaceHolder1_DateAndTime')
@@ -332,7 +332,7 @@ class PJMClient(BaseClient):
 
     def parse_date_from_oasis(self, content):
         # find timestamp
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         # the datetime is the only bold text on the page, this could break easily
         ts_elt = soup.find('b')

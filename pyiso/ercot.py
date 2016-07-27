@@ -31,7 +31,7 @@ class ERCOTClient(BaseClient):
                                 params=params)
         if not response:
             raise ValueError('ERCOT: No report available for %s' % (report_type))
-        report_list_soup = BeautifulSoup(response.content)
+        report_list_soup = BeautifulSoup(response.content, 'lxml')
 
         # Round minute down to nearest 5 minute period
         if date:
@@ -156,7 +156,7 @@ class ERCOTClient(BaseClient):
 
     def parse_rtm(self, content):
         # make soup
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         # timestamp text starts with 'Last Updated'
         timestamp_elt = soup.find(text=re.compile('Last Updated'))
