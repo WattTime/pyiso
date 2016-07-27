@@ -17,3 +17,7 @@ class TestMISO(TestCase):
         self.assertEqual(ts.minute, 45)
         self.assertEqual(ts.tzinfo, pytz.utc)
 
+    def test_parse_latest_fuel_mix_bad(self):
+        bad_content = 'header1,header2\nnotadate,2016-01-01'
+        data = self.c.parse_latest_fuel_mix(bad_content)
+        self.assertEqual(len(data), 0)
