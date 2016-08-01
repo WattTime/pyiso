@@ -317,7 +317,10 @@ class PJMClient(BaseClient):
             # special handling for five minute lmps
             elif self.options['market'] == self.MARKET_CHOICES.fivemin:
                 self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+
                 # no historical data for 5min lmp
+                if self.options.get('start_at') or self.options.get('end_at') or not self.options.get('latest'):
+                        raise ValueError('PJM 5-minute lmp only available for latest, not for date ranges')
                 self.options['latest'] = True
 
         # load specific options
@@ -386,9 +389,9 @@ class PJMClient(BaseClient):
         else:
             raise ValueError('Cannot parse OASIS LMP data for %s' % self.options['data'])
 
-    def get_lmp(self, node_id='APS', **kwargs):
+    def get_lmp(self, node_id='APS', latest=False, **kwargs):
         """ Allegheny Power Systems is APS"""
-        self.handle_options(data='lmp', **kwargs)
+        self.handle_options(data='lmp', latest=latest, **kwargs)
 
         # standardize node_id
         if not isinstance(node_id, list):
