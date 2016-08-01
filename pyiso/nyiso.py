@@ -116,7 +116,7 @@ class NYISOClient(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
 
         # get data
-        if self.options['forecast']:
+        if self.options['forecast'] or self.options.get('market', None) == self.MARKET_CHOICES.dam:
             # always include today
             dates_list = self.dates() + [self.local_now().date()]
 
