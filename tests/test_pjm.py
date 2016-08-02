@@ -135,16 +135,6 @@ class TestPJM(TestCase):
         self.assertLessEqual(min(timestamps), start_at)
         self.assertGreaterEqual(max(timestamps), end_at)
 
-    def test_get_lmp_oasis(self):
-        now = datetime.now(pytz.utc)
-        data = self.c.get_lmp(node_id=33092371, market='RT5M')
-
-        timestamps = [d['timestamp'] for d in data]
-
-        # no historical data
-        self.assertEqual(len(set(timestamps)), 1)
-        self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*10)
-
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)
         self.assertEqual(df['load_MW'][0], 94001.713000000003)
