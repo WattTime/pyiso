@@ -21,7 +21,7 @@ For example::
 
 
 Requests made to external data sources will automatically time out after 20 seconds.
-To change this value, add a keyword argument in the constructor:""
+To change this value, add a keyword argument in the constructor::
 
    >>> isone = client_factory('ISONE', timeout_seconds=60)
 
