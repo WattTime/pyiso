@@ -138,7 +138,7 @@ class BaseClient(object):
         """
         Process and store keyword argument options.
         """
-        self.options.update(kwargs)
+        self.options = kwargs
 
         # check start_at and end_at args
         if self.options.get('start_at', None) and self.options.get('end_at', None):
