@@ -15,6 +15,7 @@ PyPI: https://pypi.python.org/pypi/pyiso/
 
 Changelog
 ---------
+* 0.3.11: Changes: `timeout_seconds` kwarg to client constructor; do not remember options from one `get_*` call to the next.
 * 0.3.10: Changes: Historical DAHR LMP data in NYISO is not available using `market='DAHR'`; error is raised when trying to access historical RT5M LMP data in PJM.
 * 0.3.9: Fixes breaking error with BeautifulSoup. Minor fixes: closes issues #79, #84.
 * 0.3.8: Minor feature: Historical NYISO LMP data available farther into the past.
