@@ -89,6 +89,15 @@ class TestBaseClient(TestCase):
         self.assertEqual(bc.options['end_at'], local_now + timedelta(days=2))
         self.assertTrue(bc.options['forecast'])
 
+    def test_handle_options_twice(self):
+        """Overwrite options on second call"""
+        bc = BaseClient()
+        bc.handle_options(forecast=True)
+        self.assertTrue(bc.options['forecast'])
+
+        bc.handle_options(yesterday=True)
+        self.assertFalse(bc.options['forecast'])
+
     def test_handle_options_set_forecast(self):
         bc = BaseClient()
         start = datetime(2020, 5, 26, 0, 0, tzinfo=pytz.utc)
@@ -106,3 +115,10 @@ class TestBaseClient(TestCase):
         indf = pd.DataFrame()
         outdf = bc.slice_times(indf, {'latest': True})
         self.assertEqual(len(outdf), 0)
+
+    def test_timeout(self):
+        bc = BaseClient()
+        self.assertEqual(bc.timeout_seconds, 20)
+
+        bc = BaseClient(timeout_seconds=30)
+        self.assertEqual(bc.timeout_seconds, 30)

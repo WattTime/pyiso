@@ -39,11 +39,14 @@ class BaseClient(object):
     # name
     NAME = ''
 
-    # default connection timeout
     TIMEOUT_SECONDS = 20
 
-    def __init__(self):
+    def __init__(self, timeout_seconds=20):
+        # will hold query options
         self.options = {}
+
+        # connection timeout
+        self.timeout_seconds = timeout_seconds
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
@@ -135,7 +138,7 @@ class BaseClient(object):
         """
         Process and store keyword argument options.
         """
-        self.options.update(kwargs)
+        self.options = kwargs
 
         # check start_at and end_at args
         if self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -250,7 +253,7 @@ class BaseClient(object):
         # carry out request
         try:
             response = getattr(session, mode)(url, verify=False,
-                                              timeout=self.TIMEOUT_SECONDS,
+                                              timeout=self.timeout_seconds,
                                               **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
