@@ -89,11 +89,11 @@ class TestCAISOLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def date_range(self, market):
+    def date_range(self, market, n_days=1, node_id='SLAP_PGP2-APND'):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              start_at=today-timedelta(days=2),
+        data = self._run_test('CAISO', node_id=node_id,
+                              start_at=today-timedelta(days=(n_days+1)),
                               end_at=today-timedelta(days=1),
                               market=market)
 
@@ -108,6 +108,11 @@ class TestCAISOLMP(TestBaseLMP):
         data = self.date_range(self.MARKET_CHOICES.fivemin)
         self.assertGreaterEqual(len(data), 12*23)
         self.assertLessEqual(len(data), 12*24)
+
+    def test_date_range_long_rtm(self):
+        data = self.date_range(self.MARKET_CHOICES.fivemin, n_days=10, node_id='DLAP_SCE-APND')
+        self.assertGreaterEqual(len(data), 12*23*10)
+        self.assertLessEqual(len(data), 12*24*10)
 
     def test_date_range_dam(self):
         data = self.date_range(self.MARKET_CHOICES.dam)
