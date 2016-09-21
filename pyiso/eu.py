@@ -145,11 +145,12 @@ class EUClient(BaseClient):
         if not getattr(self, 'session', None):
             self.session = requests.Session()
 
-        payload = {'j_username': environ['ENTSOe_USERNAME'],
-                   'j_password': environ['ENTSOe_PASSWORD']}
+        payload = {'username': environ['ENTSOe_USERNAME'],
+                   'password': environ['ENTSOe_PASSWORD'],
+                   'url': '/dashboard/show'}
 
         # Fake an ajax login to get the cookie
-        r = self.session.post(self.base_url + 'j_spring_security_check', params=payload,
+        r = self.session.post(self.base_url + 'login', params=payload,
                               headers={'X-Ajax-call': 'true'})
 
         msg = r.text
