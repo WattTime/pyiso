@@ -21,6 +21,7 @@ class TestGenerationTask(TestCase):
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_generation(**kwargs)
         received = tasks.get_generation(ba, **kwargs)
+        self.assertEqual(len(expected), len(received))
 
         for i in range(len(received)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
@@ -99,6 +100,8 @@ class TestLoadTask(TestCase):
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_load(**kwargs)
         received = tasks.get_load(ba, **kwargs)
+        self.assertEqual(len(expected), len(received))
+
         for i in range(len(expected)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
                 self.assertEqual(expected[i]['load_MW'], received[i]['load_MW'])
@@ -183,6 +186,8 @@ class TestTradeTask(TestCase):
     def _run_test(self, ba, kwargs):
         expected = client_factory(ba).get_trade(**kwargs)
         received = tasks.get_trade(ba, **kwargs)
+        self.assertEqual(len(expected), len(received))
+
         for i in range(len(expected)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
                 self.assertEqual(expected[i]['net_exp_MW'], received[i]['net_exp_MW'])
@@ -217,6 +222,8 @@ class TestLMPTask(TestCase):
     def _run_test(self, ba, node_list, kwargs):
         expected = client_factory(ba).get_lmp(node_list, **kwargs)
         received = tasks.get_lmp(ba, node_list, **kwargs)
+        self.assertEqual(len(expected), len(received))
+
         for i in range(len(expected)):
             if expected[i]['timestamp'] == received[i]['timestamp']:
                 self.assertEqual(expected[i]['lmp'], received[i]['lmp'])
