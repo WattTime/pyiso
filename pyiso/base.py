@@ -9,6 +9,8 @@ from io import StringIO, BytesIO
 from time import sleep
 from pyiso import LOGGER
 from pytz import AmbiguousTimeError
+import ssl
+
 
 try:
     from urllib2 import urlopen
@@ -228,7 +230,9 @@ class BaseClient(object):
         return cleaned_vals
 
     def fetch_xls(self, url):
-        socket = urlopen(url)
+        # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
+        context = ssl._create_unverified_context()
+        socket = urlopen(url, context=context)
         xd = pd.ExcelFile(socket)
         return xd
 
