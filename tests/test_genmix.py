@@ -370,8 +370,28 @@ class TestERCOTGenMix(TestBaseGenMix):
 
 
 class TestPJMGenMix(TestBaseGenMix):
-    def test_failing(self):
-        self._run_notimplemented_test('PJM')
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('PJM', latest=True)
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('PJM', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_date_range_fails(self):
+        # only latest data
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self.assertRaises(ValueError, self._run_test, 'PJM',
+                          start_at=today-timedelta(days=2),
+                          end_at=today-timedelta(days=1))
 
 
 class TestNYISOGenMix(TestBaseGenMix):
