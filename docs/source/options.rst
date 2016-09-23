@@ -29,6 +29,7 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``NYISO.get_load``        yes         yes                                no            yes
 ``NYISO.get_lmp``         yes         yes                                no            yes
 ``NYISO.get_trade``       yes         yes                                no            no
+``PJM.get_generation``    yes         no                                 no            no
 ``PJM.get_load``          yes         yes                                no            yes
 ``PJM.get_trade``         yes         no                                 no            no
 ``PJM.get_lmp``           yes         yes                                no            no

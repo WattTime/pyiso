@@ -9,7 +9,7 @@ from pyiso import LOGGER
 class BPAClient(BaseClient):
     NAME = 'BPA'
 
-    base_url = 'http://transmission.bpa.gov/business/operations/'
+    base_url = 'https://transmission.bpa.gov/business/operations/'
 
     fuels = {
         'Hydro': 'hydro',

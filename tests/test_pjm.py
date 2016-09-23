@@ -155,3 +155,15 @@ class TestPJM(TestCase):
         self.assertEqual(df.ix[tz_func(datetime(2015, 6, 4, 2))]['load_MW'], 64705.985)
         self.assertEqual(df.ix[tz_func(datetime(2015, 12, 15, 23))]['load_MW'], 79345.672)
 
+    def test_parse_date_from_markets_operations(self):
+        soup = self.c.fetch_markets_operations_soup()
+        ts = self.c.parse_date_from_markets_operations(soup)
+        td = self.c.local_now() - ts
+        self.assertLess(td.total_seconds(), 60*60)
+
+    def test_parse_realtime_genmix(self):
+        soup = self.c.fetch_markets_operations_soup()
+        data = self.c.parse_realtime_genmix(soup)
+
+        # expect 10 fuels
+        self.assertEqual(len(data), 10)
