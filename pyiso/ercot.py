@@ -289,10 +289,15 @@ class ERCOTClient(BaseClient):
 
             pieces = []
             if self.options['market'] == self.MARKET_CHOICES.fivemin:
-                # warning, this could take a long time
+                # set up periods of length 5 min
                 fivemin_periods = int((end-start).total_seconds()/(60*5)) + 1
                 p_list = [end - timedelta(minutes=5*x) for x in range(fivemin_periods)]
 
+                # warn if this could take a long time
+                if len(p_list) > 5:
+                    LOGGER.warn('Making %d data requests (one for each 5min period), this could take a while' % len(p_list))
+
+                # make request for each period
                 for period in p_list:
                     try:
                         report = self._request_report(report_name, date=period)
