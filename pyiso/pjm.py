@@ -427,7 +427,14 @@ class PJMClient(BaseClient):
 
         # string like ' As of 6:00 p.m. EPT'
         time_str = time_str.replace(' As of ', '')
-        naive_local_ts = parse(time_str)
+
+        # error at 10pm?
+        try:
+            naive_local_ts = parse(time_str)
+        except ValueError:
+            raise ValueError('Error parsing %s from %s' % (time_str, elt))
+
+        # return
         return self.utcify(naive_local_ts)
 
     def parse_realtime_genmix(self, soup):
