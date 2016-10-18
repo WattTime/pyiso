@@ -610,7 +610,7 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_dataframe_fifteen(self):
         c = client_factory('CAISO')
-        ts = pytz.utc.localize(datetime(2016, 3, 1, 12))
+        ts = pytz.utc.localize(datetime(2016, 10, 1, 12))
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
         lmps = c._standardize_lmp_dataframe(lmps)
