@@ -456,7 +456,11 @@ class PJMClient(BaseClient):
         raw_data = json.loads(json_str)
 
         # get date
-        ts = self.parse_date_from_markets_operations(soup)
+        try:
+            ts = self.parse_date_from_markets_operations(soup)
+        except ValueError:
+            # error handling date, assume no data
+            return []
 
         # parse data
         data = []
