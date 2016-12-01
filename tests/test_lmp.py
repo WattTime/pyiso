@@ -469,9 +469,22 @@ class TestERCOTLMP(TestBaseLMP):
 
     def test_dam_historical(self):
         start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=30)
-        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
+        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1),
+                              market=self.MARKET_CHOICES.dam)
         # slicing is inclusive
         self.assertIn(len(data), [24, 25])
+
+    def test_dam_missing_farpast(self):
+        start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=32)
+        self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1),
+                       market=self.MARKET_CHOICES.dam,
+                       expect_data=False)
+
+    def test_rt5m_missing_farpast(self):
+        start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=32)
+        self._run_test('ERCOT', start_at=start, end_at=start+timedelta(minutes=10),
+                       market=self.MARKET_CHOICES.fivemin,
+                       expect_data=False)
 
 
 class TestMinimumLMP(TestBaseLMP):
