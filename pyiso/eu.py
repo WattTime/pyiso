@@ -364,14 +364,15 @@ class EUClient(BaseClient):
         df.drop(drop_col, axis=1, inplace=True)
 
         # filter out consumption columns
+        fuel_columns = [self.fuels[x] for x in self.fuels]
         allowed_cols = ['timestamp']
-        allowed_cols.extend([self.fuels[x] for x in self.fuels])
+        allowed_cols.extend(fuel_columns)
         df = df.filter(allowed_cols, axis=1)
 
-        # drop empty columns
-        df.replace('n/e', np.nan, inplace=True)
+        # drop nan rows
+        print('Dropping emtpy rows in columns: %s' % fuel_columns)
         df.replace('-', np.nan, inplace=True)
-        df.dropna(axis=1, how='all', inplace=True)
+        df.dropna(subset=fuel_columns, how='all', inplace=True)
 
         # Add columns
         df['ba_name'] = self.options['control_area']
