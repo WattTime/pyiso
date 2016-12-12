@@ -43,13 +43,12 @@ Before making a release, check that these are true in the master branch of the G
 
 To make a release, run these commands (replacing 0.x.y with the correct version number):
 
-```
-git checkout master
-git pull origin master
-git tag v0.x.y
-git push origin master --tags
-python setup.py sdist upload
-```
+.. code-block:: bash
+	git checkout master
+	git pull origin master
+	git tag v0.x.y
+	git push origin master --tags
+	python setup.py sdist upload
 
 
 Legal things
