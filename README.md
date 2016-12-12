@@ -15,6 +15,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Changelog
 ---------
+* 0.3.14: Minor bugfixes to ISONE, PJM, and ERCOT. 
 * 0.3.13: Major feature: generation mix in PJM (RTHR market only). Minor change: SSL handling in BPA.
 * 0.3.12: Bugfix: fixed EU authentication, thanks @frgtn!
 * 0.3.11: Changes: `timeout_seconds` kwarg to client constructor; do not remember options from one `get_*` call to the next.

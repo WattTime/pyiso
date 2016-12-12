@@ -1,8 +1,6 @@
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 from os import environ
-from datetime import datetime
-import pytz
 import pandas as pd
 
 
@@ -18,6 +16,7 @@ class ISONEClient(BaseClient):
         'Natural Gas': 'natgas',
         'Nuclear': 'nuclear',
         'Oil': 'oil',
+        'Other': 'other',
         'Solar': 'solar',
         'Wind': 'wind',
         'Wood': 'biomass',
