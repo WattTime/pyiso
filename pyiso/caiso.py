@@ -695,18 +695,15 @@ class CAISOClient(BaseClient):
         # return
         return parsed_data
 
-    def todays_outlook_time(self):
-       # get timestamp
-        response = self.request(self.base_url_outlook+'systemconditions.html')
-        if not response:
-            return None
-
-        demand_soup = BeautifulSoup(response.content, 'lxml')
+    def todays_outlook_time(self, demand_soup):       
         for ts_soup in demand_soup.find_all(class_='docdate'):
-            match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', ts_soup.string)
+            if str(ts_soup) is None:
+                continue
+            match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', str(ts_soup))
             if match:
                 ts_str = match.group(0)
                 return self.utcify(ts_str)
+        return None
 
     def fetch_todays_outlook_renewables(self):
         # get renewables data
@@ -764,7 +761,14 @@ class CAISOClient(BaseClient):
             return []
 
         # parse "Today's Outlook" data
-        ts = self.todays_outlook_time()
+
+        # get timestamp
+        response = self.request(self.base_url_outlook+'systemconditions.html')
+        ts = None
+        if response:
+            demand_soup = BeautifulSoup(response.content, 'lxml')
+            ts = self.todays_outlook_time(demand_soup)
+
         parsed_data += self.parse_todays_outlook_renewables(soup, ts)
         if len(parsed_data) == 0:
             return parsed_data
