@@ -1,3 +1,4 @@
+import os
 from pyiso import client_factory
 from unittest import TestCase, expectedFailure, skip
 from io import StringIO
@@ -8,6 +9,10 @@ from bs4 import BeautifulSoup
 import numpy
 import mock
 import requests
+
+fixtures_base_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+def read_fixture(filename):
+    return open(os.path.join(fixtures_base_path, filename), 'r').read()
 
 
 class TestCAISOBase(TestCase):
@@ -286,6 +291,8 @@ class TestCAISOBase(TestCase):
 </OASISReport>\n\
 ")
 
+        self.systemconditions_html = read_fixture('caiso_systemconditions.html')
+
         self.todays_outlook_renewables = StringIO(u"<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
 \n\
 <HTML>\n\
@@ -315,6 +322,11 @@ class TestCAISOBase(TestCase):
 </HTML>\n\
 \n\
 ")
+
+
+
+
+
 
     def test_request_renewable_report(self):
         c = client_factory('CAISO')
@@ -439,7 +451,7 @@ class TestCAISOBase(TestCase):
                     'load_MW': 26755.0}
         self.assertEqual(expected, parsed_data[0])
 
-    def test_parse_todays_outlook_renwables(self):
+    def test_parse_todays_outlook_renewables(self):
         # set up soup and ts
         c = client_factory('CAISO')
         soup = BeautifulSoup(self.todays_outlook_renewables, 'lxml')
@@ -458,6 +470,15 @@ class TestCAISOBase(TestCase):
                      'gen_MW': 6086.0,
                      'market': 'RT5M',
                      'timestamp': datetime(2014, 5, 8, 19, 0, tzinfo=pytz.utc)}]
+        self.assertEqual(parsed_data, expected)
+
+    def test_parse_systemconditions(self):
+        """Test for a newly discovered edge case: an extra, empty `docdata` cell."""
+        c = client_factory('CAISO')
+        soup = BeautifulSoup(self.systemconditions_html, 'lxml')
+        c.handle_options()
+        parsed_data = c.todays_outlook_time(soup)
+        expected = datetime(2017, 1, 5, 21, 50, tzinfo=pytz.utc)
         self.assertEqual(parsed_data, expected)
 
     def test_fetch_oasis_demand_dam(self):
