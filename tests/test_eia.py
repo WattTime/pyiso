@@ -46,10 +46,13 @@ class TestEIA(TestCase):
     def test_get_trade_latest(self):
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        latest=True)
-        self.assertLess(len(self.result), 2)
+        try:
+            self.assertLess(len(self.result), 2)
+        except AssertionError as e:
+            print ("failed!", self.options, e)
+            raise e
 
     def test_get_trade_naive_start_at(self):
-
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        start_at="20161212",
                                        end_at="20161222T04Z")
@@ -62,31 +65,46 @@ class TestEIA(TestCase):
         self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
 
     def test_get_load(self):
-        # Need to improve this test
+        """Test load - only on BAs that support it."""
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        bas_with_load = [i for i in eia_bas if i not in no_load]
+        self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
                                       start_at="20161212",
                                       end_at="20161222T04Z")
         self.assertTrue(len(self.result) > 0)
 
     def test_get_load_forecast(self):
-
-        # this one is failing intermittently with a series key error
-
+        """Test load forecast - only on BAs that support it."""
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        bas_with_load = [i for i in eia_bas if i not in no_load]
+        self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba, forecast=True)
-        print(self.result[0])
         result_day = dateutil_parse(self.result[0]["timestamp"]).day
         today = datetime.datetime.now().day
         self.assertTrue(result_day >= today)
         # self.assertTrue(len(self.result) > 0)
 
+    def test_load_with_unsupported_ba_raises_valueerror(self):
+        """
+        Requesting load data for a BA that doesn't support load raises
+        a value error.
+        """
+        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        for ba in load_not_supported_bas:
+            with self.assertRaises(ValueError):
+                self.result = self.c.get_load(bal_auth=ba, latest=True)
+
     def test_get_generation(self):
         self.result = self.c.get_generation(bal_auth=self.ba,
                                             start_at="20161212",
                                             end_at="20161222T04Z")
-
-        # Need to improve this test
         self.assertTrue(len(self.result) > 0)
-
 
 if __name__ == '__main__':
     unittest.main()

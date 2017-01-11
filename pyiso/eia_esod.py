@@ -71,7 +71,8 @@ class EIACLIENT(BaseClient):
 
         return result_formatted
 
-    def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, forecast=False, **kwargs):
+    def get_load(self, latest=False, yesterday=False, start_at=False,
+                 end_at=False, forecast=False, **kwargs):
         """
         Scrape and parse load data.
 
@@ -131,6 +132,8 @@ class EIACLIENT(BaseClient):
     def handle_options(self, **kwargs):
         # Need to clean up this method
         super(EIACLIENT, self).handle_options(**kwargs)
+        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
 
         self.options = kwargs
 
@@ -148,10 +151,13 @@ class EIACLIENT(BaseClient):
             if self.options["data"] == "gen":
                 self.url = self.series_url + "%s-ALL.NG.H" % self.options["bal_auth"]
             elif self.options["data"] == "load":
-                if self.options['forecast']:
-                        self.url = self.series_url + "%s-ALL.DF.H" % self.options["bal_auth"]
+                if self.options["bal_auth"] not in load_not_supported_bas:
+                    if self.options['forecast']:
+                            self.url = self.series_url + "%s-ALL.DF.H" % self.options["bal_auth"]
+                    else:
+                        self.url = self.series_url + "%s-ALL.D.H" % self.options["bal_auth"]
                 else:
-                    self.url = self.series_url + "%s-ALL.D.H" % self.options["bal_auth"]
+                    raise ValueError("Load data not supported for this BA.")
             elif self.options["data"] == "trade":
                 self.url = self.series_url + "%s-ALL.TI.H" % self.options["bal_auth"]
 
@@ -293,6 +299,7 @@ class EIACLIENT(BaseClient):
                         i["fuel_name"] = "other"
             except:
                 print("problematic area: ", data["request"])
+                print(data)
                 print(self.options)
         return data_formatted
 
