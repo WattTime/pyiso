@@ -37,10 +37,11 @@ class EIACLIENT(BaseClient):
                    EIA client.'
             raise RuntimeError(msg)
 
-        self.category_url = self.base_url + "category/?api_key=%s&category_id="\
-            % self.auth
-        self.series_url = self.base_url + "series/?api_key=%s&series_id=EBA."\
-            % self.auth
+        self.category_url = '{url}category/?api_key={key}&category_id='.format(
+            url=self.base_url, key=self.auth)
+
+        self.series_url = '{url}series/?api_key={key}&series_id=EBA.'.format(
+            url=self.base_url, key=self.auth)
 
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
@@ -129,37 +130,60 @@ class EIACLIENT(BaseClient):
 
         return result_formatted
 
+    def set_url(self, type, text):
+        if type == "category":
+            self.url = '{url}{num}'.format(url=self.category_url,
+                                           num=text)
+        elif type == "series":
+            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                                  ba=self.options['bal_auth'],
+                                                  abbrev=text)
+
     def handle_options(self, **kwargs):
+        """
+        Process and store keyword argument options.
+        """
         # Need to clean up this method
         super(EIACLIENT, self).handle_options(**kwargs)
         load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
                                   'HGMA', 'SEPA', 'WWA', 'YAD']
+        two_day_delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                             'TAL', 'TIDC', 'TPWR']
+        # start here- where will this be an issue- date range later than 2 days ago? yesterday data?
+        limited_gen_bas = ['HST', 'NSB']
+        # account for this in gen data? wouldn't it just return 0?
+
 
         self.options = kwargs
 
+        if 'latest' not in self.options:
+            self.options['latest'] = False
+        if 'forecast' not in self.options:
+            self.options['forecast'] = False
+
         if "bal_auth" not in self.options:
             if self.data == "gen":
-                self.url = self.category_url + "2122629"
+                self.set_url('category', '2122629')
             elif self.data == "load":
                 if self.options["forecast"]:
-                    self.url = self.category_url + "2122627"
+                    self.set_url('category', '2122627')
                 else:
-                    self.url = self.category_url + "2122628"
+                    self.set_url('category', '2122628')
             elif self.data == "trade":
-                self.url = self.category_url + "2122632"
+                self.set_url('category', '2122632')
         else:
             if self.options["data"] == "gen":
-                self.url = self.series_url + "%s-ALL.NG.H" % self.options["bal_auth"]
+                self.set_url('series', '-ALL.NG.H')
             elif self.options["data"] == "load":
                 if self.options["bal_auth"] not in load_not_supported_bas:
                     if self.options['forecast']:
-                            self.url = self.series_url + "%s-ALL.DF.H" % self.options["bal_auth"]
+                            self.set_url('series', '-ALL.DF.H')
                     else:
-                        self.url = self.series_url + "%s-ALL.D.H" % self.options["bal_auth"]
+                        self.set_url('series', '-ALL.D.H')
                 else:
                     raise ValueError("Load data not supported for this BA.")
             elif self.options["data"] == "trade":
-                self.url = self.series_url + "%s-ALL.TI.H" % self.options["bal_auth"]
+                self.set_url('series', '-ALL.TI.H')
 
 
         # reconcile this w/ format results- may need to cull format results.
@@ -176,18 +200,13 @@ class EIACLIENT(BaseClient):
         #     else:
         #         self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
         #
-        if 'latest' not in self.options:
-            self.options['latest'] = False
-        if 'forecast' not in self.options:
-            self.options['forecast'] = False
+
 
         # if self.options.get('start_at') or self.options.get('end_at') or not self.options.get('latest'):
         #         raise ValueError('PJM 5-minute lmp only available for latest, not for date ranges')
         # self.options['latest'] = True
 
-        """
-        Process and store keyword argument options.
-        """
+
         # i think this is already covered - get this in the correct order
         # self.options = kwargs
 

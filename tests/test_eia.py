@@ -2,11 +2,12 @@ import unittest
 from unittest import TestCase
 from pyiso import client_factory
 import json
-import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 from pyiso import BALANCING_AUTHORITIES
 import random
 import mock
+import pytz
 
 """Test EIA client.
 To use, set the your EIA key as an environment variable:
@@ -37,15 +38,17 @@ class TestEIA(TestCase):
         """Check date for yesterday trade data"""
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        yesterday=True)
-        # print "yesterday: ", self.result
         days = [dateutil_parse(i["timestamp"]) for i in self.result]
-        yesterday = (datetime.datetime.now() - datetime.timedelta(days=1)).day
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
+        local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday = (local_day - timedelta(days=1)).day
         for _ in days:
             self.assertEqual(_.day, yesterday)
 
     def test_get_trade_latest(self):
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        latest=True)
+        print(self.result)
         try:
             self.assertLess(len(self.result), 2)
         except AssertionError as e:
@@ -85,7 +88,7 @@ class TestEIA(TestCase):
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba, forecast=True)
         result_day = dateutil_parse(self.result[0]["timestamp"]).day
-        today = datetime.datetime.now().day
+        today = datetime.now().day
         self.assertTrue(result_day >= today)
         # self.assertTrue(len(self.result) > 0)
 
