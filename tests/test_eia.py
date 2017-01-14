@@ -38,17 +38,16 @@ class TestEIA(TestCase):
         """Check date for yesterday trade data"""
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        yesterday=True)
-        days = [dateutil_parse(i["timestamp"]) for i in self.result]
+        dates = [dateutil_parse(i["timestamp"]) for i in self.result]
         local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
         local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         yesterday = (local_day - timedelta(days=1)).day
-        for _ in days:
-            self.assertEqual(_.day, yesterday)
+        for date in dates:
+            self.assertEqual(date.day, yesterday)
 
     def test_get_trade_latest(self):
         self.result = self.c.get_trade(bal_auth=self.ba,
                                        latest=True)
-        print(self.result)
         try:
             self.assertLess(len(self.result), 2)
         except AssertionError as e:
@@ -66,6 +65,18 @@ class TestEIA(TestCase):
                                        start_at="20161212T04Z",
                                        end_at="20161222")
         self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
+
+    def test_get_trade_two_day_bas(self):
+        delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                     'TAL', 'TIDC', 'TPWR']
+        self.ba = random.choice(delay_bas)
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
+        local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        three_days_ago = (local_day - timedelta(days=3)).strftime("%Y%m%d")
+        five_days_ago = (local_day - timedelta(days=5)).strftime("%Y%m%d")
+        with self.assertRaises(ValueError):
+            self.c.get_trade(bal_auth=self.ba, start_at=five_days_ago,
+                             end_at=three_days_ago)
 
     def test_get_load(self):
         """Test load - only on BAs that support it."""
@@ -94,8 +105,8 @@ class TestEIA(TestCase):
 
     def test_load_with_unsupported_ba_raises_valueerror(self):
         """
-        Requesting load data for a BA that doesn't support load raises
-        a value error.
+        Confirm that requesting load data for a BA that doesn't support load
+        raises a value error.
         """
         load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
                                   'HGMA', 'SEPA', 'WWA', 'YAD']
@@ -108,6 +119,9 @@ class TestEIA(TestCase):
                                             start_at="20161212",
                                             end_at="20161222T04Z")
         self.assertTrue(len(self.result) > 0)
+
+
+# python setup.py test -s tests.test_eia.TestEIA.test_get_generation
 
 if __name__ == '__main__':
     unittest.main()
