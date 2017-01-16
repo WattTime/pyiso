@@ -72,11 +72,11 @@ class TestEIA(TestCase):
         self.ba = random.choice(delay_bas)
         local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
         local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        one_days_ago = (local_day - timedelta(days=1)).strftime("%Y%m%d")
         three_days_ago = (local_day - timedelta(days=3)).strftime("%Y%m%d")
-        five_days_ago = (local_day - timedelta(days=5)).strftime("%Y%m%d")
         with self.assertRaises(ValueError):
-            self.c.get_trade(bal_auth=self.ba, start_at=five_days_ago,
-                             end_at=three_days_ago)
+            self.c.get_trade(bal_auth=self.ba, start_at=three_days_ago,
+                             end_at=one_days_ago)
 
     def test_get_load(self):
         """Test load - only on BAs that support it."""

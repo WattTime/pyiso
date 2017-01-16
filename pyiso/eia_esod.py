@@ -166,8 +166,7 @@ class EIACLIENT(BaseClient):
         elif self.options['start_at'] and not self.options['end_at']:
             raise ValueError('You must specify an end_at date.')
         elif self.options['end_at'] and self.options['bal_auth'] in delay_bas:
-            diff = dateutil_parse(self.options['end_at']) - datetime.now()
-            if diff > -2 and diff < 0:
+            if dateutil_parse(self.options['end_at']) > (datetime.now() - timedelta(days=2)):
                 raise ValueError('Data not available due to two day delay\
                     for this balancing authority.')
 
