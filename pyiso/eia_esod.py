@@ -51,7 +51,8 @@ class EIACLIENT(BaseClient):
 
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
-
+        self.handle_ba_limitations()
+        self.format_url()
         result = json.loads(self.request(self.url).text)
         result_formatted = self.format_result(result)
 
@@ -66,6 +67,8 @@ class EIACLIENT(BaseClient):
         self.handle_options(data='load', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at,
                             forecast=forecast, **kwargs)
+        self.handle_ba_limitations()
+        self.format_url()
         result = json.loads(self.request(self.url).text)
         result_formatted = self.format_result(result)
         return result_formatted
@@ -78,31 +81,22 @@ class EIACLIENT(BaseClient):
 
         self.handle_options(data='trade', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
+        self.handle_ba_limitations()
+        self.format_url()
         result = json.loads(self.request(self.url).text)
         result_formatted = self.format_result(result)
 
         return result_formatted
 
-    def set_url(self, type, text):
-        if type == 'category':
-            self.url = '{url}{num}'.format(url=self.category_url,
-                                           num=text)
-        elif type == 'series':
-            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                                  ba=self.options['bal_auth'],
-                                                  abbrev=text)
-
     def handle_options(self, **kwargs):
+        # start here- figure out how to carve up this method
+        # move load_not_supported BAs and two day BAs stuff to handle options part,
+        # then split off URL setting. That itself could be one function
         """
         Process and store keyword argument options.
         """
         super(EIACLIENT, self).handle_options(**kwargs)
-        today = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
-        two_days_ago = today - timedelta(days=2)
-        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
-        delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-                             'TAL', 'TIDC', 'TPWR']
+
         # limited_gen_bas = ['HST', 'NSB']
         # account for this in gen data? wouldn't it just return 0?
 
@@ -161,10 +155,32 @@ class EIACLIENT(BaseClient):
             self.options['sliceable'] = False
             self.options['forecast'] = False
 
+    def handle_ba_limitations(self):
+        """Handle BA limitations"""
+        today = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+        two_days_ago = today - timedelta(days=2)
+        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                     'TAL', 'TIDC', 'TPWR']
         if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
             if self.options['end_at'] > two_days_ago:
                 raise ValueError('No data: 2 day delay for this BA.')
 
+        if self.options['bal_auth'] not in load_not_supported_bas:
+            if self.options['data'] == 'load':
+                raise ValueError('Load data not supported for this BA.')
+
+    def set_url(self, type, text):
+        if type == 'category':
+            self.url = '{url}{num}'.format(url=self.category_url,
+                                           num=text)
+        elif type == 'series':
+            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                                  ba=self.options['bal_auth'],
+                                                  abbrev=text)
+
+    def format_url(self):
         """Set EIA API URL based on options"""
         if 'bal_auth' not in self.options:
             if self.data == 'gen':
@@ -180,13 +196,10 @@ class EIACLIENT(BaseClient):
             if self.options['data'] == 'gen':
                 self.set_url('series', '-ALL.NG.H')
             elif self.options['data'] == 'load':
-                if self.options['bal_auth'] not in load_not_supported_bas:
-                    if self.options['forecast']:
-                            self.set_url('series', '-ALL.DF.H')
-                    else:
-                        self.set_url('series', '-ALL.D.H')
+                if self.options['forecast']:
+                        self.set_url('series', '-ALL.DF.H')
                 else:
-                    raise ValueError('Load data not supported for this BA.')
+                    self.set_url('series', '-ALL.D.H')
             elif self.options['data'] == 'trade':
                 self.set_url('series', '-ALL.TI.H')
 
