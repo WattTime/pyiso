@@ -47,21 +47,6 @@ class EIACLIENT(BaseClient):
                        start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse generation fuel mix data.
-
-        :param bool latest: If True, only get the generation mix at the one most recent available time point.
-           Available for all regions.
-        :param bool yesterday: If True, get the generation mix for every time point yesterday.
-           Not available for all regions.
-        :param datetime start_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :param datetime end_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC.
-        :rtype: list
-
         """
 
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
@@ -76,17 +61,6 @@ class EIACLIENT(BaseClient):
                  end_at=False, forecast=False, **kwargs):
         """
         Scrape and parse load data.
-
-        :param datetime start_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
-
-           Not available for all regions.
-        :param datetime end_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
-
-
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
-           Timestamps are in UTC.
-        :rtype: list
-
         """
 
         self.handle_options(data='load', latest=latest, yesterday=yesterday,
@@ -98,25 +72,8 @@ class EIACLIENT(BaseClient):
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
                   end_at=False, **kwargs):
-
         """
         Scrape and parse import/export data.
-        Value is net export (export - import), can be positive or negative.
-
-        -:param bool latest: If True, only get the trade at the one most recent available time point.
-           Available for all regions.
-        :param bool yesterday: If True, get the trade for every time point yesterday.
-           Not available for all regions.
-        :param datetime start_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :param datetime end_at: If the datetime is naive, it is assumed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, net_exp_MW]``.
-           Timestamps are in UTC.
-        :rtype: list
-
         """
 
         self.handle_options(data='trade', latest=latest, yesterday=yesterday,
@@ -140,6 +97,8 @@ class EIACLIENT(BaseClient):
         Process and store keyword argument options.
         """
         super(EIACLIENT, self).handle_options(**kwargs)
+        today = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+        two_days_ago = today - timedelta(days=2)
         load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
                                   'HGMA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
@@ -165,10 +124,6 @@ class EIACLIENT(BaseClient):
             raise ValueError('You must specify a start_at date.')
         elif self.options['start_at'] and not self.options['end_at']:
             raise ValueError('You must specify an end_at date.')
-        elif self.options['end_at'] and self.options['bal_auth'] in delay_bas:
-            if dateutil_parse(self.options['end_at']) > (datetime.now() - timedelta(days=2)):
-                raise ValueError('Data not available due to two day delay\
-                    for this balancing authority.')
 
         """Clean up time values (same as base.py)"""
         if self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -205,6 +160,10 @@ class EIACLIENT(BaseClient):
         else:
             self.options['sliceable'] = False
             self.options['forecast'] = False
+
+        if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
+            if self.options['end_at'] > two_days_ago:
+                raise ValueError('No data: 2 day delay for this BA.')
 
         """Set EIA API URL based on options"""
         if 'bal_auth' not in self.options:
