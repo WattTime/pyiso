@@ -177,6 +177,9 @@ class EIACLIENT(BaseClient):
 
     def format_url(self):
         """Set EIA API URL based on options"""
+        if "-EIA" in self.options['bal_auth']:
+            self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
+            #trim -EIA from BA name
         if 'bal_auth' not in self.options:
             if self.data == 'gen':
                 self.set_url('category', '2122629')

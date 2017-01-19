@@ -23,7 +23,7 @@ class TestEIA(TestCase):
 
     def tearDown(self):
         self.c = None
-        time.sleep(2) # Delay to cut down on throttling
+        time.sleep(4) # Delay to cut down on throttling
 
     def test_get_trade(self):
         """Show that we get data back for get trade against EIA balancing
@@ -82,8 +82,8 @@ class TestEIA(TestCase):
     def test_get_load(self):
         """Test load - only on BAs that support it."""
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         bas_with_load = [i for i in eia_bas if i not in no_load]
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
@@ -94,8 +94,8 @@ class TestEIA(TestCase):
     def test_get_load_yesterday(self):
         """Check date for yesterday load data"""
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
         bas_with_load = [i for i in eia_bas if i not in no_load and i not in delay_bas]
@@ -111,8 +111,8 @@ class TestEIA(TestCase):
 
     def test_get_load_latest(self):
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         bas_with_load = [i for i in eia_bas if i not in no_load]
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
@@ -126,8 +126,8 @@ class TestEIA(TestCase):
     def test_get_load_forecast(self):
         """Test load forecast - only on BAs that support it."""
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
         bas_with_load = [i for i in eia_bas if i not in no_load and i not in delay_bas]
@@ -139,8 +139,8 @@ class TestEIA(TestCase):
 
     def test_get_generation_latest(self):
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         bas_with_load = [i for i in eia_bas if i not in no_load]
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_generation(bal_auth=self.ba,

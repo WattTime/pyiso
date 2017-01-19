@@ -28,36 +28,113 @@ See the :doc:`usage` page for instructions on how to get started.
 
 Specifically, here are the included balancing authorities and their respective data sources:
 
+Note: Some balancing authorities offer data directly or through the EIA client.
+
 ============================= ======================================== ============
 balancing authority abbrev.    balancing authority name/region          data source
 ============================= ======================================== ============
+      AEC                       PowerSouth Energy Cooperative            EIA
+      AECI                      Associated Electric Cooperative, Inc.    EIA
+      AESO                      Alberta Electric System Operator         EIA
+      AVA                       Avista Corporation                       EIA
       AZPS                      Arizona Public Service                   SVERI
+      AZPS-EIA                  Arizona Public Service- EIA data         EIA
+      BANC                      Bal Authority of Northern California     EIA
+      BCTC                      British Columbia Transmission Corp       EIA
       BPA                       Bonneville Power Administration (Pac NW) BPA
+      BPAT                      Bonneville Power Admin- EIA data         EIA
       CAISO                     California ISO                           CAISO
+      CAISO-EIA                 California ISO- EIA data                 EIA
+      CFE                       Comision Federal de Electricidad         EIA
+      CHPD                      Pub Utility Dist 1 of Chelan County      EIA
+      CISO                      California Independent System Operator   EIA
+      CPLE                      Duke Energy Progress East                EIA
+      CPLW                      Duke Energy Progress West                EIA
       DEAA                      DECA Arlington Valley (AZ)               SVERI
+      DEAA-EIA                  DECA Arlington Valley (AZ)-EIA data      EIA
+      DOPD                      PUD No. 1 of Douglas County              EIA
+      DUK                       Duke Energy Carolinas                    EIA
+      EEI                       Electric Energy, Inc                     EIA
       ELE                       El Paso Electric                         SVERI
+      EPE                       El Paso Electric - EIA data              EIA
       ERCOT                     Texas                                    ERCOT
+      ERCO                      Texas- EIA data                          EIA
       EU                        European Union                           ENTSO
+      FMPP                      Florida Municipal Power Pool             EIA
+      FPC                       Duke Energy Florida                      EIA
+      FPL                       Florida Power and Light Co.              EIA
+      GCPD                      PUD of Grant County, Washington          EIA
+      GRID                      Gridforce Energy Management              EIA
+      GRIF                      Griffith Energy (AZ)                     SVERI
+      GRIF-EIA                  Griffith Energy (AZ) - EIA data          EIA
+      GRMA                      Gila River Power                         EIA
+      GVL                       Gainesville Regional Utilities           EIA
+      GWA                       NaturEner Power Watch                    EIA
       HGMA                      Harquahala Generation Maricopa Arizona   SVERI
+      HGMA-EIA                  Harquahala Gen Maricopa Az               EIA
+      HQT                       Hydro-Quebec TransEnergie                EIA
+      HST                       City of Homestead                        EIA
+      IESO                      Ontario IESO                             EIA
       IID                       Imperial Irrigation District (CA)        SVERI
+      IID-EIA                   Imperial Irrigation District- EIA        EIA
+      IPCO                      Idaho Power Company                      EIA
       ISONE                     ISO New England                          ISONE
-      GRIF                      Griffith Energy (AZ)                       SVERI
+      ISNE                      ISO New England - EIA data               EIA
+      JEA                       JEA Jacksonville, Fl                     EIA
+      LDWP                      Los Angeles Dept of Water and Power      EIA
+      LGEE                      Louisville Gas & Electric/KY Utilities   EIA
+      MHEB                      Manitoba Hydro                           EIA
       MISO                      Midcontinent ISO                         MISO
+      MISO-EIA                  Midcontinent ISO - EIA data              EIA
+      NBSO                      New Brunswick System Operator            EIA
       NEVP                      Nevada Power                             NVEnergy
+      NEVP-EIA                  Nevada Power - EIA data                  EIA
+      NSB                       New Smyrna Beach UC                      EIA
+      NWMT                      NorthWestern Corporation                 EIA
       NYISO                     New York ISO                             NYISO
+      NYIS                      New York ISO - EIA data                  EIA
+      OVEC                      Ohio Valley Electric Corporation         EIA
+      PACE                      PacifiCorp East                          EIA
+      PACW                      PacifiCorp West                          EIA
+      PGE                       Portland General Electric Co             EIA
       PJM                       Mid-Atlantic                             PJM
+      PJM-EIA                   Mid-Atlantic - EIA data                  EIA
       PNM                       Public Service Co New Mexico             SVERI
+      PNM-EIA                   Public Service Co New Mexico- EIA        EIA
+      PSCO                      Public Service Company of Colorado       EIA
+      PSEI                      Puget Sound Energy                       EIA
+      SC                        South Carolina Public Service Auth       EIA
+      SCEG                      South Carolina Electric and Gas          EIA
+      SCL                       Seattle City Light                       EIA
+      SEC                       Seminole Electric Cooperative            EIA
+      SEPA                      Southeastern Power Admin                 EIA
+      SOCO                      Southern Company Services                EIA
+      SPA                       Southwestern Power Admin                 EIA
+      SPC                       Saskatchewan Power Corporation           EIA
       SPPC                      Sierra Pacific Power (NV)                NVEnergy
       SRP                       Salt River Project (AZ)                  SVERI
+      SRP-EIA                   Salt River Project (AZ) - EIA data       EIA
+      SWPP                      Southwest Power Pool                     EIA
+      TAL                       City of Tallahassee                      EIA
+      TEC                       Tampa Electric Company                   EIA
       TEPC                      Tuscon Electric Power Co                 SVERI
+      TEPC-EIA                  Tuscon Electric Power Co-EIA             EIA
+      TIDC                      Turdock Irrigation District              EIA
+      TPWR                      City of Tacoma DPU                       EIA
+      TVA                       Tennessee Valley Authority               EIA
+      WACM                      Western Area Power Admin- Rocky Mtn      EIA
       WALC                      WAPA Desert Southwest (NV, AZ)           SVERI
+      WALC-EIA                  WAPA Desert Southwest (NV, AZ)-EIA       EIA
+      WAUW                      Western Area Power Admin- Great Plains   EIA
+      WWA                       NaturEner Wind Watch                     EIA
+      YAD                       Alcoa Power Generation- Yadkin           EIA
 ============================= ======================================== ============
 
 
 For European data, you also need to specify a "control area". The available control areas are:
 
 ===================== ========================================
-control area abbrev.   control area country/provider    
+control area abbrev.   control area country/provider
 ===================== ========================================
 AL                      Albania
 AT                      Austria
