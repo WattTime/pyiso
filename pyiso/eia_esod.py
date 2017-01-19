@@ -47,6 +47,7 @@ class EIACLIENT(BaseClient):
                        start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse generation fuel mix data.
+        Note: Generation may be quite low for HST and NSB BAs.
         """
 
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
@@ -89,16 +90,10 @@ class EIACLIENT(BaseClient):
         return result_formatted
 
     def handle_options(self, **kwargs):
-        # start here- figure out how to carve up this method
-        # move load_not_supported BAs and two day BAs stuff to handle options part,
-        # then split off URL setting. That itself could be one function
         """
         Process and store keyword argument options.
         """
         super(EIACLIENT, self).handle_options(**kwargs)
-
-        # limited_gen_bas = ['HST', 'NSB']
-        # account for this in gen data? wouldn't it just return 0?
 
         self.options = kwargs
 
@@ -167,7 +162,7 @@ class EIACLIENT(BaseClient):
             if self.options['end_at'] > two_days_ago:
                 raise ValueError('No data: 2 day delay for this BA.')
 
-        if self.options['bal_auth'] not in load_not_supported_bas:
+        if self.options['bal_auth'] in load_not_supported_bas:
             if self.options['data'] == 'load':
                 raise ValueError('Load data not supported for this BA.')
 
