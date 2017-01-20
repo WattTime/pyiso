@@ -13,7 +13,13 @@ To use, set the your EIA key as an environment variable:
     export EIA_KEY= my-eia-api-key
 """
 
-# Start here- split this into classes, add mocking
+# Start here- split this into classes
+# ok, we may have a decent bit of work here- make sure these test cases
+# fit into the test framework- i'm not sure they do now.
+# Also, add mocking:
+# http://docs.python-guide.org/en/latest/writing/tests/
+
+# ok, so i need to spread these tests across the test_load, test_trade, test_genmix, etc modules. There won't be as much in here.
 
 class TestEIA(TestCase):
     def setUp(self):

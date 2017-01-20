@@ -557,3 +557,8 @@ class TestEULoad(TestBaseLoad):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+
+class TestEIALoad(TestBaseLoad):
+    pass
+    # add EIA load tests here

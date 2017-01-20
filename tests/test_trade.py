@@ -330,3 +330,8 @@ class TestSPPCTrade(TestBaseTrade):
         today = datetime.today().replace(tzinfo=pytz.utc)
         self._run_failing_test('SPPC', start_at=today+timedelta(hours=10),
                                end_at=today+timedelta(days=2))
+
+
+class TestEIATrade(TestBaseTrade):
+    pass
+    # add EIA trade tests here

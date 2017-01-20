@@ -82,7 +82,7 @@ class TestBaseGenMix(TestCase):
 
 class TestISONEGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('ISONE', latest=True)
+        self._run_null_response_test('ISONE', latest=True)
 
     def test_latest(self):
         # basic test
@@ -529,3 +529,7 @@ class TestSVERIGenMix(TestBaseGenMix):
         expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
+
+class TestEIAGenMix(TestBaseGenMix):
+    pass
+    # add EIA gen tests here
