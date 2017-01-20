@@ -11,9 +11,9 @@ import time
 """Test EIA client.
 To use, set the your EIA key as an environment variable:
     export EIA_KEY= my-eia-api-key
-    os.environ["EIA_KEY"] = my-eia-api-key
 """
 
+# Start here- split this into classes, add mocking
 
 class TestEIA(TestCase):
     def setUp(self):
@@ -79,6 +79,13 @@ class TestEIA(TestCase):
             self.c.get_trade(bal_auth=self.ba, start_at=three_days_ago,
                              end_at=one_days_ago)
 
+    def test_get_trade_with_forecast_raises_valueerror(self):
+        """Ensure get trade with forecast raises an error."""
+
+        with self.assertRaises(ValueError):
+            self.result = self.c.get_trade(bal_auth=self.ba, forecast=True)
+
+
     def test_get_load(self):
         """Test load - only on BAs that support it."""
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
@@ -116,7 +123,7 @@ class TestEIA(TestCase):
         bas_with_load = [i for i in eia_bas if i not in no_load]
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
-                                       latest=True)
+                                      latest=True)
         try:
             self.assertLess(len(self.result), 2)
         except AssertionError as e:
@@ -152,12 +159,22 @@ class TestEIA(TestCase):
             raise e
 
     def test_get_load_naive_start_at(self):
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+        bas_with_load = [i for i in eia_bas if i not in no_load]
+        self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
                                       start_at="20161212",
                                       end_at="20161222T04Z")
         self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
 
     def test_get_load_naive_end_at(self):
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+        bas_with_load = [i for i in eia_bas if i not in no_load]
+        self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
                                       start_at="20161212T04Z",
                                       end_at="20161222")
@@ -233,6 +250,11 @@ class TestEIA(TestCase):
                                             end_at="20161222")
         self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
 
+    def test_get_generation_with_forecast_raises_valueerror(self):
+        """Ensure get generation with forecast raises an error."""
+
+        with self.assertRaises(ValueError):
+            self.result = self.c.get_generation(bal_auth=self.ba, forecast=True)
 
 # python setup.py test -s tests.test_eia.TestEIA.test_get_generation
 

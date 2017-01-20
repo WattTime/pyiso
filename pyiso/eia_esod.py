@@ -179,7 +179,7 @@ class EIACLIENT(BaseClient):
         """Set EIA API URL based on options"""
         if "-EIA" in self.options['bal_auth']:
             self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
-            #trim -EIA from BA name
+            # Trim -EIA from BA name
         if 'bal_auth' not in self.options:
             if self.data == 'gen':
                 self.set_url('category', '2122629')
@@ -192,14 +192,20 @@ class EIACLIENT(BaseClient):
                 self.set_url('category', '2122632')
         else:
             if self.options['data'] == 'gen':
-                self.set_url('series', '-ALL.NG.H')
+                if self.options['forecast']:
+                    raise ValueError('Forecast not supported for generation.')
+                else:
+                    self.set_url('series', '-ALL.NG.H')
             elif self.options['data'] == 'load':
                 if self.options['forecast']:
                         self.set_url('series', '-ALL.DF.H')
                 else:
                     self.set_url('series', '-ALL.D.H')
             elif self.options['data'] == 'trade':
-                self.set_url('series', '-ALL.TI.H')
+                if self.options['forecast']:
+                    raise ValueError('Forecast not supported for generation.')
+                else:
+                    self.set_url('series', '-ALL.TI.H')
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""

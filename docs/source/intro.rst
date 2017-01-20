@@ -28,7 +28,7 @@ See the :doc:`usage` page for instructions on how to get started.
 
 Specifically, here are the included balancing authorities and their respective data sources:
 
-Note: Some balancing authorities offer data directly or through the EIA client.
+Note: Some balancing authorities offer data directly and through the EIA client.
 
 ============================= ======================================== ============
 balancing authority abbrev.    balancing authority name/region          data source
@@ -51,7 +51,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       CPLE                      Duke Energy Progress East                EIA
       CPLW                      Duke Energy Progress West                EIA
       DEAA                      DECA Arlington Valley (AZ)               SVERI
-      DEAA-EIA                  DECA Arlington Valley (AZ)-EIA data      EIA
+      DEAA-EIA                  DECA Arlington Valley (AZ)- EIA data     EIA
       DOPD                      PUD No. 1 of Douglas County              EIA
       DUK                       Duke Energy Carolinas                    EIA
       EEI                       Electric Energy, Inc                     EIA
@@ -71,7 +71,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       GVL                       Gainesville Regional Utilities           EIA
       GWA                       NaturEner Power Watch                    EIA
       HGMA                      Harquahala Generation Maricopa Arizona   SVERI
-      HGMA-EIA                  Harquahala Gen Maricopa Az               EIA
+      HGMA-EIA                  Harquahala Gen Maricopa Az - EIA         EIA
       HQT                       Hydro-Quebec TransEnergie                EIA
       HST                       City of Homestead                        EIA
       IESO                      Ontario IESO                             EIA
