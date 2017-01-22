@@ -560,5 +560,49 @@ class TestEULoad(TestBaseLoad):
 
 
 class TestEIALoad(TestBaseLoad):
-    pass
+
+    def setUp(self):
+        super(TestEIALoad, self).setUp()
+        self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'eia_esod']
+        print(self.bas[0])
     # add EIA load tests here
+    # begin stolen sveri tests
+    # start here- improve null response handling, get one more test passing.
+    # then cut your unit tests in here, make them consistent.
+
+    def test_null_response(self):
+        self._run_null_repsonse_test(self.bas[0], latest=True)
+    def test_latest_all(self):
+        for ba in self.bas:
+            self._test_latest(ba)
+
+    def test_date_range_all(self):
+        for ba in self.bas:
+            self._test_date_range(ba)
+
+    def _test_latest(self, ba):
+        # basic test
+        data = self._run_test(ba, latest=True)
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def _test_date_range(self, ba):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test(ba, start_at=today - timedelta(days=3),
+                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
