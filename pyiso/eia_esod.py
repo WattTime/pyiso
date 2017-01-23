@@ -69,11 +69,6 @@ class EIACLIENT(BaseClient):
         #                     forecast=forecast, **kwargs)
         self.handle_options(data='load', latest=latest, start_at=start_at,
                             end_at=end_at, **kwargs)
-
-        # hack to get null request test to pass, improve this
-        if len(kwargs.keys()) == 0:
-            return []
-
         self.handle_ba_limitations()
         self.format_url()
         result = json.loads(self.request(self.url).text)
@@ -165,54 +160,64 @@ class EIACLIENT(BaseClient):
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
 
-        if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
+        # if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
+        if self.options['end_at'] and self.NAME in delay_bas:
             if self.options['end_at'] > two_days_ago:
                 raise ValueError('No data: 2 day delay for this BA.')
 
-        if self.options['bal_auth'] in load_not_supported_bas:
+        if self.NAME in load_not_supported_bas:
+        # if self.options['bal_auth'] in load_not_supported_bas:
             if self.options['data'] == 'load':
                 raise ValueError('Load data not supported for this BA.')
 
+
+# i think this category stuff may need to go. if you've already coded a BA into the client when you create it, less use for data across multiple clients.
+
     def set_url(self, type, text):
-        if type == 'category':
-            self.url = '{url}{num}'.format(url=self.category_url,
-                                           num=text)
-        elif type == 'series':
-            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                                  ba=self.options['bal_auth'],
-                                                  abbrev=text)
+        # if type == 'category':
+        #     self.url = '{url}{num}'.format(url=self.category_url,
+        #                                    num=text)
+        # elif type == 'series':
+            # self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+            #                                       ba=self.options['bal_auth'],
+            #                                       abbrev=text)
+        self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                              ba=self.NAME,
+                                              abbrev=text)
 
     def format_url(self):
         """Set EIA API URL based on options"""
-        if "-EIA" in self.options['bal_auth']:
-            self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
+        if "-EIA" in self.NAME:
+        # if "-EIA" in self.options['bal_auth']:
+            self.NAME = self.NAME.replace("-EIA", "")
+            # self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
             # Trim -EIA from BA name
-        if 'bal_auth' not in self.options:
-            if self.data == 'gen':
-                self.set_url('category', '2122629')
-            elif self.data == 'load':
-                if self.options['forecast']:
-                    self.set_url('category', '2122627')
-                else:
-                    self.set_url('category', '2122628')
-            elif self.data == 'trade':
-                self.set_url('category', '2122632')
-        else:
-            if self.options['data'] == 'gen':
-                if self.options['forecast']:
-                    raise ValueError('Forecast not supported for generation.')
-                else:
-                    self.set_url('series', '-ALL.NG.H')
-            elif self.options['data'] == 'load':
-                if self.options['forecast']:
-                        self.set_url('series', '-ALL.DF.H')
-                else:
-                    self.set_url('series', '-ALL.D.H')
-            elif self.options['data'] == 'trade':
-                if self.options['forecast']:
-                    raise ValueError('Forecast not supported for generation.')
-                else:
-                    self.set_url('series', '-ALL.TI.H')
+        # if 'bal_auth' not in self.options:
+        #     if self.data == 'gen':
+        #         self.set_url('category', '2122629')
+        #     elif self.data == 'load':
+        #         if self.options['forecast']:
+        #             self.set_url('category', '2122627')
+        #         else:
+        #             self.set_url('category', '2122628')
+        #     elif self.data == 'trade':
+        #         self.set_url('category', '2122632')
+        # else:
+        if self.options['data'] == 'gen':
+            if self.options['forecast']:
+                raise ValueError('Forecast not supported for generation.')
+            else:
+                self.set_url('series', '-ALL.NG.H')
+        elif self.options['data'] == 'load':
+            if self.options['forecast']:
+                    self.set_url('series', '-ALL.DF.H')
+            else:
+                self.set_url('series', '-ALL.D.H')
+        elif self.options['data'] == 'trade':
+            if self.options['forecast']:
+                raise ValueError('Forecast not supported for generation.')
+            else:
+                self.set_url('series', '-ALL.TI.H')
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
@@ -234,7 +239,8 @@ class EIACLIENT(BaseClient):
             last_datapoint = data['series'][0]['data'][0]
             data_formatted.append(
                                     {
-                                        'ba_name': self.options['bal_auth'],
+                                        # 'ba_name': self.options['bal_auth'],
+                                        'ba_name': self.NAME,
                                         'timestamp': last_datapoint[0],
                                         'freq': self.options['freq'],
                                         data_type: last_datapoint[1],
@@ -244,7 +250,7 @@ class EIACLIENT(BaseClient):
             if self.options['data'] == 'gen':
                 for i in data_formatted:
                     i['fuel_name'] = 'other'
-        elif self.options['yesterday']:
+        elif 'yesterday' in self.options:
             yesterday = self.local_now() - timedelta(days=1)
 
             for i in data['series']:
@@ -255,7 +261,8 @@ class EIACLIENT(BaseClient):
                        timestamp.day == yesterday.day:
                         data_formatted.append(
                                             {
-                                                'ba_name': self.options['bal_auth'],
+                                                # 'ba_name': self.options['bal_auth'],
+                                                'ba_name': self.NAME,
                                                 'timestamp': j[0],
                                                 'freq': self.options['freq'],
                                                 data_type: j[1],
@@ -270,7 +277,8 @@ class EIACLIENT(BaseClient):
                 for j in i['data']:
                     data_formatted.append(
                                         {
-                                            'ba_name': self.options['bal_auth'],
+                                            # 'ba_name': self.options['bal_auth'],
+                                            'ba_name': self.NAME,
                                             'timestamp': j[0],
                                             'freq': self.options['freq'],
                                             data_type: j[1],
