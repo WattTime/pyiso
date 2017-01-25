@@ -37,9 +37,9 @@ class EIACLIENT(BaseClient):
                    EIA client.'
             raise RuntimeError(msg)
 
-        self.category_url = '{url}category/?api_key={key}&category_id='.format(
-            url=self.base_url, key=self.auth)
-
+        self.TZ_NAME = 'UTC'
+        # self.category_url = '{url}category/?api_key={key}&category_id='.format(
+        #     url=self.base_url, key=self.auth)
         self.series_url = '{url}series/?api_key={key}&series_id=EBA.'.format(
             url=self.base_url, key=self.auth)
 
@@ -67,12 +67,15 @@ class EIACLIENT(BaseClient):
         # self.handle_options(data='load', latest=latest, yesterday=yesterday,
         #                     start_at=start_at, end_at=end_at,
         #                     forecast=forecast, **kwargs)
+        # if len(kwargs.keys()) == 0:
+        #     return []
         self.handle_options(data='load', latest=latest, start_at=start_at,
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
         result = json.loads(self.request(self.url).text)
         result_formatted = self.format_result(result)
+        print("BA: ", self.NAME)
         return result_formatted
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
@@ -187,6 +190,7 @@ class EIACLIENT(BaseClient):
 
     def format_url(self):
         """Set EIA API URL based on options"""
+        print(self.NAME)
         if "-EIA" in self.NAME:
         # if "-EIA" in self.options['bal_auth']:
             self.NAME = self.NAME.replace("-EIA", "")
@@ -219,6 +223,13 @@ class EIACLIENT(BaseClient):
             else:
                 self.set_url('series', '-ALL.TI.H')
 
+    def format_data(self, data):
+        """Convert load data to int, handle None"""
+        if data is None:
+            return 0
+        else:
+            return int(data)
+
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
         if self.options['forecast']:
@@ -237,13 +248,14 @@ class EIACLIENT(BaseClient):
 
         if self.options['latest']:
             last_datapoint = data['series'][0]['data'][0]
+            timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
+            data = self.format_data(last_datapoint[1])
             data_formatted.append(
                                     {
-                                        # 'ba_name': self.options['bal_auth'],
                                         'ba_name': self.NAME,
-                                        'timestamp': last_datapoint[0],
+                                        'timestamp': timestamp,
                                         'freq': self.options['freq'],
-                                        data_type: last_datapoint[1],
+                                        data_type: data,
                                         'market': market
                                     }
                         )
@@ -255,7 +267,8 @@ class EIACLIENT(BaseClient):
 
             for i in data['series']:
                 for j in i['data']:
-                    timestamp = dateutil_parse(j[0])
+                    timestamp = self.utcify(dateutil_parse(j[0]))
+                    data = self.format_data(j[1])
                     if timestamp.year == yesterday.year and \
                        timestamp.month == yesterday.month and \
                        timestamp.day == yesterday.day:
@@ -263,9 +276,9 @@ class EIACLIENT(BaseClient):
                                             {
                                                 # 'ba_name': self.options['bal_auth'],
                                                 'ba_name': self.NAME,
-                                                'timestamp': j[0],
+                                                'timestamp': timestamp,
                                                 'freq': self.options['freq'],
-                                                data_type: j[1],
+                                                data_type: data,
                                                 'market': market
                                             }
                                         )
@@ -275,13 +288,15 @@ class EIACLIENT(BaseClient):
         else:
             for i in data['series']:
                 for j in i['data']:
+                    timestamp = timestamp = self.utcify(dateutil_parse(j[0]))
+                    data = self.format_data(j[1])
                     data_formatted.append(
                                         {
                                             # 'ba_name': self.options['bal_auth'],
                                             'ba_name': self.NAME,
-                                            'timestamp': j[0],
+                                            'timestamp': timestamp,
                                             'freq': self.options['freq'],
-                                            data_type: j[1],
+                                            data_type: data,
                                             'market': market
                                         }
                                     )

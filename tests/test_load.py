@@ -7,6 +7,8 @@ import unittest
 import pytz
 import mock
 import libfaketime
+import time
+import random
 libfaketime.reexec_if_needed()
 
 
@@ -564,7 +566,7 @@ class TestEIALoad(TestBaseLoad):
         super(TestEIALoad, self).setUp()
         eia_bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'eia_esod']
         no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+                   'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         self.bas = [i for i in eia_bas if i not in no_load]
         # working on changing load setup to work w/ EIA- have correct BAs
 
@@ -572,18 +574,33 @@ class TestEIALoad(TestBaseLoad):
     # start here- improve null response handling, get one more test passing.
     # then cut your unit tests in here, make them consistent.
 
-    # start here- looks like we have a time zone handling issue- check it out.
+    # start here- fix date range some
+    # Get a better handle on throttling- handle this more gracefully.
+
+
 
     def test_null_response(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
 
+    def test_latest_some(self):
+        # Test 5 BAs to stop getting throttled
+        for ba in random.sample(self.bas, 5):
+            self._test_latest(ba)
+            time.sleep(5)  # Delay to cut down on throttling
+
     def test_latest_all(self):
         for ba in self.bas:
             self._test_latest(ba)
+            time.sleep(30)  # Delay to cut down on throttling
 
     def test_date_range_all(self):
         for ba in self.bas:
             self._test_date_range(ba)
+
+    def test_date_range_some(self):
+        for ba in random.sample(self.bas, 5):
+            self._test_date_range(ba)
+            time.sleep(5)  # Delay to cut down on throttling
 
     def _test_latest(self, ba):
         # basic test
@@ -594,8 +611,9 @@ class TestEIALoad(TestBaseLoad):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            # hourly='RTHR'
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def _test_date_range(self, ba):
         # basic test
