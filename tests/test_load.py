@@ -574,9 +574,9 @@ class TestEIALoad(TestBaseLoad):
     # start here- improve null response handling, get one more test passing.
     # then cut your unit tests in here, make them consistent.
 
-    # start here- fix date range some
     # Get a better handle on throttling- handle this more gracefully.
 
+# fix date range handling
 
 
     def test_null_response(self):
@@ -602,6 +602,29 @@ class TestEIALoad(TestBaseLoad):
             self._test_date_range(ba)
             time.sleep(5)  # Delay to cut down on throttling
 
+    def test_forecast_some(self):
+        delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                     'TAL', 'TIDC', 'TPWR']
+        no_delay_bas = [i for i in self.bas if i not in delay_bas]
+        for ba in random.sample(no_delay_bas, 5):
+            self._test_forecast(ba)
+            time.sleep(5)  # Delay to cut down on throttling
+
+    def _test_forecast(self, ba):
+        # start here- fix this one
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test(ba, start_at=today + timedelta(hours=20),
+                              end_at=today+timedelta(days=2))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test timestamps in range
+        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=20))
+        self.assertLessEqual(min(timestamps), today+timedelta(days=2))
+
     def _test_latest(self, ba):
         # basic test
         data = self._run_test(ba, latest=True)
@@ -619,7 +642,8 @@ class TestEIALoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test(ba, start_at=today - timedelta(days=3),
-                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
+                              end_at=today - timedelta(days=2),
+                              market=self.MARKET_CHOICES.hourly)
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
@@ -627,5 +651,5 @@ class TestEIALoad(TestBaseLoad):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)

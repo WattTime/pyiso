@@ -75,7 +75,8 @@ class EIACLIENT(BaseClient):
         self.format_url()
         result = json.loads(self.request(self.url).text)
         result_formatted = self.format_result(result)
-        print("BA: ", self.NAME)
+        # print(result_formatted)
+        # print([d['timestamp'] for d in result_formatted])
         return result_formatted
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
@@ -190,7 +191,6 @@ class EIACLIENT(BaseClient):
 
     def format_url(self):
         """Set EIA API URL based on options"""
-        print(self.NAME)
         if "-EIA" in self.NAME:
         # if "-EIA" in self.options['bal_auth']:
             self.NAME = self.NAME.replace("-EIA", "")
@@ -292,7 +292,6 @@ class EIACLIENT(BaseClient):
                     data = self.format_data(j[1])
                     data_formatted.append(
                                         {
-                                            # 'ba_name': self.options['bal_auth'],
                                             'ba_name': self.NAME,
                                             'timestamp': timestamp,
                                             'freq': self.options['freq'],
@@ -303,4 +302,6 @@ class EIACLIENT(BaseClient):
             if self.options['data'] == 'gen':
                 for i in data_formatted:
                     i['fuel_name'] = 'other'
+        if self.options['start_at'] and self.options['end_at']:
+            data_formatted = [i for i in data_formatted if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
         return data_formatted
