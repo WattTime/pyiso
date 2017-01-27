@@ -64,20 +64,18 @@ class EIACLIENT(BaseClient):
         """
         Scrape and parse load data.
         """
-        # self.handle_options(data='load', latest=latest, yesterday=yesterday,
-        #                     start_at=start_at, end_at=end_at,
-        #                     forecast=forecast, **kwargs)
-        # if len(kwargs.keys()) == 0:
-        #     return []
+
         self.handle_options(data='load', latest=latest, start_at=start_at,
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        result = json.loads(self.request(self.url).text)
-        result_formatted = self.format_result(result)
-        # print(result_formatted)
-        # print([d['timestamp'] for d in result_formatted])
-        return result_formatted
+        if self.request(self.url) is not None:
+
+            result = json.loads(self.request(self.url).text)
+            result_formatted = self.format_result(result)
+            return result_formatted
+        else:
+            return []
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
                   end_at=False, **kwargs):
@@ -232,6 +230,14 @@ class EIACLIENT(BaseClient):
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
+
+        # Handle throttling errors
+        try:
+            assert('series' in data)
+        except:
+            raise ValueError('Query error, likely throttling:\
+            {req}'.format(req=data['request']))
+
         if self.options['forecast']:
             market = 'DAHR'
         else:
@@ -245,7 +251,6 @@ class EIACLIENT(BaseClient):
             data_type = 'load_MW'
 
         data_formatted = []
-
         if self.options['latest']:
             last_datapoint = data['series'][0]['data'][0]
             timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
@@ -264,7 +269,6 @@ class EIACLIENT(BaseClient):
                     i['fuel_name'] = 'other'
         elif 'yesterday' in self.options:
             yesterday = self.local_now() - timedelta(days=1)
-
             for i in data['series']:
                 for j in i['data']:
                     timestamp = self.utcify(dateutil_parse(j[0]))

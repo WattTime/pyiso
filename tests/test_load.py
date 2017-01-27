@@ -568,19 +568,16 @@ class TestEIALoad(TestBaseLoad):
         no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
                    'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         self.bas = [i for i in eia_bas if i not in no_load]
-        # working on changing load setup to work w/ EIA- have correct BAs
-
-    # begin stolen sveri tests
-    # start here- improve null response handling, get one more test passing.
-    # then cut your unit tests in here, make them consistent.
-
-    # Get a better handle on throttling- handle this more gracefully.
-
-# fix date range handling
-
 
     def test_null_response(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
+
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test(self.bas[0], latest=True)
+
+    def test_null_response_forecast(self):
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self._run_null_repsonse_test(self.bas[0], start_at=today + timedelta(hours=20), end_at=today+timedelta(days=2))
 
     def test_latest_some(self):
         # Test 5 BAs to stop getting throttled
@@ -593,14 +590,47 @@ class TestEIALoad(TestBaseLoad):
             self._test_latest(ba)
             time.sleep(30)  # Delay to cut down on throttling
 
-    def test_date_range_all(self):
-        for ba in self.bas:
-            self._test_date_range(ba)
-
     def test_date_range_some(self):
         for ba in random.sample(self.bas, 5):
             self._test_date_range(ba)
             time.sleep(5)  # Delay to cut down on throttling
+
+    def test_date_range_strings_some(self):
+        for ba in random.sample(self.bas, 5):
+            # basic test
+            self._run_test(ba, start_at='2016-05-01', end_at='2016-05-03')
+
+    def test_date_range_strings_all(self):
+        for ba in self.bas:
+            # basic test
+            self._run_test(ba, start_at='2016-05-01', end_at='2016-05-03')
+
+    def test_date_range_farpast_some(self):
+        for ba in random.sample(self.bas, 5):
+            # basic test
+            today = datetime.today().replace(tzinfo=pytz.utc)
+            data = self._run_test(ba, start_at=today-timedelta(days=20),
+                                  end_at=today-timedelta(days=10))
+
+            # test timestamps are not equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_farpast_all(self):
+        for ba in self.bas:
+            # basic test
+            today = datetime.today().replace(tzinfo=pytz.utc)
+            data = self._run_test(ba, start_at=today-timedelta(days=20),
+                                  end_at=today-timedelta(days=10))
+
+            # test timestamps are not equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_all(self):
+        for ba in self.bas:
+            self._test_date_range(ba)
+            time.sleep(30)  # Delay to cut down on throttling
 
     def test_forecast_some(self):
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
@@ -610,20 +640,27 @@ class TestEIALoad(TestBaseLoad):
             self._test_forecast(ba)
             time.sleep(5)  # Delay to cut down on throttling
 
+    def test_forecast_all(self):
+        delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                     'TAL', 'TIDC', 'TPWR']
+        no_delay_bas = [i for i in self.bas if i not in delay_bas]
+        for ba in no_delay_bas:
+            self._test_forecast(ba)
+            time.sleep(30)  # Delay to cut down on throttling
+
     def _test_forecast(self, ba):
-        # start here- fix this one
-        # basic test
+        # Used 5 hours/1 day insetad of 20/2 for one day forecast
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test(ba, start_at=today + timedelta(hours=20),
-                              end_at=today+timedelta(days=2))
+        data = self._run_test(ba, start_at=today + timedelta(hours=5),
+                              end_at=today+timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
         # test timestamps in range
-        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=20))
-        self.assertLessEqual(min(timestamps), today+timedelta(days=2))
+        self.assertGreaterEqual(min(timestamps), today+timedelta(hours=5))
+        self.assertLessEqual(min(timestamps), today+timedelta(days=1))
 
     def _test_latest(self, ba):
         # basic test

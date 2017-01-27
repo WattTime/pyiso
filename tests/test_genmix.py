@@ -4,6 +4,7 @@ from unittest import TestCase, skip
 from datetime import datetime, timedelta
 import pytz
 import mock
+import random
 
 
 class TestBaseGenMix(TestCase):
@@ -530,6 +531,43 @@ class TestSVERIGenMix(TestBaseGenMix):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
+
 class TestEIAGenMix(TestBaseGenMix):
-    pass
-    # add EIA gen tests here
+
+    def setUp(self):
+        super(TestEIAGenMix, self).setUp()
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL', 'TAL', 'TIDC', 'TPWR']
+        self.no_delay_bas = [i for i in eia_bas if i not in self.delay_bas]
+        self.bas = eia_bas
+
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test(self.bas[0], latest=True)
+
+
+    # start here- fix this test
+    # then null response
+
+    def test_yesterday_some(self):
+        for ba in random.sample(self.bas, 5):
+            # basic test
+            #replace CAISO stuff
+            # are we taking market as a param here?
+            data = self._run_test(ba, yesterday=True, market=self.MARKET_CHOICES.hourly)
+
+            # test timestamps are different
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
+
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+            # test fuel names
+            fuels = set([d['fuel_name'] for d in data])
+            expected_fuels = ['solarpv', 'solarth', 'geo', 'smhydro', 'wind', 'biomass', 'biogas',
+                              'thermal', 'hydro', 'nuclear']
+            # i presume this will just be other
+            for expfuel in expected_fuels:
+                self.assertIn(expfuel, fuels)
