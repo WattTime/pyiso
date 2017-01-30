@@ -54,10 +54,12 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        result = json.loads(self.request(self.url).text)
-        result_formatted = self.format_result(result)
-
-        return result_formatted
+        if self.request(self.url) is not None:
+            result = json.loads(self.request(self.url).text)
+            result_formatted = self.format_result(result)
+            return result_formatted
+        else:
+            return []
 
     def get_load(self, latest=False, yesterday=False, start_at=False,
                  end_at=False, forecast=False, **kwargs):
@@ -237,6 +239,7 @@ class EIACLIENT(BaseClient):
         except:
             raise ValueError('Query error, likely throttling:\
             {req}'.format(req=data['request']))
+            # Keep an eye on eba.spc-all.ng.h
 
         if self.options['forecast']:
             market = 'DAHR'

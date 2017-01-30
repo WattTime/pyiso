@@ -544,15 +544,9 @@ class TestEIAGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
 
-
-    # start here- fix this test
-    # then null response
-
     def test_yesterday_some(self):
-        for ba in random.sample(self.bas, 5):
+        for ba in random.sample(self.no_delay_bas, 5):
             # basic test
-            #replace CAISO stuff
-            # are we taking market as a param here?
             data = self._run_test(ba, yesterday=True, market=self.MARKET_CHOICES.hourly)
 
             # test timestamps are different
@@ -566,11 +560,16 @@ class TestEIAGenMix(TestBaseGenMix):
 
             # test fuel names
             fuels = set([d['fuel_name'] for d in data])
-            expected_fuels = ['solarpv', 'solarth', 'geo', 'smhydro', 'wind', 'biomass', 'biogas',
-                              'thermal', 'hydro', 'nuclear']
-            # i presume this will just be other
+            expected_fuels = ['other']
+            # changed to other based on https://github.com/WattTime/pyiso/issues/97
             for expfuel in expected_fuels:
                 self.assertIn(expfuel, fuels)
+
+    def test_date_range_some(self):
+        for ba in random.sample(self.no_delay_bas, 5):
+            self._test_date_range(ba)
+
+    # start here- fix this
 
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
@@ -607,7 +606,7 @@ class TestEIAGenMix(TestBaseGenMix):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test(ba, start_at=today - timedelta(days=3),
-                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
+                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.hourly)
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
