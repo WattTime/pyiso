@@ -15,6 +15,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Changelog
 ---------
+* 0.3.16: Implement ISONE get_morningreport and get_sevendayforecast
 * 0.3.15: Minor bugfixes to CAISO get_generation. 
 * 0.3.14: Minor bugfixes to ISONE, PJM, and ERCOT. 
 * 0.3.13: Major feature: generation mix in PJM (RTHR market only). Minor change: SSL handling in BPA.

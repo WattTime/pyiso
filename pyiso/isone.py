@@ -291,3 +291,50 @@ class ISONEClient(BaseClient):
 
         # return
         return df.to_dict(orient='record')
+
+    def get_morningreport(self, day=None):
+        """
+        Retrieve the morning report 
+
+        :param str day: Retrieve the Morning Report for a specific day (optional).
+            format: YYYYMMDD
+
+        :rtype: dict
+        """
+
+        endpoint = "/morningreport/current.json"
+        if day is not None:
+            if len(day) != 8:
+                raise ValueError("The day parameters should be a string with the format YYYYMMDD")
+            endpoint = "/morningreport/day/%s.json" % day
+
+        data = self.fetch_data(endpoint, self.auth)
+
+        return data
+
+    def get_sevendayforecast(self, day=None):
+        """
+        Retrieve the seven day forecast 
+
+        :param str day: Retrieve the Seven Day Forecast for a specific day (optional).
+            format: YYYYMMDD
+
+        :rtype: dict
+        """
+
+        endpoint = "/sevendayforecast/current.json"
+        if day is not None:
+            if len(day) != 8:
+                raise ValueError("The day parameters should be a string with the format YYYYMMDD")
+            endpoint = "/sevendayforecast/day/%s.json" % day
+
+        data = self.fetch_data(endpoint, self.auth)
+
+        return data
+
+
+
+
+
+
+
