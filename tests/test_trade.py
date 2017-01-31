@@ -333,5 +333,48 @@ class TestSPPCTrade(TestBaseTrade):
 
 
 class TestEIATrade(TestBaseTrade):
-    pass
+    # start here- fix these
     # add EIA trade tests here
+
+    def test_latest(self):
+        # basic test
+        data = self._run_net_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_net_test('CAISO', start_at=today-timedelta(days=2),
+                                  end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_forecast(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_net_test('CAISO', start_at=today+timedelta(hours=10),
+                                  end_at=today+timedelta(days=2))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)

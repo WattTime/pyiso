@@ -49,7 +49,6 @@ class EIACLIENT(BaseClient):
         Scrape and parse generation fuel mix data.
         Note: Generation may be quite low for HST and NSB BAs.
         """
-
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
@@ -281,7 +280,6 @@ class EIACLIENT(BaseClient):
                        timestamp.day == yesterday.day:
                         data_formatted.append(
                                             {
-                                                # 'ba_name': self.options['bal_auth'],
                                                 'ba_name': self.NAME,
                                                 'timestamp': timestamp,
                                                 'freq': self.options['freq'],
@@ -289,9 +287,6 @@ class EIACLIENT(BaseClient):
                                                 'market': market
                                             }
                                         )
-            if self.options['data'] == 'gen':
-                for i in data_formatted:
-                    i['fuel_name'] = 'other'
         else:
             for i in data['series']:
                 for j in i['data']:
@@ -306,9 +301,26 @@ class EIACLIENT(BaseClient):
                                             'market': market
                                         }
                                     )
-            if self.options['data'] == 'gen':
-                for i in data_formatted:
-                    i['fuel_name'] = 'other'
+        if self.options['data'] == 'gen':
+            for i in data_formatted:
+                i['fuel_name'] = 'other'
         if self.options['start_at'] and self.options['end_at']:
-            data_formatted = [i for i in data_formatted if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
+            # if not self.options['data'] == 'gen':
+            if 'gen' not in self.options['data']:
+                data_formatted = [i for i in data_formatted if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
+            else:
+                try:
+                    yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+                    tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0, second=0, microsecond=0)
+                    print("yesterday: ", yesterday)
+                    print("tomorrow: ", tomorrow)
+                    assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
+
+                    assert ((self.options['start_at'] >= yesterday) and
+                            (self.options['end_at'] < tomorrow))
+                except:
+                    raise ValueError('Generation data is available for the \
+                                     previous and current day.', self.options)
+        print(self.options)
+        print(data_formatted)
         return data_formatted

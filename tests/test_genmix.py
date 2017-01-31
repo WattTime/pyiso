@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 import mock
 import random
+import time
 
 
 class TestBaseGenMix(TestCase):
@@ -568,19 +569,10 @@ class TestEIAGenMix(TestBaseGenMix):
     def test_date_range_some(self):
         for ba in random.sample(self.no_delay_bas, 5):
             self._test_date_range(ba)
-
-    # start here- fix this
+            time.sleep(5)  # Delay to cut down on throttling
 
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
-            # Open both response files and setup mocking
-            # with open('responses/' + ba + '_1-4.txt', 'r') as ffile:
-            #     resp1 = ffile.read()
-            # with open('responses/' + ba + '_5-8.txt', 'r') as ffile:
-            #     resp2 = ffile.read()
-            # mocker.get(self.client.BASE_URL, [{'content': resp1}, {'content': resp2}])
-
-            # run tests
             self._test_date_range(ba)
 
     def _test_latest(self, ba):
@@ -598,15 +590,16 @@ class TestEIAGenMix(TestBaseGenMix):
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
+        expected_fuels = ['other']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
     def _test_date_range(self, ba):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test(ba, start_at=today - timedelta(days=3),
-                              end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.hourly)
+        data = self._run_test(ba, start_at=today - timedelta(days=1),
+                              end_at=today, market=self.MARKET_CHOICES.hourly)
+        # data only available for previous + current day
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
@@ -614,31 +607,11 @@ class TestEIAGenMix(TestBaseGenMix):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
+        expected_fuels = ['other']
         for expfuel in expected_fuels:
-            self.assertIn(expfuel, fuels)
-
-        def test_date_range_farpast(self):  # , mocker):
-            # for n in range(28, 30+1):
-            #     mocker.get(
-            #         'http://mis.nyiso.com/public/csv/rtfuelmix/201604%srtfuelmix.csv' % n,
-            #         text='Too far back',
-            #         status_code=404)
-            # mocker.get(
-            #     'http://mis.nyiso.com/public/csv/rtfuelmix/20160401rtfuelmix_csv.zip',
-            #     content=open('responses/20160401rtfuelmix.csv.zip', 'rb').read())
-
-            # basic test
-            today = datetime.now(pytz.utc)
-            data = self._run_test('NYISO', start_at=today-timedelta(days=20),
-                                  end_at=today-timedelta(days=18))
-
-            # test timestamps are different 5-min for 2 days for 7 fuels
-            # subtract one hour's worth for DST
-            timestamps = [d['timestamp'] for d in data]
-            self.assertGreaterEqual(len(timestamps), 12*24*2*7-12)
+            self.assertIn(expfuel, fuels
