@@ -236,3 +236,18 @@ class TestISONE(TestCase):
     def test_get_morningreport_bad_date(self):
         self.assertRaises(ValueError, self.c.get_morningreport, day="foo")
 
+    @mock.patch('pyiso.isone.ISONEClient.request')
+    def test_get_sevendayforecast(self, mock_request):
+        mock_request.return_value = json.loads(read_fixture('isone_get_sevendayforecast.json'))
+        resp = self.c.get_sevendayforecast()
+        assert "SevenDayForecasts" in resp
+
+    @mock.patch('pyiso.isone.ISONEClient.request')
+    def test_get_sevendayforecast_for_day(self, mock_request):
+        mock_request.return_value = json.loads(read_fixture('isone_get_sevendayforecast_day.json'))
+        resp = self.c.get_sevendayforecast(day="20160101")
+        assert resp["SevenDayForecasts"]["SevenDayForecast"][0]["BeginDate"] == "2016-01-01T00:00:00.000-05:00"
+
+    def test_get_sevendayforecast_bad_date(self):
+        self.assertRaises(ValueError, self.c.get_sevendayforecast, day="foo")
+
