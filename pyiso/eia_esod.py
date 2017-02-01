@@ -71,7 +71,6 @@ class EIACLIENT(BaseClient):
         self.handle_ba_limitations()
         self.format_url()
         if self.request(self.url) is not None:
-
             result = json.loads(self.request(self.url).text)
             result_formatted = self.format_result(result)
             return result_formatted
@@ -88,10 +87,12 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        result = json.loads(self.request(self.url).text)
-        result_formatted = self.format_result(result)
-
-        return result_formatted
+        if self.request(self.url) is not None:
+            result = json.loads(self.request(self.url).text)
+            result_formatted = self.format_result(result)
+            return result_formatted
+        else:
+            return []
 
     def handle_options(self, **kwargs):
         """
@@ -173,26 +174,20 @@ class EIACLIENT(BaseClient):
             if self.options['data'] == 'load':
                 raise ValueError('Load data not supported for this BA.')
 
-
-# i think this category stuff may need to go. if you've already coded a BA into the client when you create it, less use for data across multiple clients.
-
     def set_url(self, type, text):
-        # if type == 'category':
-        #     self.url = '{url}{num}'.format(url=self.category_url,
-        #                                    num=text)
-        # elif type == 'series':
-            # self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-            #                                       ba=self.options['bal_auth'],
-            #                                       abbrev=text)
-        self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                              ba=self.NAME,
-                                              abbrev=text)
+        # Handle -EIA added to BAs with data offered through BA and EIA
+        if "-EIA" in self.NAME:
+            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                                  ba=self.NAME.replace("-EIA", ""),
+                                                  abbrev=text)
+        else:
+            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                                  ba=self.NAME,
+                                                  abbrev=text)
 
     def format_url(self):
         """Set EIA API URL based on options"""
-        if "-EIA" in self.NAME:
-        # if "-EIA" in self.options['bal_auth']:
-            self.NAME = self.NAME.replace("-EIA", "")
+
             # self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
             # Trim -EIA from BA name
         # if 'bal_auth' not in self.options:

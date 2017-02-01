@@ -1,10 +1,12 @@
-from pyiso import client_factory
+from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
 import mock
 from responses import test_trade_responses as responses
+import random
+import time
 
 
 class TestBaseTrade(TestCase):
@@ -91,6 +93,20 @@ class TestBaseTrade(TestCase):
 
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_trade)
+
+    def _run_null_repsonse_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_trade(**kwargs)
+
+            # test
+            self.assertEqual(data, [])
 
     def _run_failing_test(self, ba_name, **kwargs):
         # set up
@@ -332,37 +348,76 @@ class TestSPPCTrade(TestBaseTrade):
                                end_at=today+timedelta(days=2))
 
 
+
+    # would be nice to get rid of the random sub samples- but for that need
+    # to seriously throttle things to get through all the BAs!
+    # also, need to get to the bottom of throttling- read the EIA docs more.
+
+
 class TestEIATrade(TestBaseTrade):
-    # start here- fix these
-    # add EIA trade tests here
+
+    def setUp(self):
+        super(TestEIATrade, self).setUp()
+        self.BA_CHOICES = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE',
+                          'SCL', 'TAL', 'TIDC', 'TPWR']
+        self.no_delay_bas = [i for i in self.BA_CHOICES if i not in self.delay_bas]
+
+    def test_null_response(self):
+        self._run_null_repsonse_test(self.bas[0], latest=True)
+
+
+# Need to fix retry/throttling issues here. it sounds like using the builtin
+# retrying stuff would be better than the manual random and timeouts- let's
+# remove those.
 
     def test_latest(self):
+        for ba in self.BA_CHOICES:
+            # basic test
+            data = self._run_net_test(ba, latest=True, market=self.MARKET_CHOICES.hourly)
+
+            # test all timestamps are equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertEqual(len(set(timestamps)), 1)
+
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+            time.sleep(15)  # Delay to cut down on throttling
+
+    def test_latest_some(self):
+        for ba in random.sample(self.BA_CHOICES, 5):
         # basic test
-        data = self._run_net_test('CAISO', latest=True, market=self.MARKET_CHOICES.fivemin)
+            data = self._run_net_test(ba, latest=True, market=self.MARKET_CHOICES.hourly)
 
-        # test all timestamps are equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertEqual(len(set(timestamps)), 1)
+            # test all timestamps are equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertEqual(len(set(timestamps)), 1)
 
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+            time.sleep(5)  # Delay to cut down on throttling
+
+# start here- fix this one.
 
     def test_date_range(self):
-        # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('CAISO', start_at=today-timedelta(days=2),
-                                  end_at=today-timedelta(days=1))
+        for ba in random.sample(self.BA_CHOICES, 5):
+            # basic test
+            today = datetime.today().replace(tzinfo=pytz.utc)
+            data = self._run_net_test(ba, start_at=today-timedelta(days=2),
+                                      end_at=today-timedelta(days=1))
 
-        # test timestamps are not equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
+            # test timestamps are not equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
 
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
     def test_forecast(self):
         # basic test
