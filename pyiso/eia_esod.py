@@ -38,8 +38,6 @@ class EIACLIENT(BaseClient):
             raise RuntimeError(msg)
 
         self.TZ_NAME = 'UTC'
-        # self.category_url = '{url}category/?api_key={key}&category_id='.format(
-        #     url=self.base_url, key=self.auth)
         self.series_url = '{url}series/?api_key={key}&series_id=EBA.'.format(
             url=self.base_url, key=self.auth)
 
@@ -53,9 +51,10 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        if self.request(self.url) is not None:
-            result = json.loads(self.request(self.url).text)
-            result_formatted = self.format_result(result)
+        result = self.request(self.url)
+        if result is not None:
+            result_json = json.loads(result.text)
+            result_formatted = self.format_result(result_json)
             return result_formatted
         else:
             return []
@@ -70,9 +69,10 @@ class EIACLIENT(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        if self.request(self.url) is not None:
-            result = json.loads(self.request(self.url).text)
-            result_formatted = self.format_result(result)
+        result = self.request(self.url)
+        if result is not None:
+            result_json = json.loads(result.text)
+            result_formatted = self.format_result(result_json)
             return result_formatted
         else:
             return []
@@ -87,21 +87,15 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        if self.request(self.url) is not None:
-            result = json.loads(self.request(self.url).text)
-            result_formatted = self.format_result(result)
+        result = self.request(self.url)
+        if result is not None:
+            result_json = json.loads(result.text)
+            result_formatted = self.format_result(result_json)
             return result_formatted
         else:
             return []
 
-    def handle_options(self, **kwargs):
-        """
-        Process and store keyword argument options.
-        """
-        super(EIACLIENT, self).handle_options(**kwargs)
-
-        self.options = kwargs
-
+    def validate_options(self):
         """Validate options"""
         if 'latest' not in self.options:
             self.options['latest'] = False
@@ -118,6 +112,32 @@ class EIACLIENT(BaseClient):
             raise ValueError('You must specify a start_at date.')
         elif self.options['start_at'] and not self.options['end_at']:
             raise ValueError('You must specify an end_at date.')
+
+    def handle_options(self, **kwargs):
+        """
+        Process and store keyword argument options.
+        """
+        super(EIACLIENT, self).handle_options(**kwargs)
+
+        self.options = kwargs
+        self.validate_options(self)
+
+        # """Validate options"""
+        # if 'latest' not in self.options:
+        #     self.options['latest'] = False
+        # if 'forecast' not in self.options:
+        #     self.options['forecast'] = False
+        # if 'market' not in self.options:
+        #     if self.options['forecast']:
+        #         self.options['market'] = self.MARKET_CHOICES.dam
+        #     else:
+        #         self.options['market'] = self.MARKET_CHOICES.hourly
+        # if 'freq' not in self.options:
+        #     self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+        # if not self.options['start_at'] and self.options['end_at']:
+        #     raise ValueError('You must specify a start_at date.')
+        # elif self.options['start_at'] and not self.options['end_at']:
+        #     raise ValueError('You must specify an end_at date.')
 
         """Clean up time values (same as base.py)"""
         if self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -188,19 +208,6 @@ class EIACLIENT(BaseClient):
     def format_url(self):
         """Set EIA API URL based on options"""
 
-            # self.options['bal_auth'] = self.options['bal_auth'].replace("-EIA", "")
-            # Trim -EIA from BA name
-        # if 'bal_auth' not in self.options:
-        #     if self.data == 'gen':
-        #         self.set_url('category', '2122629')
-        #     elif self.data == 'load':
-        #         if self.options['forecast']:
-        #             self.set_url('category', '2122627')
-        #         else:
-        #             self.set_url('category', '2122628')
-        #     elif self.data == 'trade':
-        #         self.set_url('category', '2122632')
-        # else:
         if self.options['data'] == 'gen':
             if self.options['forecast']:
                 raise ValueError('Forecast not supported for generation.')
@@ -226,6 +233,12 @@ class EIACLIENT(BaseClient):
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
+
+        # shorten/break up this method into several smaller ones:
+        # data type
+        # assign fuel type for gen data
+        # handle latest
+        # add data to data_formatted- this is the same thing 3 times
 
         # Handle throttling errors
         try:
@@ -307,8 +320,6 @@ class EIACLIENT(BaseClient):
                 try:
                     yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
                     tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0, second=0, microsecond=0)
-                    print("yesterday: ", yesterday)
-                    print("tomorrow: ", tomorrow)
                     assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
 
                     assert ((self.options['start_at'] >= yesterday) and
@@ -316,6 +327,4 @@ class EIACLIENT(BaseClient):
                 except:
                     raise ValueError('Generation data is available for the \
                                      previous and current day.', self.options)
-        print(self.options)
-        print(data_formatted)
         return data_formatted
