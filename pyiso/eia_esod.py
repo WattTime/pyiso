@@ -91,6 +91,7 @@ class EIACLIENT(BaseClient):
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
+            # print(result_formatted)
             return result_formatted
         else:
             return []
@@ -120,7 +121,7 @@ class EIACLIENT(BaseClient):
         super(EIACLIENT, self).handle_options(**kwargs)
 
         self.options = kwargs
-        self.validate_options(self)
+        self.validate_options()
 
         # """Validate options"""
         # if 'latest' not in self.options:
@@ -220,7 +221,7 @@ class EIACLIENT(BaseClient):
                 self.set_url('series', '-ALL.D.H')
         elif self.options['data'] == 'trade':
             if self.options['forecast']:
-                raise ValueError('Forecast not supported for generation.')
+                raise ValueError('Forecast not supported for trade.')
             else:
                 self.set_url('series', '-ALL.TI.H')
 
@@ -231,14 +232,85 @@ class EIACLIENT(BaseClient):
         else:
             return int(data)
 
+    def add_gen_data(data_list):
+        for i in data_list:
+            i['fuel_name'] = 'other'
+        return data_list
+
+    def _format_latest(self, data, d_type, mkt):
+        formatted = []
+        last_datapoint = data['series'][0]['data'][0]
+        timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
+        data = self.format_data(last_datapoint[1])
+        formatted.append(
+                    {
+                        'ba_name': self.NAME,
+                        'timestamp': timestamp,
+                        'freq': self.options['freq'],
+                        d_type: data,
+                        'market': mkt
+                    }
+                    )
+        return formatted
+
+    def _format_yesterday(self, data, d_type, mkt):
+        formatted = []
+        yesterday = self.local_now() - timedelta(days=1)
+        for i in data['series']:
+            for j in i['data']:
+                timestamp = self.utcify(dateutil_parse(j[0]))
+                data = self.format_data(j[1])
+                if timestamp.year == yesterday.year and \
+                   timestamp.month == yesterday.month and \
+                   timestamp.day == yesterday.day:
+                    formatted.append(
+                                        {
+                                            'ba_name': self.NAME,
+                                            'timestamp': timestamp,
+                                            'freq': self.options['freq'],
+                                            d_type: data,
+                                            'market': mkt
+                                        }
+                                    )
+        return formatted
+
+    def _format_general(self, data, d_type, mkt):
+        formatted = []
+        for i in data['series']:
+            for j in i['data']:
+                timestamp = self.utcify(dateutil_parse(j[0]))
+                data = self.format_data(j[1])
+                formatted.append(
+                                    {
+                                        'ba_name': self.NAME,
+                                        'timestamp': timestamp,
+                                        'freq': self.options['freq'],
+                                        d_type: data,
+                                        'market': mkt
+                                    }
+                                )
+        return formatted
+
+    # start here- combine general/yesterday/other stuff where possible
+
+    def _format_start_end(self, data):
+        formatted = []
+        if 'gen' not in self.options['data']:
+            formatted = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
+
+        else:
+            try:
+                yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+                tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0, second=0, microsecond=0)
+                assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
+            except:
+                raise ValueError('Generation data is available for the \
+                                 previous and current day.', self.options)
+
+        return formatted
+
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
-
-        # shorten/break up this method into several smaller ones:
-        # data type
-        # assign fuel type for gen data
-        # handle latest
-        # add data to data_formatted- this is the same thing 3 times
 
         # Handle throttling errors
         try:
@@ -247,6 +319,7 @@ class EIACLIENT(BaseClient):
             raise ValueError('Query error, likely throttling:\
             {req}'.format(req=data['request']))
             # Keep an eye on eba.spc-all.ng.h
+            # check out retrying
 
         if self.options['forecast']:
             market = 'DAHR'
@@ -262,69 +335,14 @@ class EIACLIENT(BaseClient):
 
         data_formatted = []
         if self.options['latest']:
-            last_datapoint = data['series'][0]['data'][0]
-            timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
-            data = self.format_data(last_datapoint[1])
-            data_formatted.append(
-                                    {
-                                        'ba_name': self.NAME,
-                                        'timestamp': timestamp,
-                                        'freq': self.options['freq'],
-                                        data_type: data,
-                                        'market': market
-                                    }
-                        )
-            if self.options['data'] == 'gen':
-                for i in data_formatted:
-                    i['fuel_name'] = 'other'
-        elif 'yesterday' in self.options:
-            yesterday = self.local_now() - timedelta(days=1)
-            for i in data['series']:
-                for j in i['data']:
-                    timestamp = self.utcify(dateutil_parse(j[0]))
-                    data = self.format_data(j[1])
-                    if timestamp.year == yesterday.year and \
-                       timestamp.month == yesterday.month and \
-                       timestamp.day == yesterday.day:
-                        data_formatted.append(
-                                            {
-                                                'ba_name': self.NAME,
-                                                'timestamp': timestamp,
-                                                'freq': self.options['freq'],
-                                                data_type: data,
-                                                'market': market
-                                            }
-                                        )
+            data_formatted = self._format_latest(data, data_type, market)
+        elif self.options['yesterday']:
+            data_formatted = self._format_yesterday(data, data_type, market)
         else:
-            for i in data['series']:
-                for j in i['data']:
-                    timestamp = timestamp = self.utcify(dateutil_parse(j[0]))
-                    data = self.format_data(j[1])
-                    data_formatted.append(
-                                        {
-                                            'ba_name': self.NAME,
-                                            'timestamp': timestamp,
-                                            'freq': self.options['freq'],
-                                            data_type: data,
-                                            'market': market
-                                        }
-                                    )
-        if self.options['data'] == 'gen':
-            for i in data_formatted:
-                i['fuel_name'] = 'other'
-        if self.options['start_at'] and self.options['end_at']:
-            # if not self.options['data'] == 'gen':
-            if 'gen' not in self.options['data']:
-                data_formatted = [i for i in data_formatted if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
-            else:
-                try:
-                    yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
-                    tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0, second=0, microsecond=0)
-                    assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
+            data_formatted = self._format_general(data, data_type, market)
 
-                    assert ((self.options['start_at'] >= yesterday) and
-                            (self.options['end_at'] < tomorrow))
-                except:
-                    raise ValueError('Generation data is available for the \
-                                     previous and current day.', self.options)
+        if self.options['start_at'] and self.options['end_at']:
+            data_formatted = self._format_start_end(data_formatted)
+        if self.options['data'] == 'gen':
+            data_formatted = self.add_gen_data(data_formatted)
         return data_formatted
