@@ -123,23 +123,6 @@ class EIACLIENT(BaseClient):
         self.options = kwargs
         self.validate_options()
 
-        # """Validate options"""
-        # if 'latest' not in self.options:
-        #     self.options['latest'] = False
-        # if 'forecast' not in self.options:
-        #     self.options['forecast'] = False
-        # if 'market' not in self.options:
-        #     if self.options['forecast']:
-        #         self.options['market'] = self.MARKET_CHOICES.dam
-        #     else:
-        #         self.options['market'] = self.MARKET_CHOICES.hourly
-        # if 'freq' not in self.options:
-        #     self.options['freq'] = self.FREQUENCY_CHOICES.hourly
-        # if not self.options['start_at'] and self.options['end_at']:
-        #     raise ValueError('You must specify a start_at date.')
-        # elif self.options['start_at'] and not self.options['end_at']:
-        #     raise ValueError('You must specify an end_at date.')
-
         """Clean up time values (same as base.py)"""
         if self.options.get('start_at', None) and self.options.get('end_at', None):
             assert self.options['start_at'] < self.options['end_at']
@@ -237,11 +220,8 @@ class EIACLIENT(BaseClient):
             i['fuel_name'] = 'other'
         return data_list
 
-    def _format_latest(self, data, d_type, mkt):
+    def _format_list(self, data, timestamp, d_type, mkt):
         formatted = []
-        last_datapoint = data['series'][0]['data'][0]
-        timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
-        data = self.format_data(last_datapoint[1])
         formatted.append(
                     {
                         'ba_name': self.NAME,
@@ -251,6 +231,14 @@ class EIACLIENT(BaseClient):
                         'market': mkt
                     }
                     )
+        return formatted
+
+    def _format_latest(self, data, d_type, mkt):
+        formatted = []
+        last_datapoint = data['series'][0]['data'][0]
+        timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
+        data = self.format_data(last_datapoint[1])
+        formatted = self._format_list(data, timestamp, d_type, mkt)
         return formatted
 
     def _format_yesterday(self, data, d_type, mkt):
@@ -263,15 +251,7 @@ class EIACLIENT(BaseClient):
                 if timestamp.year == yesterday.year and \
                    timestamp.month == yesterday.month and \
                    timestamp.day == yesterday.day:
-                    formatted.append(
-                                        {
-                                            'ba_name': self.NAME,
-                                            'timestamp': timestamp,
-                                            'freq': self.options['freq'],
-                                            d_type: data,
-                                            'market': mkt
-                                        }
-                                    )
+                    formatted = self._format_list(data, timestamp, d_type, mkt)
         return formatted
 
     def _format_general(self, data, d_type, mkt):
@@ -280,18 +260,8 @@ class EIACLIENT(BaseClient):
             for j in i['data']:
                 timestamp = self.utcify(dateutil_parse(j[0]))
                 data = self.format_data(j[1])
-                formatted.append(
-                                    {
-                                        'ba_name': self.NAME,
-                                        'timestamp': timestamp,
-                                        'freq': self.options['freq'],
-                                        d_type: data,
-                                        'market': mkt
-                                    }
-                                )
+                formatted = self._format_list(data, timestamp, d_type, mkt)
         return formatted
-
-    # start here- combine general/yesterday/other stuff where possible
 
     def _format_start_end(self, data):
         formatted = []
@@ -340,7 +310,8 @@ class EIACLIENT(BaseClient):
             data_formatted = self._format_yesterday(data, data_type, market)
         else:
             data_formatted = self._format_general(data, data_type, market)
-
+        #start here- fix python setup.py test -s tests.test_trade.TestEIATrade.test_date_range_some
+        
         if self.options['start_at'] and self.options['end_at']:
             data_formatted = self._format_start_end(data_formatted)
         if self.options['data'] == 'gen':
