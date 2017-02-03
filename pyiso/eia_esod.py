@@ -220,6 +220,22 @@ class EIACLIENT(BaseClient):
             i['fuel_name'] = 'other'
         return data_list
 
+    def _set_market(self):
+        if self.options['forecast']:
+            mkt = 'DAHR'
+        else:
+            mkt = 'RTHR'
+        return mkt
+
+    def _set_data_type(self):
+        if self.options['data'] == 'trade':
+            data_type = 'net_exp_MW'
+        elif self.options['data'] == 'gen':
+            data_type = 'gen_MW'
+        elif self.options['data'] == 'load':
+            data_type = 'load_MW'
+        return data_type
+
     def _format_list(self, data, timestamp, d_type, mkt):
         formatted = []
         formatted.append(
@@ -281,27 +297,16 @@ class EIACLIENT(BaseClient):
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
-
-        # Handle throttling errors
         try:
             assert('series' in data)
-        except:
+        except:         # Handle throttling errors
             raise ValueError('Query error, likely throttling:\
             {req}'.format(req=data['request']))
             # Keep an eye on eba.spc-all.ng.h
             # check out retrying
 
-        if self.options['forecast']:
-            market = 'DAHR'
-        else:
-            market = 'RTHR'
-
-        if self.options['data'] == 'trade':
-            data_type = 'net_exp_MW'
-        elif self.options['data'] == 'gen':
-            data_type = 'gen_MW'
-        elif self.options['data'] == 'load':
-            data_type = 'load_MW'
+        market = self._set_market()
+        data_type = self.set_data_type()
 
         data_formatted = []
         if self.options['latest']:
@@ -311,7 +316,7 @@ class EIACLIENT(BaseClient):
         else:
             data_formatted = self._format_general(data, data_type, market)
         #start here- fix python setup.py test -s tests.test_trade.TestEIATrade.test_date_range_some
-        
+
         if self.options['start_at'] and self.options['end_at']:
             data_formatted = self._format_start_end(data_formatted)
         if self.options['data'] == 'gen':
