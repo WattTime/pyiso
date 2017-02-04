@@ -359,6 +359,7 @@ class TestSPPCTrade(TestBaseTrade):
 
     # Then pull/merge redundant tests in test_eia. Just keep the corner cases?
 
+
 class TestEIATrade(TestBaseTrade):
 
     def setUp(self):
@@ -368,8 +369,20 @@ class TestEIATrade(TestBaseTrade):
                           'SCL', 'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.BA_CHOICES if i not in self.delay_bas]
 
+        self.random_delay_ba = random.sample(self.delay_bas, 1)[0]
+        self.random_no_delay_ba = random.sample(self.no_delay_bas, 1)[0]
+        #
+        self.delay_mock = self._run_net_test(self.random_delay_ba,
+                                             market=self.MARKET_CHOICES.hourly)
+        self.no_delay_mock = self._run_net_test(self.random_no_delay_ba,
+                                                market=self.MARKET_CHOICES.hourly)
+        # print(self.delay_mock)
+        # print(self.no_delay_mock)
+
+        # Mock(return_value="mocked stuff")
+
     def test_null_response(self):
-        self._run_null_repsonse_test(self.bas[0], latest=True)
+        self._run_null_repsonse_test(self.BA_CHOICES[0], latest=True)
 
     def test_latest(self):
         for ba in self.BA_CHOICES:
@@ -424,3 +437,22 @@ class TestEIATrade(TestBaseTrade):
         ba = random.sample(self.no_delay_bas, 1)[0]
         with self.assertRaises(ValueError):
             self._run_net_test(ba, forecast=True)
+
+
+    # start here- see if you can set up unit tests to grab a few requests
+    # and then inject the dummy data into tests to avoid all these throttling
+    # issues
+    
+    # def _run_trade_test_delay(self):
+    #     # set up
+    #     c = client_factory(self.random_delay_ba)
+    #
+    #     # mock request
+    #     with mock.patch.object(c, 'request') as mock_request:
+    #         mock_request.return_value = self.delay_mock
+    #
+    #         # get data
+    #         data = c.get_trade(**kwargs)
+    #
+    #         # test
+    #         self.assertEqual(data, [])

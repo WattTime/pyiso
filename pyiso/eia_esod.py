@@ -91,7 +91,6 @@ class EIACLIENT(BaseClient):
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
-            # print(result_formatted)
             return result_formatted
         else:
             return []
@@ -280,7 +279,6 @@ class EIACLIENT(BaseClient):
         return formatted_list
 
     def _format_start_end(self, data):
-        print(data)
         formatted_sliced = []
         if 'gen' not in self.options['data']:
             formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
