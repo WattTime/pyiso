@@ -237,28 +237,26 @@ class EIACLIENT(BaseClient):
         return data_type
 
     def _format_list(self, data, timestamp, d_type, mkt):
-        formatted = []
-        formatted.append(
-                    {
+        pyiso_format = {
                         'ba_name': self.NAME,
                         'timestamp': timestamp,
                         'freq': self.options['freq'],
                         d_type: data,
                         'market': mkt
                     }
-                    )
-        return formatted
+        return pyiso_format
 
     def _format_latest(self, data, d_type, mkt):
-        formatted = []
+        formatted_list = []
         last_datapoint = data['series'][0]['data'][0]
         timestamp = self.utcify(dateutil_parse(last_datapoint[0]))
         data = self.format_data(last_datapoint[1])
         formatted = self._format_list(data, timestamp, d_type, mkt)
+        formatted_list.append(formatted)  # will be just one
         return formatted
 
     def _format_yesterday(self, data, d_type, mkt):
-        formatted = []
+        formatted_list = []
         yesterday = self.local_now() - timedelta(days=1)
         for i in data['series']:
             for j in i['data']:
@@ -268,32 +266,35 @@ class EIACLIENT(BaseClient):
                    timestamp.month == yesterday.month and \
                    timestamp.day == yesterday.day:
                     formatted = self._format_list(data, timestamp, d_type, mkt)
-        return formatted
+                    formatted_list.append(formatted)
+        return formatted_list
 
     def _format_general(self, data, d_type, mkt):
-        formatted = []
+        formatted_list = []
         for i in data['series']:
             for j in i['data']:
                 timestamp = self.utcify(dateutil_parse(j[0]))
                 data = self.format_data(j[1])
                 formatted = self._format_list(data, timestamp, d_type, mkt)
-        return formatted
+                formatted_list.append(formatted)
+        return formatted_list
 
     def _format_start_end(self, data):
-        formatted = []
+        print(data)
+        formatted_sliced = []
         if 'gen' not in self.options['data']:
-            formatted = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
-
+            formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
         else:
             try:
-                yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
-                tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0, second=0, microsecond=0)
+                yesterday = (self.local_now() - timedelta(days=2)).replace(hour=0, minute=0,
+                                                                           second=0, microsecond=0)
+                tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0,
+                                                                          second=0, microsecond=0)
                 assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
             except:
                 raise ValueError('Generation data is available for the \
                                  previous and current day.', self.options)
-
-        return formatted
+        return formatted_sliced
 
     def format_result(self, data):
         """Output EIA API results in pyiso format"""
@@ -302,11 +303,9 @@ class EIACLIENT(BaseClient):
         except:         # Handle throttling errors
             raise ValueError('Query error, likely throttling:\
             {req}'.format(req=data['request']))
-            # Keep an eye on eba.spc-all.ng.h
-            # check out retrying
 
         market = self._set_market()
-        data_type = self.set_data_type()
+        data_type = self._set_data_type()
 
         data_formatted = []
         if self.options['latest']:
@@ -315,7 +314,6 @@ class EIACLIENT(BaseClient):
             data_formatted = self._format_yesterday(data, data_type, market)
         else:
             data_formatted = self._format_general(data, data_type, market)
-        #start here- fix python setup.py test -s tests.test_trade.TestEIATrade.test_date_range_some
 
         if self.options['start_at'] and self.options['end_at']:
             data_formatted = self._format_start_end(data_formatted)

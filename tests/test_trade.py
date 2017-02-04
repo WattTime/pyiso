@@ -347,12 +347,17 @@ class TestSPPCTrade(TestBaseTrade):
         self._run_failing_test('SPPC', start_at=today+timedelta(hours=10),
                                end_at=today+timedelta(days=2))
 
-
-
+    # start here:
     # would be nice to get rid of the random sub samples- but for that need
     # to seriously throttle things to get through all the BAs!
     # also, need to get to the bottom of throttling- read the EIA docs more.
+    # maybe pull one set of data in the setup and then run all the tests on
+    # that.
 
+    # Need to fix retry/throttling issues.
+    # builtin retrying would be better than random + timeouts- replace!
+
+    # Then pull/merge redundant tests in test_eia. Just keep the corner cases?
 
 class TestEIATrade(TestBaseTrade):
 
@@ -366,15 +371,11 @@ class TestEIATrade(TestBaseTrade):
     def test_null_response(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
 
-
-# Need to fix retry/throttling issues here. it sounds like using the builtin
-# retrying stuff would be better than the manual random and timeouts- let's
-# remove those.
-
     def test_latest(self):
         for ba in self.BA_CHOICES:
             # basic test
-            data = self._run_net_test(ba, latest=True, market=self.MARKET_CHOICES.hourly)
+            data = self._run_net_test(ba, latest=True,
+                                      market=self.MARKET_CHOICES.hourly)
 
             # test all timestamps are equal
             timestamps = [d['timestamp'] for d in data]
@@ -388,8 +389,9 @@ class TestEIATrade(TestBaseTrade):
 
     def test_latest_some(self):
         for ba in random.sample(self.BA_CHOICES, 5):
-        # basic test
-            data = self._run_net_test(ba, latest=True, market=self.MARKET_CHOICES.hourly)
+            # basic test
+            data = self._run_net_test(ba, latest=True,
+                                      market=self.MARKET_CHOICES.hourly)
 
             # test all timestamps are equal
             timestamps = [d['timestamp'] for d in data]
@@ -401,9 +403,6 @@ class TestEIATrade(TestBaseTrade):
                 self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
             time.sleep(5)  # Delay to cut down on throttling
 
-
-
-    # this is still failing intermittently.
     def test_date_range_some(self):
         for ba in random.sample(self.no_delay_bas, 5):
             # basic test
@@ -420,17 +419,8 @@ class TestEIATrade(TestBaseTrade):
                 self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
                 self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
-    def test_forecast(self):
-        # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_net_test('CAISO', start_at=today+timedelta(hours=10),
-                                  end_at=today+timedelta(days=2))
-
-        # test timestamps are not equal
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+    def test_forecast_raises_valueerror(self):
+        """Ensure get trade with forecast raises an error."""
+        ba = random.sample(self.no_delay_bas, 1)[0]
+        with self.assertRaises(ValueError):
+            self._run_net_test(ba, forecast=True)
