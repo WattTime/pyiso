@@ -438,11 +438,71 @@ class TestEIATrade(TestBaseTrade):
         with self.assertRaises(ValueError):
             self._run_net_test(ba, forecast=True)
 
+    # first test:
+    # ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE', 'SPC']
+    # second test:
+    # ['CFE', 'NBSO', 'SPC', 'MHEB', 'HQT', 'AESO', 'IESO', 'BCTC']
+
+    # so these 8 definitely have some persistent issues- check the docs.
+
+    # this one probably should move to eia_esod
+    def test_all_bas(self):
+        failed = []
+
+        for ba in self.BA_CHOICES:
+            try:
+                data = self._run_bulk_ba_test(ba, market=self.MARKET_CHOICES.hourly)
+                self.assertGreater(len(data), 1)
+                time.sleep(15)  # Delay to cut down on throttling
+            except:
+                failed.append(ba)
+                message = "issue with {bal}, continuing".format(bal=ba)
+                print(message)
+
+        print(failed)
+        self.assertEqual(failed, 0)
+
+    def _run_bulk_ba_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # get data
+        data = c.get_trade(retry_sec=20, retries_remaining=1, **kwargs)
+
+        # test number
+        self.assertGreaterEqual(len(data), 1)
+
+        # test contents
+        for dp in data:
+            # test key names
+            for key in ['ba_name', 'timestamp', 'freq', 'market']:
+                self.assertIn(key, dp.keys())
+            self.assertEqual(len(dp.keys()), 5)
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric value
+            self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+        # return
+        return data
+
+
+    # ok, this is where i figure out retrying
 
     # start here- see if you can set up unit tests to grab a few requests
     # and then inject the dummy data into tests to avoid all these throttling
     # issues
-    
+    # Then recheck all the unit tests
+
     # def _run_trade_test_delay(self):
     #     # set up
     #     c = client_factory(self.random_delay_ba)
