@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 import pytz
 
 
+# need to add log statements for errors, e.g
+# self.LOGGER.warn('No recent data found for BPA %s' % self.options)
+
 class EIACLIENT(BaseClient):
     """
     Interface to EIA API.

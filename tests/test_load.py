@@ -568,6 +568,11 @@ class TestEIALoad(TestBaseLoad):
         no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
                    'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         self.bas = [i for i in eia_bas if i not in no_load]
+        self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
+                        'SPC']
+        self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
+
+
 
     def test_null_response(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
@@ -647,6 +652,14 @@ class TestEIALoad(TestBaseLoad):
         for ba in no_delay_bas:
             self._test_forecast(ba)
             time.sleep(30)  # Delay to cut down on throttling
+
+    # this one probably should move to eia_esod
+    def test_all_us_bas(self):
+        for ba in self.us_bas:
+            data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
+            # data = self._run_bulk_ba_test(ba, market=self.MARKET_CHOICES.hourly)
+            self.assertGreater(len(data), 1)
+            time.sleep(15)  # Delay to cut down on throttling
 
     def _test_forecast(self, ba):
         # Used 5 hours/1 day insetad of 20/2 for one day forecast

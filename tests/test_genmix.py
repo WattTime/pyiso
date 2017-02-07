@@ -541,6 +541,10 @@ class TestEIAGenMix(TestBaseGenMix):
         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL', 'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in eia_bas if i not in self.delay_bas]
         self.bas = eia_bas
+        self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
+                        'SPC']
+        self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
+
 
     def test_null_response_latest(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
@@ -574,6 +578,14 @@ class TestEIAGenMix(TestBaseGenMix):
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
             self._test_date_range(ba)
+
+    # this one probably should move to eia_esod
+    def test_all_us_bas(self):
+        for ba in self.us_bas:
+            data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
+            # data = self._run_bulk_ba_test(ba, market=self.MARKET_CHOICES.hourly)
+            self.assertGreater(len(data), 1)
+            time.sleep(15)  # Delay to cut down on throttling
 
     def _test_latest(self, ba):
         # basic test
