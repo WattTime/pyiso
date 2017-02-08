@@ -15,6 +15,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Changelog
 ---------
+* 0.3.17: Add ALLBUSRT market option and implement for ERCOT get_lmp; enables report that pulls LMPs for all ~12K electrical buses; also changed package install requirements to allow lxml>=3.6.1, which enables pyiso pip install on Python 3.6
 * 0.3.16: Implement ISONE get_morningreport and get_sevendayforecast
 * 0.3.15: Minor bugfixes to CAISO get_generation. 
 * 0.3.14: Minor bugfixes to ISONE, PJM, and ERCOT. 

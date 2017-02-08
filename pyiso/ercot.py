@@ -20,6 +20,7 @@ class ERCOTClient(BaseClient):
         'load_7day': '12311',
         'dam_hrly_lmp': '12331',
         'rt5m_lmp': '12300',
+        'allbusrt': '11485',
     }
 
     TZ_NAME = 'US/Central'
@@ -51,7 +52,7 @@ class ERCOTClient(BaseClient):
                 if date:
                     if label.string.split('.')[3] == date.strftime('%Y%m%d'):
                         # RT5M requires correct 5minute report
-                        if report_type == 'rt5m_lmp':
+                        if report_type in ('rt5m_lmp','allbusrt'):
                             if not label.string.split('.')[4].startswith(date.strftime('%H%M')):
                                 continue
                     else:
@@ -249,7 +250,10 @@ class ERCOTClient(BaseClient):
         # When DST ends in the Fall, the repeated hour is NOT in DST
         df.index = df.index.tz_localize(self.TZ_NAME, ambiguous=df['RepeatedHourFlag'] == 'N')
         df.drop(['SCEDTimestamp', 'RepeatedHourFlag'], axis=1, inplace=True)
-        df.rename(columns={'LMP': 'lmp', 'SettlementPoint': 'node_id'}, inplace=True)
+        if self.options['market'] == self.MARKET_CHOICES.allbusrt:
+            df.rename(columns={'LMP': 'lmp', 'ElectricalBus': 'node_id'}, inplace=True)
+        else:
+            df.rename(columns={'LMP': 'lmp', 'SettlementPoint': 'node_id'}, inplace=True)
         return df
 
     def format_lmp(self, df):
@@ -276,6 +280,8 @@ class ERCOTClient(BaseClient):
             report_name = 'rt5m_lmp'
         elif self.options['market'] == self.MARKET_CHOICES.dam:
             report_name = 'dam_hrly_lmp'
+        elif self.options['market'] == self.MARKET_CHOICES.allbusrt:
+            report_name = 'allbusrt'
         elif self.options['market'] == self.MARKET_CHOICES.hourly:
             raise NotImplementedError('ERCOT does not produce realtime hourly prices?')
 
@@ -288,7 +294,7 @@ class ERCOTClient(BaseClient):
             end = tz.normalize(self.options['end_at'])
 
             pieces = []
-            if self.options['market'] == self.MARKET_CHOICES.fivemin:
+            if self.options['market'] in (self.MARKET_CHOICES.fivemin, self.MARKET_CHOICES.allbusrt):
                 # set up periods of length 5 min
                 fivemin_periods = int((end-start).total_seconds()/(60*5)) + 1
                 p_list = [end - timedelta(minutes=5*x) for x in range(fivemin_periods)]
