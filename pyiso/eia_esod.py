@@ -104,6 +104,8 @@ class EIACLIENT(BaseClient):
             self.options['latest'] = False
         if 'forecast' not in self.options:
             self.options['forecast'] = False
+        # if 'yesterday' not in self.options:
+        #     self.options['yesterday'] = False
         if 'market' not in self.options:
             if self.options['forecast']:
                 self.options['market'] = self.MARKET_CHOICES.dam
@@ -169,6 +171,8 @@ class EIACLIENT(BaseClient):
                                   'HGMA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
+        canada_mexico = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO',
+                           'CFE', 'SPC']
 
         # if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
         if self.options['end_at'] and self.NAME in delay_bas:
@@ -179,6 +183,8 @@ class EIACLIENT(BaseClient):
         # if self.options['bal_auth'] in load_not_supported_bas:
             if self.options['data'] == 'load':
                 raise ValueError('Load data not supported for this BA.')
+        if self.NAME in canada_mexico:
+            raise ValueError('Data not currently supported for non-US BAs')
 
     def set_url(self, type, text):
         # Handle -EIA added to BAs with data offered through BA and EIA
@@ -309,6 +315,7 @@ class EIACLIENT(BaseClient):
         data_type = self._set_data_type()
 
         data_formatted = []
+        print(self.options)
         if self.options['latest']:
             data_formatted = self._format_latest(data, data_type, market)
         elif self.options['yesterday']:

@@ -572,8 +572,6 @@ class TestEIALoad(TestBaseLoad):
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
 
-
-
     def test_null_response(self):
         self._run_null_repsonse_test(self.bas[0], latest=True)
 
@@ -656,10 +654,13 @@ class TestEIALoad(TestBaseLoad):
     # this one probably should move to eia_esod
     def test_all_us_bas(self):
         for ba in self.us_bas:
-            data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
-            # data = self._run_bulk_ba_test(ba, market=self.MARKET_CHOICES.hourly)
+            data = self._run_test(ba, market=self.MARKET_CHOICES.hourly)
             self.assertGreater(len(data), 1)
-            time.sleep(15)  # Delay to cut down on throttling
+
+    def test_non_us_bas_raise_valueerror(self):
+        for ba in self.can_mex:
+            with self.assertRaises(ValueError):
+                self._run_test(ba, market=self.MARKET_CHOICES.hourly)
 
     def _test_forecast(self, ba):
         # Used 5 hours/1 day insetad of 20/2 for one day forecast

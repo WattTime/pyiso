@@ -587,6 +587,11 @@ class TestEIAGenMix(TestBaseGenMix):
             self.assertGreater(len(data), 1)
             time.sleep(15)  # Delay to cut down on throttling
 
+    def test_non_us_bas_raise_valueerror(self):
+        for ba in self.can_mex:
+            with self.assertRaises(ValueError):
+                self._run_test(ba, market=self.MARKET_CHOICES.hourly)
+
     def _test_latest(self, ba):
         # basic test
         data = self._run_test(ba, latest=True)
@@ -626,4 +631,4 @@ class TestEIAGenMix(TestBaseGenMix):
         fuels = set([d['fuel_name'] for d in data])
         expected_fuels = ['other']
         for expfuel in expected_fuels:
-            self.assertIn(expfuel, fuels
+            self.assertIn(expfuel, fuels)

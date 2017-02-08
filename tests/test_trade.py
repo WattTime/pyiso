@@ -354,6 +354,10 @@ class TestSPPCTrade(TestBaseTrade):
     # maybe pull one set of data in the setup and then run all the tests on
     # that.
 
+    # start here
+    # see if removing non-US BAs solves the throttling issues so we can pull
+    # the random and time stuff stuff
+
     # Need to fix retry/throttling issues.
     # builtin retrying would be better than random + timeouts- replace!
 
@@ -372,10 +376,10 @@ class TestEIATrade(TestBaseTrade):
         self.random_delay_ba = random.sample(self.delay_bas, 1)[0]
         self.random_no_delay_ba = random.sample(self.no_delay_bas, 1)[0]
         #
-        self.delay_mock = self._run_net_test(self.random_delay_ba,
-                                             market=self.MARKET_CHOICES.hourly)
-        self.no_delay_mock = self._run_net_test(self.random_no_delay_ba,
-                                                market=self.MARKET_CHOICES.hourly)
+        # self.delay_mock = self._run_net_test(self.random_delay_ba,
+        #                                      market=self.MARKET_CHOICES.hourly)
+        # self.no_delay_mock = self._run_net_test(self.random_no_delay_ba,
+        #                                         market=self.MARKET_CHOICES.hourly)
         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
@@ -441,61 +445,14 @@ class TestEIATrade(TestBaseTrade):
         with self.assertRaises(ValueError):
             self._run_net_test(ba, forecast=True)
 
-    # this one probably should move to eia_esod
     def test_all_us_bas(self):
         for ba in self.us_bas:
             data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
-            # data = self._run_bulk_ba_test(ba, market=self.MARKET_CHOICES.hourly)
             self.assertGreater(len(data), 1)
-            time.sleep(15)  # Delay to cut down on throttling
+    # start here- this is failing unexpectedly
 
-    # start here- confirm test_all_us_bas with trade/load/gen, sort out Can/Mx issues
-    
-    # not passing currently
-    def test_all_non_us_bas(self):
-        failed = []
+
+    def test_non_us_bas_raise_valueerror(self):
         for ba in self.can_mex:
-            # exception list:
-            try:
-                data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
-                # if possible, restore this to self._run_net_test
-                self.assertGreater(len(data), 1)
-                time.sleep(15)  # Delay to cut down on throttling
-            except:
-                print("issues with {bal}, skipping").format(bal=ba)
-                failed.append(ba)
-                continue
-        print(failed)
-
-    # def _run_bulk_ba_test(self, ba_name, **kwargs):
-    #     # set up
-    #     c = client_factory(ba_name)
-    #
-    #     # get data
-    #     data = c.get_trade(retry_sec=20, retries_remaining=1, **kwargs)
-    #
-    #     # test number
-    #     self.assertGreaterEqual(len(data), 1)
-    #
-    #     # test contents
-    #     for dp in data:
-    #         # test key names
-    #         for key in ['ba_name', 'timestamp', 'freq', 'market']:
-    #             self.assertIn(key, dp.keys())
-    #         self.assertEqual(len(dp.keys()), 5)
-    #
-    #         # test values
-    #         self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
-    #         self.assertIn(dp['ba_name'], self.BA_CHOICES)
-    #
-    #         # test for numeric value
-    #         self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
-    #
-    #         # test correct temporal relationship to now
-    #         if c.options['forecast']:
-    #             self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-    #         else:
-    #             self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-    #
-    #     # return
-    #     return data
+            with self.assertRaises(ValueError):
+                self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
