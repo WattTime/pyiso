@@ -223,7 +223,7 @@ class EIACLIENT(BaseClient):
         else:
             return int(data)
 
-    def add_gen_data(data_list):
+    def add_gen_data(self, data_list):
         for i in data_list:
             i['fuel_name'] = 'other'
         return data_list
@@ -315,7 +315,6 @@ class EIACLIENT(BaseClient):
         data_type = self._set_data_type()
 
         data_formatted = []
-        print(self.options)
         if self.options['latest']:
             data_formatted = self._format_latest(data, data_type, market)
         elif self.options['yesterday']:

@@ -449,8 +449,6 @@ class TestEIATrade(TestBaseTrade):
         for ba in self.us_bas:
             data = self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
             self.assertGreater(len(data), 1)
-    # start here- this is failing unexpectedly
-
 
     def test_non_us_bas_raise_valueerror(self):
         for ba in self.can_mex:
