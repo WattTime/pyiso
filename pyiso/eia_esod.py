@@ -261,7 +261,7 @@ class EIACLIENT(BaseClient):
         data = self.format_data(last_datapoint[1])
         formatted = self._format_list(data, timestamp, d_type, mkt)
         formatted_list.append(formatted)  # will be just one
-        return formatted
+        return formatted_list
 
     def _format_yesterday(self, data, d_type, mkt):
         formatted_list = []
@@ -313,6 +313,9 @@ class EIACLIENT(BaseClient):
 
         market = self._set_market()
         data_type = self._set_data_type()
+
+        # print("all options: ", self.options)
+        # print("yesterday? ", self.options['yesterday'])
 
         data_formatted = []
         if self.options['latest']:

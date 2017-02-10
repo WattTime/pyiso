@@ -535,6 +535,8 @@ class TestSVERIGenMix(TestBaseGenMix):
 
 class TestEIAGenMix(TestBaseGenMix):
     # start here- run these soup to nuts and fix
+    # then tidy up
+    # then PR it!
 
     def setUp(self):
         super(TestEIAGenMix, self).setUp()
@@ -547,7 +549,7 @@ class TestEIAGenMix(TestBaseGenMix):
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
 
     def test_null_response_latest(self):
-        self._run_null_repsonse_test(self.BA_CHOICES[0], latest=True)
+        self._run_null_repsonse_test(self.us_bas[0], latest=True)
 
     def test_yesterday_some(self):
         for ba in random.sample(self.no_delay_bas, 5):
@@ -571,28 +573,27 @@ class TestEIAGenMix(TestBaseGenMix):
             for expfuel in expected_fuels:
                 self.assertIn(expfuel, fuels)
 
+    def test_yesterday_all(self):
+        for ba in self.BA_CHOICES:
+            # basic test
+            data = self._run_test(ba, yesterday=True,
+                                  market=self.MARKET_CHOICES.hourly)
 
-def test_yesterday_all(self):
-    for ba in self.BA_CHOICES:
-        # basic test
-        data = self._run_test(ba, yesterday=True,
-                              market=self.MARKET_CHOICES.hourly)
+            # test timestamps are different
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
 
-        # test timestamps are different
-        timestamps = [d['timestamp'] for d in data]
-        self.assertGreater(len(set(timestamps)), 1)
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-
-        # test fuel names
-        fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['other']
-        # changed to other based on https://github.com/WattTime/pyiso/issues/97
-        for expfuel in expected_fuels:
-            self.assertIn(expfuel, fuels)
+            # test fuel names
+            fuels = set([d['fuel_name'] for d in data])
+            expected_fuels = ['other']
+            # changed to other based on https://github.com/WattTime/pyiso/issues/97
+            for expfuel in expected_fuels:
+                self.assertIn(expfuel, fuels)
 
     def test_date_range_some(self):
         for ba in random.sample(self.no_delay_bas, 5):

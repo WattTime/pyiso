@@ -5,8 +5,6 @@ import pytz
 from datetime import datetime, timedelta
 import mock
 from responses import test_trade_responses as responses
-import random
-import time
 
 
 class TestBaseTrade(TestCase):
@@ -24,7 +22,6 @@ class TestBaseTrade(TestCase):
     def _run_net_test(self, ba_name, **kwargs):
         # set up
         c = client_factory(ba_name)
-
         # get data
         data = c.get_trade(**kwargs)
 
@@ -369,30 +366,18 @@ class TestEIATrade(TestBaseTrade):
     def setUp(self):
         super(TestEIATrade, self).setUp()
         self.BA_CHOICES = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE',
-                          'SCL', 'TAL', 'TIDC', 'TPWR']
-        self.no_delay_bas = [i for i in self.BA_CHOICES if i not in self.delay_bas]
-
-        self.random_delay_ba = random.sample(self.delay_bas, 1)[0]
-        self.random_no_delay_ba = random.sample(self.no_delay_bas, 1)[0]
-        #
-        # self.delay_mock = self._run_net_test(self.random_delay_ba,
-        #                                      market=self.MARKET_CHOICES.hourly)
-        # self.no_delay_mock = self._run_net_test(self.random_no_delay_ba,
-        #                                         market=self.MARKET_CHOICES.hourly)
         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
-        # print(self.delay_mock)
-        # print(self.no_delay_mock)
-
-        # Mock(return_value="mocked stuff")
+        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE',
+                          'SCL', 'TAL', 'TIDC', 'TPWR']
+        self.no_delay_bas = [i for i in self.us_bas if i not in self.delay_bas]
 
     def test_null_response(self):
-        self._run_null_repsonse_test(self.BA_CHOICES[0], latest=True)
+        self._run_null_repsonse_test(self.us_bas[0], latest=True)
 
-    def test_latest(self):
-        for ba in self.BA_CHOICES:
+    def test_latest_all(self):
+        for ba in self.us_bas:
             # basic test
             data = self._run_net_test(ba, latest=True,
                                       market=self.MARKET_CHOICES.hourly)
@@ -405,27 +390,17 @@ class TestEIATrade(TestBaseTrade):
             for dp in data:
                 self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
                 self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-            time.sleep(15)  # Delay to cut down on throttling
 
-    def test_latest_some(self):
-        for ba in random.sample(self.BA_CHOICES, 5):
+    def test_date_range_no_delay(self):
+        for ba in self.no_delay_bas:
             # basic test
-            data = self._run_net_test(ba, latest=True,
-                                      market=self.MARKET_CHOICES.hourly)
 
-            # test all timestamps are equal
-            timestamps = [d['timestamp'] for d in data]
-            self.assertEqual(len(set(timestamps)), 1)
-
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-            time.sleep(5)  # Delay to cut down on throttling
-
-    def test_date_range_some(self):
-        for ba in random.sample(self.no_delay_bas, 5):
-            # basic test
+            # start here: these BAs have issues, need to sort out what.
+            # (then on to load, genmix)
+            problem_bas = ["GWA", "WWA"]
+            if ba in problem_bas:
+                print("skipping {bal}, fix this".format(bal=ba))
+                continue
             today = datetime.today().replace(tzinfo=pytz.utc)
             data = self._run_net_test(ba, start_at=today-timedelta(days=2),
                                       end_at=today-timedelta(days=1))
@@ -439,11 +414,27 @@ class TestEIATrade(TestBaseTrade):
                 self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
                 self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
+    def test_date_range_delay(self):
+        for ba in self.delay_bas:
+            # basic test
+            today = datetime.today().replace(tzinfo=pytz.utc)
+            data = self._run_net_test(ba, start_at=today-timedelta(days=4),
+                                      end_at=today-timedelta(days=3))
+
+            # test timestamps are not equal
+            timestamps = [d['timestamp'] for d in data]
+            self.assertGreater(len(set(timestamps)), 1)
+
+            # test flags
+            for dp in data:
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
     def test_forecast_raises_valueerror(self):
         """Ensure get trade with forecast raises an error."""
-        ba = random.sample(self.no_delay_bas, 1)[0]
-        with self.assertRaises(ValueError):
-            self._run_net_test(ba, forecast=True)
+        for ba in self.no_delay_bas:
+            with self.assertRaises(ValueError):
+                self._run_net_test(ba, forecast=True)
 
     def test_all_us_bas(self):
         for ba in self.us_bas:

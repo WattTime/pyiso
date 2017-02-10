@@ -10,7 +10,7 @@ import time
 
 """Test EIA client.
 To use, set the your EIA key as an environment variable:
-    export EIA_KEY= my-eia-api-key
+    export EIA_KEY=my-eia-api-key
 """
 
 # Start here- split this into classes
@@ -20,6 +20,7 @@ To use, set the your EIA key as an environment variable:
 # http://docs.python-guide.org/en/latest/writing/tests/
 
 # ok, so i need to spread these tests across the test_load, test_trade, test_genmix, etc modules. There won't be as much in here.
+
 
 class TestEIA(TestCase):
     def setUp(self):
@@ -96,7 +97,7 @@ class TestEIA(TestCase):
         """Test load - only on BAs that support it."""
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
         no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+                   'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         bas_with_load = [i for i in eia_bas if i not in no_load]
         self.ba = random.choice(bas_with_load)
         self.result = self.c.get_load(bal_auth=self.ba,
@@ -149,20 +150,6 @@ class TestEIA(TestCase):
         result_day = dateutil_parse(self.result[0]["timestamp"]).day
         today = datetime.now().day
         self.assertTrue(result_day >= today)
-
-    def test_get_generation_latest(self):
-        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-        bas_with_load = [i for i in eia_bas if i not in no_load]
-        self.ba = random.choice(bas_with_load)
-        self.result = self.c.get_generation(bal_auth=self.ba,
-                                            latest=True)
-        try:
-            self.assertLess(len(self.result), 2)
-        except AssertionError as e:
-            print ("failed!", self.options, e)
-            raise e
 
     def test_get_load_naive_start_at(self):
         eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
@@ -262,7 +249,24 @@ class TestEIA(TestCase):
         with self.assertRaises(ValueError):
             self.result = self.c.get_generation(bal_auth=self.ba, forecast=True)
 
+    def test_get_generation_latest(self):
+        eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
+        no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+        bas_with_load = [i for i in eia_bas if i not in no_load]
+        self.ba = random.choice(bas_with_load)
+        self.result = self.c.get_generation(bal_auth=self.ba,
+                                            latest=True)
+        try:
+            self.assertLess(len(self.result), 2)
+        except AssertionError as e:
+            print ("failed!", self.options, e)
+            raise e
+
+
 # python setup.py test -s tests.test_eia.TestEIA.test_get_generation
+# python setup.py test -s tests.test_load.TestEIALoad.test_date_range_some
+# source venv/bin/activate
 
 if __name__ == '__main__':
     unittest.main()
