@@ -7,8 +7,6 @@ import unittest
 import pytz
 import mock
 import libfaketime
-import time
-import random
 libfaketime.reexec_if_needed()
 
 
