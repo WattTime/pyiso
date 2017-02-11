@@ -72,6 +72,7 @@ class EIACLIENT(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
+        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -104,8 +105,8 @@ class EIACLIENT(BaseClient):
             self.options['latest'] = False
         if 'forecast' not in self.options:
             self.options['forecast'] = False
-        # if 'yesterday' not in self.options:
-        #     self.options['yesterday'] = False
+        if 'yesterday' not in self.options:
+            self.options['yesterday'] = False
         if 'market' not in self.options:
             if self.options['forecast']:
                 self.options['market'] = self.MARKET_CHOICES.dam
