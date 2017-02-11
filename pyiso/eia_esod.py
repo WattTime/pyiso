@@ -72,7 +72,6 @@ class EIACLIENT(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -168,12 +167,12 @@ class EIACLIENT(BaseClient):
         """Handle BA limitations"""
         today = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
         two_days_ago = today - timedelta(days=2)
-        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        load_not_supported_bas = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
+                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
         canada_mexico = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO',
-                           'CFE', 'SPC']
+                         'CFE', 'SPC']
 
         # if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
         if self.options['end_at'] and self.NAME in delay_bas:
@@ -181,7 +180,6 @@ class EIACLIENT(BaseClient):
                 raise ValueError('No data: 2 day delay for this BA.')
 
         if self.NAME in load_not_supported_bas:
-        # if self.options['bal_auth'] in load_not_supported_bas:
             if self.options['data'] == 'load':
                 raise ValueError('Load data not supported for this BA.')
         if self.NAME in canada_mexico:
