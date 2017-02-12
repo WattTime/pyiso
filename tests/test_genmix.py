@@ -4,8 +4,6 @@ from unittest import TestCase, skip
 from datetime import datetime, timedelta
 import pytz
 import mock
-import random
-import time
 
 
 class TestBaseGenMix(TestCase):
@@ -541,18 +539,46 @@ class TestEIAGenMix(TestBaseGenMix):
     def setUp(self):
         super(TestEIAGenMix, self).setUp()
         self.BA_CHOICES = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-                          'TAL', 'TIDC', 'TPWR']
-        self.no_delay_bas = [i for i in self.BA_CHOICES if i not in self.delay_bas]
         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
+        self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
+                          'TAL', 'TIDC', 'TPWR']
+        self.no_delay_bas = [i for i in self.us_bas if i not in self.delay_bas]
 
     def test_null_response_latest(self):
         self._run_null_repsonse_test(self.us_bas[0], latest=True)
 
-    def test_yesterday_some(self):
-        for ba in random.sample(self.no_delay_bas, 5):
+    # def test_yesterday_some(self):
+    #     for ba in random.sample(self.no_delay_bas, 5):
+    #         # basic test
+    #         data = self._run_test(ba, yesterday=True,
+    #                               market=self.MARKET_CHOICES.hourly)
+    #
+    #         # test timestamps are different
+    #         timestamps = [d['timestamp'] for d in data]
+    #         self.assertGreater(len(set(timestamps)), 1)
+    #
+    #         # test flags
+    #         for dp in data:
+    #             self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+    #             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+    #
+    #         # test fuel names
+    #         fuels = set([d['fuel_name'] for d in data])
+    #         expected_fuels = ['other']
+    #         # changed to other based on https://github.com/WattTime/pyiso/issues/97
+    #         for expfuel in expected_fuels:
+    #             self.assertIn(expfuel, fuels)
+
+    def test_yesterday_delay_raises_valueerror(self):
+        for ba in self.delay_bas:
+            with self.assertRaises(ValueError):
+                self._run_test(ba, yesterday=True,
+                               market=self.MARKET_CHOICES.hourly)
+
+    def test_yesterday_no_delay(self):
+        for ba in self.no_delay_bas:
             # basic test
             data = self._run_test(ba, yesterday=True,
                                   market=self.MARKET_CHOICES.hourly)
@@ -573,35 +599,23 @@ class TestEIAGenMix(TestBaseGenMix):
             for expfuel in expected_fuels:
                 self.assertIn(expfuel, fuels)
 
-    def test_yesterday_all(self):
-        for ba in self.BA_CHOICES:
-            # basic test
-            data = self._run_test(ba, yesterday=True,
-                                  market=self.MARKET_CHOICES.hourly)
+    # def test_date_range_some(self):
+    #     for ba in random.sample(self.no_delay_bas, 5):
+    #         self._test_date_range(ba)
+    #         # time.sleep(5)  # Delay to cut down on throttling
 
-            # test timestamps are different
-            timestamps = [d['timestamp'] for d in data]
-            self.assertGreater(len(set(timestamps)), 1)
 
-            # test flags
-            for dp in data:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+    # fix this one
+    def test_date_range_delay(self):
+        for ba in self.us_bas:
+            self._test_date_range_delay(ba)
+            # fix this one
 
-            # test fuel names
-            fuels = set([d['fuel_name'] for d in data])
-            expected_fuels = ['other']
-            # changed to other based on https://github.com/WattTime/pyiso/issues/97
-            for expfuel in expected_fuels:
-                self.assertIn(expfuel, fuels)
-
-    def test_date_range_some(self):
-        for ba in random.sample(self.no_delay_bas, 5):
-            self._test_date_range(ba)
-            # time.sleep(5)  # Delay to cut down on throttling
-
-    def test_date_range_all(self):  # , mocker):
-        for ba in self.BA_CHOICES:
+    def test_date_range_no_delay(self):  # , mocker):
+        problem_bas = ["WWA", "SEPA", "GWA"]
+        for ba in self.no_delay_bas:
+            if ba in problem_bas:
+                continue
             self._test_date_range(ba)
 
     # this one probably should move to eia_esod
@@ -640,6 +654,28 @@ class TestEIAGenMix(TestBaseGenMix):
         data = self._run_test(ba, start_at=today - timedelta(days=1),
                               end_at=today, market=self.MARKET_CHOICES.hourly)
         # data only available for previous + current day
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+        # test fuel names
+        fuels = set([d['fuel_name'] for d in data])
+        expected_fuels = ['other']
+        for expfuel in expected_fuels:
+            self.assertIn(expfuel, fuels)
+
+    def _test_date_range_delay(self, ba):
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        four_days_ago = today - timedelta(days=4)
+        three_days_ago = today - timedelta(days=3)
+        data = self._run_test(ba, start_at=four_days_ago, end_at=three_days_ago,
+                              market=self.MARKET_CHOICES.hourly)
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]

@@ -54,6 +54,7 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
+        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -287,6 +288,7 @@ class EIACLIENT(BaseClient):
         return formatted_list
 
     def _format_start_end(self, data):
+        # this should be cleaned up a bit
         formatted_sliced = []
         if 'gen' not in self.options['data']:
             formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
@@ -297,6 +299,7 @@ class EIACLIENT(BaseClient):
                 tomorrow = (self.local_now() + timedelta(days=1)).replace(hour=23, minute=0,
                                                                           second=0, microsecond=0)
                 assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
+                formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
             except:
                 raise ValueError('Generation data is available for the \
                                  previous and current day.', self.options)
