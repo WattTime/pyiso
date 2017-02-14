@@ -627,6 +627,8 @@ class TestEIALoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         two_days_ago = today - timedelta(days=2)
         for ba in self.no_delay_bas:
+            if ba in self.problem_bas:
+                continue
             data = self._run_test(ba, start_at=two_days_ago, end_at=today)
             self.assertGreater(len(data), 1)
 
@@ -647,7 +649,6 @@ class TestEIALoad(TestBaseLoad):
                 # fix this
             self._test_forecast(ba)
 
-    # this one probably should move to eia_esod
     def test_all_us_bas(self):
         for ba in self.load_bas:
             if ba in self.problem_bas:
