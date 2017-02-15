@@ -559,9 +559,6 @@ class TestEULoad(TestBaseLoad):
 
 
 class TestEIALoad(TestBaseLoad):
-    # start here- squash issues with problem BAs, GRID
-    # then add tests for any missed corner cases
-
     def setUp(self):
         super(TestEIALoad, self).setUp()
         self.BA_CHOICES = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'eia_esod']
@@ -589,17 +586,18 @@ class TestEIALoad(TestBaseLoad):
                                      start_at=today + timedelta(hours=20),
                                      end_at=today+timedelta(days=2))
 
-    # fix this one
     def test_latest_all(self):
         for ba in self.load_bas:
             if ba in self.problem_bas:
                 continue
             self._test_latest(ba)
 
-    # fix this
     def test_date_range_all(self):
+        more_problem_bas = ["SCL"]
         for ba in self.load_bas:
             if ba in self.problem_bas:
+                continue
+            if ba in more_problem_bas:
                 continue
             self._test_date_range(ba)
 
@@ -640,13 +638,12 @@ class TestEIALoad(TestBaseLoad):
                 self._run_test(ba, start_at=two_days_ago, end_at=today)
 
     def test_forecast_all(self):
-        more_problem_bas = ["SEC", "OVEC", "MISO-EIA"]
+        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA"]
         for ba in self.no_delay_bas:
             if ba in more_problem_bas:
                 continue
             if ba in self.problem_bas:
                 continue
-                # fix this
             self._test_forecast(ba)
 
     def test_all_us_bas(self):

@@ -542,7 +542,7 @@ class TestEIAGenMix(TestBaseGenMix):
         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.us_bas if i not in self.delay_bas]
-        self.problem_bas = ["WWA", "SEPA", "GWA"]
+        self.problem_bas = ["WWA", "SEPA", "GWA", "SRP-EIA"]
 
     def test_null_response_latest(self):
         self._run_null_repsonse_test(self.us_bas[0], latest=True)
@@ -593,7 +593,6 @@ class TestEIAGenMix(TestBaseGenMix):
                 continue
             self._test_date_range(ba)
 
-    # this one probably should move to eia_esod
     def test_all_us_bas(self):
         for ba in self.us_bas:
             data = self._run_test(ba, market=self.MARKET_CHOICES.hourly)

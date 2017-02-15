@@ -344,23 +344,6 @@ class TestSPPCTrade(TestBaseTrade):
         self._run_failing_test('SPPC', start_at=today+timedelta(hours=10),
                                end_at=today+timedelta(days=2))
 
-    # start here:
-    # would be nice to get rid of the random sub samples- but for that need
-    # to seriously throttle things to get through all the BAs!
-    # also, need to get to the bottom of throttling- read the EIA docs more.
-    # maybe pull one set of data in the setup and then run all the tests on
-    # that.
-
-    # start here
-    # see if removing non-US BAs solves the throttling issues so we can pull
-    # the random and time stuff stuff
-
-    # Need to fix retry/throttling issues.
-    # builtin retrying would be better than random + timeouts- replace!
-
-    # Then pull/merge redundant tests in test_eia. Just keep the corner cases?
-
-
 class TestEIATrade(TestBaseTrade):
 
     def setUp(self):
@@ -395,8 +378,6 @@ class TestEIATrade(TestBaseTrade):
         for ba in self.no_delay_bas:
             # basic test
 
-            # start here: these BAs have issues, need to sort out what.
-            # (then on to load, genmix)
             problem_bas = ["GWA", "WWA"]
             if ba in problem_bas:
                 print("skipping {bal}, fix this".format(bal=ba))
@@ -435,6 +416,14 @@ class TestEIATrade(TestBaseTrade):
         for ba in self.no_delay_bas:
             with self.assertRaises(ValueError):
                 self._run_net_test(ba, forecast=True)
+
+    def test_date_range_future_raises_valueerror(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        for ba in self.us_bas:
+            with self.assertRaises(ValueError):
+                self._run_net_test(ba, start_at=today+timedelta(days=1),
+                                   end_at=today+timedelta(days=2))
 
     def test_all_us_bas(self):
         for ba in self.us_bas:

@@ -54,6 +54,7 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
+        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -123,7 +124,6 @@ class EIACLIENT(BaseClient):
         Process and store keyword argument options.
         """
         super(EIACLIENT, self).handle_options(**kwargs)
-
         self.options = kwargs
         self.validate_options()
 
@@ -186,7 +186,7 @@ class EIACLIENT(BaseClient):
             raise ValueError('Data not currently supported for non-US BAs')
 
     def set_url(self, type, text):
-        # Handle -EIA added to BAs with data offered through BA and EIA
+        # Handle -EIA string, added to BAs to distringuish BA data vs EIA data
         if "-EIA" in self.NAME:
             self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
                                                   ba=self.NAME.replace("-EIA", ""),
