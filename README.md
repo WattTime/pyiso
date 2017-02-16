@@ -5,7 +5,7 @@ pyiso
 [![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.png?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyiso.svg)](https://badge.fury.io/py/pyiso)
 
-pyiso provides Python client libraries for ISO and other power grid data sources.
+pyiso provides Python client libraries for [ISO](https://www.epsa.org/industry/primer/?fa=rto) and other power grid data sources.
 It powers the WattTime API (https://api.watttime.org/), among other things.
 
 Documentation: https://pyiso.readthedocs.io/
