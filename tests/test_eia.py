@@ -2,6 +2,7 @@ import unittest
 from unittest import TestCase
 from pyiso import client_factory
 from pyiso.base import BaseClient
+from pyiso.eia_esod import EIACLIENT
 from datetime import datetime, timedelta
 from dateutil.parser import parse as dateutil_parse
 from pyiso import BALANCING_AUTHORITIES
@@ -14,145 +15,36 @@ To use, set the your EIA key as an environment variable:
 """
 
 # Start here:
-# If comfortable, remove the EIA tests from test_trade, test_load, test_genmix
-# Finish fixing python setup.py test -s tests.test_eia.TestEIAGenMix
-# Then figure incorporate commented stuff
+# Incorporate commented stuff
 # Then figure out how to deal with problem BAs more gracefully. Try/except?
+# More logging and error handling
+# PR!
 
-
-# class TestEIATrade(TestBaseTrade):
-#     def setUp(self):
-#         super(TestEIATrade, self).setUp()
-#         self.BA_CHOICES = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-#         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
-#                         'SPC']
-#         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
-#         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE',
-#                           'SCL', 'TAL', 'TIDC', 'TPWR']
-#         self.no_delay_bas = [i for i in self.us_bas if i not in self.delay_bas]
 
 class TestEIA(TestCase):
     def setUp(self):
-        bc = BaseClient()
-        self.MARKET_CHOICES = bc.MARKET_CHOICES
-        self.FREQUENCY_CHOICES = bc.FREQUENCY_CHOICES
+        # bc = BaseClient()
+        c = EIACLIENT()
+        self.MARKET_CHOICES = c.MARKET_CHOICES
+        self.FREQUENCY_CHOICES = c.FREQUENCY_CHOICES
+        self.FUEL_CHOICES = c.FUEL_CHOICES
 
         self.BA_CHOICES = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'eia_esod']
         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
-
         self.no_load_bas = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
                             'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
         self.load_bas = [i for i in self.us_bas if i not in self.no_load_bas]
         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.load_bas if i not in self.delay_bas]
-
-        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA"]
+        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA", "PSCO"]
         self.problem_bas_trade = ["SCL"]
         self.problem_bas_load = ["GRID", "SCL"]
 
     def tearDown(self):
         self.c = None
-
-    def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
-        # set up
-        c = client_factory(ba_name)
-        # get data
-        data = c.get_load(**kwargs)
-
-        # test number
-        if expect_data:
-            self.assertGreaterEqual(len(data), 1)
-        else:
-            self.assertEqual(data, [])
-
-        # test contents
-        for dp in data:
-            # test key names
-            self.assertEqual(set(['load_MW', 'ba_name',
-                                  'timestamp', 'freq', 'market']),
-                             set(dp.keys()))
-
-            # test values
-            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
-            self.assertIn(dp['ba_name'], self.BA_CHOICES)
-
-            # test for numeric gen
-            self.assertGreaterEqual(dp['load_MW']+1, dp['load_MW'])
-
-            # test correct temporal relationship to now
-            if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'],
-                                        pytz.utc.localize(datetime.utcnow())-timedelta(minutes=tol_min))
-            else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-
-            # test within date range
-            start_at = c.options.get('start_at', False)
-            end_at = c.options.get('end_at', False)
-            if start_at and end_at:
-                self.assertGreaterEqual(dp['timestamp'], start_at)
-                self.assertLessEqual(dp['timestamp'], end_at)
-
-        # return
-        return data
-
-    # this is repeated- super it?
-    def _run_net_test(self, ba_name, **kwargs):
-        # set up
-        c = client_factory(ba_name)
-        # get data
-        data = c.get_trade(**kwargs)
-
-        # test number
-        self.assertGreaterEqual(len(data), 1)
-
-        # test contents
-        for dp in data:
-            # test key names
-            for key in ['ba_name', 'timestamp', 'freq', 'market']:
-                self.assertIn(key, dp.keys())
-            self.assertEqual(len(dp.keys()), 5)
-
-            # test values
-            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
-            self.assertIn(dp['ba_name'], self.BA_CHOICES)
-
-            # test for numeric value
-            self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
-
-            # test correct temporal relationship to now
-            if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-            else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
-
-        # return
-        return data
-
-    def _run_null_response_test(self, ba_name, query_type, **kwargs):
-        # This test adds extra handling to run against gen/load/trade
-        c = client_factory(ba_name)
-
-        # mock request
-        with mock.patch.object(c, 'request') as mock_request:
-            mock_request.return_value = None
-
-            # get data
-            if query_type == 'gen':
-                data = c.get_generation(**kwargs)
-            elif query_type == 'trade':
-                data = c.get_trade(**kwargs)
-            elif query_type == 'load':
-                data = c.get_load(**kwargs)
-            else:
-                raise ValueError('Invalid query type')
-
-
-            # test
-            self.assertEqual(data, [])
 
 
 # old stuff ---------------------------
@@ -394,7 +286,7 @@ class TestEIA(TestCase):
 class TestEIAGenMix(TestEIA):
 
     def test_null_response_latest(self):
-        self._run_null_response_test(self.us_bas[0], 'gen', latest=True)
+        self._run_null_response_test(self.us_bas[0], latest=True)
 
     def test_yesterday_delay_raises_valueerror(self):
         for ba in self.delay_bas:
@@ -493,18 +385,80 @@ class TestEIAGenMix(TestEIA):
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
 
+    def _run_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # get data
+        data = c.get_generation(**kwargs)
+
+        # test number
+        self.assertGreater(len(data), 1)
+
+        # test contents
+        for dp in data:
+            # test key names
+            self.assertEqual(set(['gen_MW', 'ba_name', 'fuel_name',
+                                  'timestamp', 'freq', 'market']),
+                             set(dp.keys()))
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['fuel_name'], self.FUEL_CHOICES)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric gen
+            self.assertGreaterEqual(dp['gen_MW']+1, dp['gen_MW'])
+
+            # test earlier than now
+            if c.options.get('forecast', False):
+                self.assertGreater(dp['timestamp'], datetime.now(pytz.utc))
+            else:
+                self.assertLess(dp['timestamp'], datetime.now(pytz.utc))
+
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
+        # return
+        return data
+
+    def _run_notimplemented_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # method not implemented yet
+        self.assertRaises(NotImplementedError, c.get_generation)
+
+    def _run_null_response_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_generation(**kwargs)
+
+            # test
+            self.assertEqual(data, [])
+
 
 class TestEIALoad(TestEIA):
 
     def test_null_response(self):
-        self._run_null_response_test(self.load_bas[0], 'load', latest=True)
+        self._run_null_response_test(self.load_bas[0], latest=True)
 
     def test_null_response_latest(self):
-        self._run_null_response_test(self.load_bas[0], 'load', latest=True)
+        self._run_null_response_test(self.load_bas[0], latest=True)
 
     def test_null_response_forecast(self):
         today = datetime.today().replace(tzinfo=pytz.utc)
-        self._run_null_response_test(self.no_delay_bas[0], 'load',
+        self._run_null_response_test(self.no_delay_bas[0],
                                      start_at=today + timedelta(hours=20),
                                      end_at=today+timedelta(days=2))
 
@@ -557,7 +511,7 @@ class TestEIALoad(TestEIA):
                 self._run_test(ba, start_at=two_days_ago, end_at=today)
 
     def test_forecast_all(self):
-        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA", "TEPC-EIA", "SC"]
+        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA", "TEPC-EIA", "SC", "PSCO"]
         for ba in self.no_delay_bas:
             if ba in more_problem_bas:
                 continue
@@ -625,11 +579,98 @@ class TestEIALoad(TestEIA):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
+    def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+        # get data
+        data = c.get_load(**kwargs)
+
+        # test number
+        if expect_data:
+            self.assertGreaterEqual(len(data), 1)
+        else:
+            self.assertEqual(data, [])
+
+        # test contents
+        for dp in data:
+            # test key names
+            self.assertEqual(set(['load_MW', 'ba_name',
+                                  'timestamp', 'freq', 'market']),
+                             set(dp.keys()))
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric gen
+            self.assertGreaterEqual(dp['load_MW']+1, dp['load_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'],
+                                        pytz.utc.localize(datetime.utcnow())-timedelta(minutes=tol_min))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
+        # return
+        return data
+
+    # this is repeated- super it?
+    def _run_net_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+        # get data
+        data = c.get_trade(**kwargs)
+
+        # test number
+        self.assertGreaterEqual(len(data), 1)
+
+        # test contents
+        for dp in data:
+            # test key names
+            for key in ['ba_name', 'timestamp', 'freq', 'market']:
+                self.assertIn(key, dp.keys())
+            self.assertEqual(len(dp.keys()), 5)
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric value
+            self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+        # return
+        return data
+
+    def _run_null_response_test(self, ba_name, **kwargs):
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_load(**kwargs)
+            self.assertEqual(data, [])
+
 
 class TestEIATrade(TestEIA):
 
     def test_null_response(self):
-        self._run_null_response_test(self.us_bas[0], 'trade', latest=True)
+        self._run_null_response_test(self.us_bas[0], latest=True)
 
     def test_latest_all(self):
         for ba in self.us_bas:
@@ -709,7 +750,94 @@ class TestEIATrade(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_net_test(ba, market=self.MARKET_CHOICES.hourly)
 
+    def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+        # get data
+        data = c.get_load(**kwargs)
 
+        # test number
+        if expect_data:
+            self.assertGreaterEqual(len(data), 1)
+        else:
+            self.assertEqual(data, [])
+
+        # test contents
+        for dp in data:
+            # test key names
+            self.assertEqual(set(['load_MW', 'ba_name',
+                                  'timestamp', 'freq', 'market']),
+                             set(dp.keys()))
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric gen
+            self.assertGreaterEqual(dp['load_MW']+1, dp['load_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'],
+                                        pytz.utc.localize(datetime.utcnow())-timedelta(minutes=tol_min))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
+
+        # return
+        return data
+
+    # this is repeated- super it?
+    def _run_net_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+        # get data
+        data = c.get_trade(**kwargs)
+
+        # test number
+        self.assertGreaterEqual(len(data), 1)
+
+        # test contents
+        for dp in data:
+            # test key names
+            for key in ['ba_name', 'timestamp', 'freq', 'market']:
+                self.assertIn(key, dp.keys())
+            self.assertEqual(len(dp.keys()), 5)
+
+            # test values
+            self.assertEqual(dp['timestamp'].tzinfo, pytz.utc)
+            self.assertIn(dp['ba_name'], self.BA_CHOICES)
+
+            # test for numeric value
+            self.assertGreaterEqual(dp['net_exp_MW']+1, dp['net_exp_MW'])
+
+            # test correct temporal relationship to now
+            if c.options['forecast']:
+                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+            else:
+                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+        # return
+        return data
+
+    def _run_null_response_test(self, ba_name, **kwargs):
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+
+            data = c.get_trade(**kwargs)
+
+            self.assertEqual(data, [])
 
 # python setup.py test -s tests.test_eia.TestEIA.test_get_generation
 # python setup.py test -s tests.test_load.TestEIALoad.test_date_range_some

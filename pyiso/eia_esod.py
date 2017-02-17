@@ -31,6 +31,13 @@ class EIACLIENT(BaseClient):
         'Other': 'other',
     }
 
+    FUEL_CHOICES = ['other']
+
+    # 'biogas', 'biomass', 'coal', 'geo', 'hydro',
+    #                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
+    #                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
+    #                 'solarth', 'thermal', 'wind', 'fossil', 'dual']
+
     def __init__(self, *args, **kwargs):
         super(EIACLIENT, self).__init__(*args, **kwargs)
         try:
@@ -54,7 +61,6 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -73,6 +79,7 @@ class EIACLIENT(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
+        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
