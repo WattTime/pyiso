@@ -15,7 +15,6 @@ To use, set the your EIA key as an environment variable:
 """
 
 # Start here:
-# Incorporate commented stuff
 # Then figure out how to deal with problem BAs more gracefully. Try/except?
 # More logging and error handling
 # PR!
@@ -46,242 +45,6 @@ class TestEIA(TestCase):
     def tearDown(self):
         self.c = None
 
-
-# old stuff ---------------------------
-    #
-    # def test_get_trade(self):
-    #     """Show that we get data back for get trade against EIA balancing
-    #     authorities. """
-    #     # Need to improve this test
-    #     self.result = self.c.get_trade(bal_auth=self.ba,
-    #                                    start_at="20161212",
-    #                                    end_at="20161222T04Z")
-    #
-    #     self.assertTrue(len(self.result) > 0)
-    #
-    # def test_get_trade_yesterday(self):
-    #     """Check date for yesterday trade data"""
-    #     self.result = self.c.get_trade(bal_auth=self.ba,
-    #                                    yesterday=True)
-    #     dates = [dateutil_parse(i["timestamp"]) for i in self.result]
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     yesterday = (local_day - timedelta(days=1)).day
-    #     for date in dates:
-    #         self.assertEqual(date.day, yesterday)
-    #
-    # def test_get_trade_latest(self):
-    #     self.result = self.c.get_trade(bal_auth=self.ba,
-    #                                    latest=True)
-    #     try:
-    #         self.assertLess(len(self.result), 2)
-    #     except AssertionError as e:
-    #         print ("failed!", self.options, e)
-    #         raise e
-    #
-    # def test_get_trade_naive_start_at(self):
-    #     self.result = self.c.get_trade(bal_auth=self.ba,
-    #                                    start_at="20161212",
-    #                                    end_at="20161222T04Z")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_trade_naive_end_at(self):
-    #     self.result = self.c.get_trade(bal_auth=self.ba,
-    #                                    start_at="20161212T04Z",
-    #                                    end_at="20161222")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_trade_two_day_bas(self):
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     self.ba = random.choice(delay_bas)
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     one_days_ago = (local_day - timedelta(days=1)).strftime("%Y%m%d")
-    #     three_days_ago = (local_day - timedelta(days=3)).strftime("%Y%m%d")
-    #     with self.assertRaises(ValueError):
-    #         self.c.get_trade(bal_auth=self.ba, start_at=three_days_ago,
-    #                          end_at=one_days_ago)
-    #
-    # def test_get_trade_with_forecast_raises_valueerror(self):
-    #     """Ensure get trade with forecast raises an error."""
-    #
-    #     with self.assertRaises(ValueError):
-    #         self.result = self.c.get_trade(bal_auth=self.ba, forecast=True)
-    #
-    #
-    # def test_get_load(self):
-    #     """Test load - only on BAs that support it."""
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba,
-    #                                   start_at="20161212",
-    #                                   end_at="20161222T04Z")
-    #     self.assertTrue(len(self.result) > 0)
-    #
-    # def test_get_load_yesterday(self):
-    #     """Check date for yesterday load data"""
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load and i not in delay_bas]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba,
-    #                                   yesterday=True)
-    #     dates = [dateutil_parse(i["timestamp"]) for i in self.result]
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     yesterday = (local_day - timedelta(days=1)).day
-    #     for date in dates:
-    #         self.assertEqual(date.day, yesterday)
-    #
-    # def test_get_load_latest(self):
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba,
-    #                                   latest=True)
-    #     try:
-    #         self.assertLess(len(self.result), 2)
-    #     except AssertionError as e:
-    #         print ("failed!", self.options, e)
-    #         raise e
-    #
-    # def test_get_load_forecast(self):
-    #     """Test load forecast - only on BAs that support it."""
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load and i not in delay_bas]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba, forecast=True)
-    #     result_day = dateutil_parse(self.result[0]["timestamp"]).day
-    #     today = datetime.now().day
-    #     self.assertTrue(result_day >= today)
-    #
-    # def test_get_load_naive_start_at(self):
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba,
-    #                                   start_at="20161212",
-    #                                   end_at="20161222T04Z")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_load_naive_end_at(self):
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_load(bal_auth=self.ba,
-    #                                   start_at="20161212T04Z",
-    #                                   end_at="20161222")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_load_two_day_bas(self):
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     self.ba = random.choice(delay_bas)
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     one_days_ago = (local_day - timedelta(days=1)).strftime("%Y%m%d")
-    #     three_days_ago = (local_day - timedelta(days=3)).strftime("%Y%m%d")
-    #     with self.assertRaises(ValueError):
-    #         self.c.get_load(bal_auth=self.ba, start_at=three_days_ago,
-    #                         end_at=one_days_ago)
-    #
-    # def test_get_load_with_unsupported_ba_raises_valueerror(self):
-    #     """
-    #     Confirm that requesting load data for a BA that doesn't support load
-    #     raises a value error.
-    #     """
-    #     load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-    #                               'HGMA', 'SEPA', 'WWA', 'YAD']
-    #     for ba in load_not_supported_bas:
-    #         with self.assertRaises(ValueError):
-    #             self.result = self.c.get_load(bal_auth=ba, latest=True)
-    #
-    # def test_get_generation(self):
-    #     self.result = self.c.get_generation(bal_auth=self.ba,
-    #                                         start_at="20161212",
-    #                                         end_at="20161222T04Z")
-    #     self.assertTrue(len(self.result) > 0)
-    #
-    # def test_get_generation_yesterday(self):
-    #     """Check date for yesterday trade data"""
-    #
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     bas_without_delay = [i for i in eia_bas if i not in delay_bas]
-    #     self.ba = random.choice(bas_without_delay)
-    #     self.result = self.c.get_generation(bal_auth=self.ba,
-    #                                         yesterday=True)
-    #     dates = [dateutil_parse(i["timestamp"]) for i in self.result]
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     yesterday = (local_day - timedelta(days=1)).day
-    #     for date in dates:
-    #         self.assertEqual(date.day, yesterday)
-    #
-    # def test_get_generation_two_day_bas(self):
-    #     delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
-    #                  'TAL', 'TIDC', 'TPWR']
-    #     self.ba = random.choice(delay_bas)
-    #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.c.TZ_NAME))
-    #     local_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    #     one_days_ago = (local_day - timedelta(days=1)).strftime("%Y%m%d")
-    #     three_days_ago = (local_day - timedelta(days=3)).strftime("%Y%m%d")
-    #     with self.assertRaises(ValueError):
-    #         self.c.get_generation(bal_auth=self.ba, start_at=three_days_ago,
-    #                               end_at=one_days_ago)
-    #
-    # def test_get_generation_naive_start_at(self):
-    #     self.result = self.c.get_generation(bal_auth=self.ba,
-    #                                         start_at="20161212",
-    #                                         end_at="20161222T04Z")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_generation_naive_end_at(self):
-    #     self.result = self.c.get_generation(bal_auth=self.ba,
-    #                                         start_at="20161212T04Z",
-    #                                         end_at="20161222")
-    #     self.assertTrue(self.result[0]["timestamp"][-1] == "Z")
-    #
-    # def test_get_generation_with_forecast_raises_valueerror(self):
-    #     """Ensure get generation with forecast raises an error."""
-    #
-    #     with self.assertRaises(ValueError):
-    #         self.result = self.c.get_generation(bal_auth=self.ba, forecast=True)
-    #
-    # def test_get_generation_latest(self):
-    #     eia_bas = [i for i in BALANCING_AUTHORITIES.keys() if BALANCING_AUTHORITIES[i]["class"] == "EIACLIENT"]
-    #     no_load = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-    #                               'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
-    #     bas_with_load = [i for i in eia_bas if i not in no_load]
-    #     self.ba = random.choice(bas_with_load)
-    #     self.result = self.c.get_generation(bal_auth=self.ba,
-    #                                         latest=True)
-    #     try:
-    #         self.assertLess(len(self.result), 2)
-    #     except AssertionError as e:
-    #         print ("failed!", self.options, e)
-    #         raise e
-
-# uncomment and incorporate
-# end old stuff--------------
 
 class TestEIAGenMix(TestEIA):
 
@@ -339,10 +102,28 @@ class TestEIAGenMix(TestEIA):
             data = self._run_test(ba, market=self.MARKET_CHOICES.hourly)
             self.assertGreater(len(data), 1)
 
+    def test_all_latest(self):
+        for ba in self.us_bas:
+            data = self._run_test(ba, latest=True)
+            self.assertGreater(len(data), 1)
+
     def test_non_us_bas_raise_valueerror(self):
         for ba in self.can_mex:
             with self.assertRaises(ValueError):
                 self._run_test(ba, market=self.MARKET_CHOICES.hourly)
+
+    def test_get_generation_with_forecast_raises_valueerror(self):
+        for ba in self.us_bas:
+            with self.assertRaises(ValueError):
+                self._run_test(ba, forecast=True)
+
+    def test_get_generation_naive_start_at(self):
+        for ba in self.us_bas:
+            self._run_test(ba, start_at="20161212", end_at="20161222T04Z")
+
+    def test_get_generation_naive_end_at(self):
+        for ba in self.us_bas:
+            self._run_test(ba, start_at="20161212T04Z", end_at="20161222")
 
     def _test_latest(self, ba):
         # basic test
@@ -468,6 +249,12 @@ class TestEIALoad(TestEIA):
                 continue
             self._test_latest(ba)
 
+    def test_get_load_yesterday(self):
+        for ba in self.no_delay_bas:
+            if ba in self.problem_bas_load:
+                continue
+            self._run_test(ba, yesterday=True)
+
     def test_date_range_all(self):
         for ba in self.load_bas:
             if ba in self.problem_bas_load:
@@ -510,8 +297,28 @@ class TestEIALoad(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_test(ba, start_at=two_days_ago, end_at=today)
 
+    def test_get_load_naive_start_at(self):
+        for ba in self.load_bas:
+            if ba in self.problem_bas_load:
+                continue
+            self.run_test(ba, start_at="20161212", end_at="20161222T04Z")
+
+    def test_get_load_naive_end_at(self):
+        for ba in self.load_bas:
+            if ba in self.problem_bas_load:
+                continue
+            self.run_test(ba, start_at="20161212T04Z", end_at="20161222")
+
+    def test_get_load_with_unsupported_ba_raises_valueerror(self):
+        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
+        for ba in load_not_supported_bas:
+            with self.assertRaises(ValueError):
+                self._run_test(ba, market=self.MARKET_CHOICES.hourly)
+
     def test_forecast_all(self):
-        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA", "TEPC-EIA", "SC", "PSCO"]
+        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA", "TEPC-EIA",
+                            "SC", "PSCO"]
         for ba in self.no_delay_bas:
             if ba in more_problem_bas:
                 continue
@@ -739,6 +546,18 @@ class TestEIATrade(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_net_test(ba, start_at=today+timedelta(days=1),
                                    end_at=today+timedelta(days=2))
+
+    def test_get_trade_naive_start_at(self):
+        for ba in self.us_bas:
+            self._run_net_test(ba, start_at="20161212", end_at="20161222T04Z")
+
+    def test_get_trade_naive_end_at(self):
+        for ba in self.us_bas:
+            self._run_net_test(ba, start_at="20161212T04Z", end_at="20161222")
+
+    def test_get_trade_yesterday(self):
+        for ba in self.us_bas:
+            self._run_net_test(ba, yesterday=True)
 
     def test_all_us_bas(self):
         for ba in self.us_bas:
