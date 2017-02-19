@@ -39,8 +39,10 @@ class TestEIA(TestCase):
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.load_bas if i not in self.delay_bas]
         self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA", "PSCO"]
-        self.problem_bas_trade = ["SCL"]
-        self.problem_bas_load = ["GRID", "SCL"]
+        self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP-EIA"]
+        self.problem_bas_load = ["GRID", "SCL", "SRP-EIA"]
+        self.problem_bas_load_forecast = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA",
+                                          "TEPC-EIA", "SC", "PSCO"]
 
     def tearDown(self):
         self.c = None
@@ -204,7 +206,6 @@ class TestEIAGenMix(TestEIA):
                 self.assertGreaterEqual(dp['timestamp'], start_at)
                 self.assertLessEqual(dp['timestamp'], end_at)
 
-        # return
         return data
 
     def _run_notimplemented_test(self, ba_name, **kwargs):
@@ -301,26 +302,22 @@ class TestEIALoad(TestEIA):
         for ba in self.load_bas:
             if ba in self.problem_bas_load:
                 continue
-            self.run_test(ba, start_at="20161212", end_at="20161222T04Z")
+            self._run_test(ba, start_at="20161212", end_at="20161222T04Z")
 
     def test_get_load_naive_end_at(self):
         for ba in self.load_bas:
             if ba in self.problem_bas_load:
                 continue
-            self.run_test(ba, start_at="20161212T04Z", end_at="20161222")
+            self._run_test(ba, start_at="20161212T04Z", end_at="20161222")
 
     def test_get_load_with_unsupported_ba_raises_valueerror(self):
-        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
-                                  'HGMA', 'SEPA', 'WWA', 'YAD']
-        for ba in load_not_supported_bas:
+        for ba in self.no_load_bas:
             with self.assertRaises(ValueError):
                 self._run_test(ba, market=self.MARKET_CHOICES.hourly)
 
     def test_forecast_all(self):
-        more_problem_bas = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA", "TEPC-EIA",
-                            "SC", "PSCO"]
         for ba in self.no_delay_bas:
-            if ba in more_problem_bas:
+            if ba in self.problem_bas_load_forecast:
                 continue
             if ba in self.problem_bas_load:
                 continue
@@ -459,7 +456,6 @@ class TestEIALoad(TestEIA):
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
 
-        # return
         return data
 
     def _run_null_response_test(self, ba_name, **kwargs):
@@ -497,10 +493,7 @@ class TestEIATrade(TestEIA):
     def test_date_range_no_delay(self):
         for ba in self.no_delay_bas:
             # basic test
-
-            problem_bas = ["GWA", "WWA"]
-            if ba in problem_bas:
-                print("skipping {bal}, fix this".format(bal=ba))
+            if ba in self.problem_bas_trade:
                 continue
             today = datetime.today().replace(tzinfo=pytz.utc)
             data = self._run_net_test(ba, start_at=today-timedelta(days=2),
@@ -549,14 +542,20 @@ class TestEIATrade(TestEIA):
 
     def test_get_trade_naive_start_at(self):
         for ba in self.us_bas:
+            if ba in self.problem_bas_trade:
+                continue
             self._run_net_test(ba, start_at="20161212", end_at="20161222T04Z")
 
     def test_get_trade_naive_end_at(self):
         for ba in self.us_bas:
+            if ba in self.problem_bas_trade:
+                continue
             self._run_net_test(ba, start_at="20161212T04Z", end_at="20161222")
 
     def test_get_trade_yesterday(self):
-        for ba in self.us_bas:
+        for ba in self.no_delay_bas:
+            if ba in self.problem_bas_trade:
+                continue
             self._run_net_test(ba, yesterday=True)
 
     def test_all_us_bas(self):
@@ -573,7 +572,7 @@ class TestEIATrade(TestEIA):
         # set up
         c = client_factory(ba_name)
         # get data
-        data = c.get_load(**kwargs)
+        data = c.get_trade(**kwargs)
 
         # test number
         if expect_data:
@@ -613,6 +612,7 @@ class TestEIATrade(TestEIA):
         return data
 
     # this is repeated- super it?
+    # remove this?
     def _run_net_test(self, ba_name, **kwargs):
         # set up
         c = client_factory(ba_name)
