@@ -16,7 +16,7 @@ To use, set the your EIA key as an environment variable:
 
 # Start here:
 # Then figure out how to deal with problem BAs more gracefully. Try/except?
-# More logging and error handling
+# More error handling would be good- try/except
 # PR!
 
 

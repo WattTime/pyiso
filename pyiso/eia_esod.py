@@ -4,10 +4,8 @@ from os import environ
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
 import pytz
+from pyiso import LOGGER
 
-
-# need to add log statements for errors, e.g
-# self.LOGGER.warn('No recent data found for BPA %s' % self.options)
 
 class EIACLIENT(BaseClient):
     """
@@ -32,11 +30,6 @@ class EIACLIENT(BaseClient):
     }
 
     FUEL_CHOICES = ['other']
-
-    # 'biogas', 'biomass', 'coal', 'geo', 'hydro',
-    #                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
-    #                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
-    #                 'solarth', 'thermal', 'wind', 'fossil', 'dual']
 
     def __init__(self, *args, **kwargs):
         super(EIACLIENT, self).__init__(*args, **kwargs)
@@ -67,6 +60,7 @@ class EIACLIENT(BaseClient):
             result_formatted = self.format_result(result_json)
             return result_formatted
         else:
+            LOGGER.error('No results for %s' % self.NAME)
             return []
 
     def get_load(self, latest=False, yesterday=False, start_at=False,
@@ -79,13 +73,13 @@ class EIACLIENT(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
             return result_formatted
         else:
+            LOGGER.error('No results for %s' % self.NAME)
             return []
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
@@ -98,13 +92,13 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
             return result_formatted
         else:
+            LOGGER.error('No results for %s' % self.NAME)
             return []
 
     def validate_options(self):
@@ -123,8 +117,10 @@ class EIACLIENT(BaseClient):
         if 'freq' not in self.options:
             self.options['freq'] = self.FREQUENCY_CHOICES.hourly
         if not self.options['start_at'] and self.options['end_at']:
+            LOGGER.error('No start_at date provided')
             raise ValueError('You must specify a start_at date.')
         elif self.options['start_at'] and not self.options['end_at']:
+            LOGGER.error('No end_at date provided')
             raise ValueError('You must specify an end_at date.')
 
     def handle_options(self, **kwargs):
@@ -182,16 +178,18 @@ class EIACLIENT(BaseClient):
         canada_mexico = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO',
                          'CFE', 'SPC']
 
-        # if self.options['end_at'] and self.options['bal_auth'] in delay_bas:
         if self.options['end_at'] and self.NAME in delay_bas:
             if self.options['end_at'] > two_days_ago:
+                LOGGER.error('No data for %s due to 2 day delay' % self.NAME)
                 raise ValueError('No data: 2 day delay for this BA.')
 
         if self.NAME in load_not_supported_bas:
             if self.options['data'] == 'load':
+                LOGGER.error('Load data not supported for %s' % self.NAME)
                 raise ValueError('Load data not supported for this BA.')
         if self.NAME in canada_mexico:
-            raise ValueError('Data not currently supported for non-US BAs')
+            LOGGER.error('Data not supported for %s' % self.NAME)
+            raise ValueError('Data not currently supported for Canada and Mexico')
 
     def set_url(self, type, text):
         # Handle -EIA string, added to BAs to distringuish BA data vs EIA data
@@ -209,6 +207,7 @@ class EIACLIENT(BaseClient):
 
         if self.options['data'] == 'gen':
             if self.options['forecast']:
+                LOGGER.error('Forecast generation data error for %s' % self.NAME)
                 raise ValueError('Forecast not supported for generation.')
             else:
                 self.set_url('series', '-ALL.NG.H')
@@ -219,6 +218,7 @@ class EIACLIENT(BaseClient):
                 self.set_url('series', '-ALL.D.H')
         elif self.options['data'] == 'trade':
             if self.options['forecast']:
+                LOGGER.error('Forecast trade data error for %s' % self.NAME)
                 raise ValueError('Forecast not supported for trade.')
             else:
                 self.set_url('series', '-ALL.TI.H')
@@ -295,7 +295,6 @@ class EIACLIENT(BaseClient):
         return formatted_list
 
     def _format_start_end(self, data):
-        # this should be cleaned up a bit
         formatted_sliced = []
         if 'gen' not in self.options['data']:
             formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
@@ -308,6 +307,7 @@ class EIACLIENT(BaseClient):
                 assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
                 formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
             except:
+                LOGGER.error('Generation data error for %s' % self.NAME)
                 raise ValueError('Generation data is available for the \
                                  previous and current day.', self.options)
         return formatted_sliced
@@ -317,14 +317,11 @@ class EIACLIENT(BaseClient):
         try:
             assert('series' in data)
         except:         # Handle throttling errors
-            raise ValueError('Query error, likely throttling:\
-            {req}'.format(req=data['request']))
+            LOGGER.error('Unable to format result for %s' % data['request'])
+            raise ValueError('Query error for %s:' % data['request'])
 
         market = self._set_market()
         data_type = self._set_data_type()
-
-        # print("all options: ", self.options)
-        # print("yesterday? ", self.options['yesterday'])
 
         data_formatted = []
         if self.options['latest']:
