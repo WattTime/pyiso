@@ -1,0 +1,118 @@
+{
+    "MorningReports": {
+        "MorningReport": [
+            {
+                "AddlCapAvailOp4ActMw": 0,
+                "AmsPeakLoadExpMw": 21110,
+                "BeginDate": "2017-01-30T00:00:00.000-05:00",
+                "CapAdditionsMw": 2027,
+                "CapRequiredMw": 20242,
+                "CityForecastDetail": [
+                    {
+                        "CityName": "Boston",
+                        "HighTemperature": 31,
+                        "WeatherConditions": "Moslty Cloudy",
+                        "WindDirSpeed": "NW-13"
+                    },
+                    {
+                        "CityName": "Hartford",
+                        "HighTemperature": 26,
+                        "WeatherConditions": "Mostly Clear",
+                        "WindDirSpeed": "NW-10"
+                    }
+                ],
+                "CreationDate": "2017-01-30T08:14:51.392-05:00",
+                "CsoMw": 30280,
+                "ExcessCommitMw": 1452,
+                "ExpActOp4Mw": 0,
+                "GenOutagesReductionMW": 2426,
+                "GeoMagDistIsoAction": "None",
+                "GeoMagDistOthCntrAction": "None",
+                "InterchangeDetail": [
+                    {
+                        "ExportLimitOutMw": 0,
+                        "ImportLimitInMw": -225,
+                        "ScheduledMw": -205,
+                        "TieName": "Highgate"
+                    },
+                    {
+                        "ExportLimitOutMw": 200,
+                        "ImportLimitInMw": -1000,
+                        "ScheduledMw": -490,
+                        "TieName": "NB"
+                    },
+                    {
+                        "ExportLimitOutMw": 1200,
+                        "ImportLimitInMw": -1400,
+                        "ScheduledMw": -981,
+                        "TieName": "NYISO AC"
+                    },
+                    {
+                        "ExportLimitOutMw": 330,
+                        "ImportLimitInMw": -346,
+                        "ScheduledMw": 215,
+                        "TieName": "NYISO CSC"
+                    },
+                    {
+                        "ExportLimitOutMw": 200,
+                        "ImportLimitInMw": -200,
+                        "ScheduledMw": -30,
+                        "TieName": "NYISO NNC"
+                    },
+                    {
+                        "ExportLimitOutMw": 1200,
+                        "ImportLimitInMw": -2000,
+                        "ScheduledMw": -1371,
+                        "TieName": "Phase 2"
+                    }
+                ],
+                "LargestFirstContMw": 1630,
+                "NetCapDeliveryMw": -2862,
+                "NonCommUnitsCapMw": 0,
+                "NyIsoSarAvail": "Y",
+                "PeakLoadTodayHour": "2017-01-30T19:00:00.000-05:00",
+                "PeakLoadTodayMw": 17600,
+                "PeakLoadYesterdayHour": "2017-01-29T19:00:00.000-05:00",
+                "PeakLoadYesterdayMw": 16074,
+                "ReplReserveRequiredMw": 180,
+                "ReportType": "Final",
+                "SurplusDeficiencyMw": 1632,
+                "TenMinReserveEstMw": 1956,
+                "TenMinReserveReqMw": 1956,
+                "ThirtyMinReserveEstMw": 2318,
+                "ThirtyMinReserveReqMw": 686,
+                "TieDelivery": [
+                    {
+                        "TieFlowMw": -205,
+                        "TieName": "Highgate"
+                    },
+                    {
+                        "TieFlowMw": -490,
+                        "TieName": "NB"
+                    },
+                    {
+                        "TieFlowMw": -981,
+                        "TieName": "NYISO AC"
+                    },
+                    {
+                        "TieFlowMw": 215,
+                        "TieName": "NYISO CSC"
+                    },
+                    {
+                        "TieFlowMw": -30,
+                        "TieName": "NYISO NNC"
+                    },
+                    {
+                        "TieFlowMw": -1371,
+                        "TieName": "Phase 2"
+                    }
+                ],
+                "TotAvailCapMw": 21874,
+                "TotalOperReserveReqMw": 2642,
+                "UncommittedAvailGenMw": 10869,
+                "UnitCommMinOrrCount": 0,
+                "UnitCommMinOrrMw": 0
+            }
+        ]
+    }
+}

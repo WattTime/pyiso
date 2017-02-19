@@ -5,7 +5,7 @@ pyiso
 [![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.png?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyiso.svg)](https://badge.fury.io/py/pyiso)
 
-pyiso provides Python client libraries for ISO and other power grid data sources.
+pyiso provides Python client libraries for [ISO](https://www.epsa.org/industry/primer/?fa=rto) and other power grid data sources.
 It powers the WattTime API (https://api.watttime.org/), among other things.
 
 Documentation: https://pyiso.readthedocs.io/
@@ -15,9 +15,9 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Changelog
 ---------
-* 0.3.16: Add EIA client.
+* 0.3.16: Implement ISONE get_morningreport and get_sevendayforecast
 * 0.3.15: Minor bugfixes to CAISO get_generation.
-* 0.3.14: Minor bugfixes to ISONE, PJM, and ERCOT.
+* 0.3.14: Minor bugfixes to ISONE, PJM, and ERCOT. 
 * 0.3.13: Major feature: generation mix in PJM (RTHR market only). Minor change: SSL handling in BPA.
 * 0.3.12: Bugfix: fixed EU authentication, thanks @frgtn!
 * 0.3.11: Changes: `timeout_seconds` kwarg to client constructor; do not remember options from one `get_*` call to the next.
