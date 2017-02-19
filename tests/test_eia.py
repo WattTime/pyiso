@@ -15,6 +15,7 @@ To use, set the your EIA key as an environment variable:
 """
 
 # Start here:
+# Re-run and fix tests- logging has created or exposed issues
 # Then figure out how to deal with problem BAs more gracefully. Try/except?
 # More error handling would be good- try/except
 # PR!
@@ -101,13 +102,17 @@ class TestEIAGenMix(TestEIA):
 
     def test_all_us_bas(self):
         for ba in self.us_bas:
+            if ba in self.problem_bas_gen:
+                continue
             data = self._run_test(ba, market=self.MARKET_CHOICES.hourly)
             self.assertGreater(len(data), 1)
 
     def test_all_latest(self):
         for ba in self.us_bas:
-            data = self._run_test(ba, latest=True)
-            self.assertGreater(len(data), 1)
+            if ba in self.problem_bas_gen:
+                continue
+            data = self._test_latest(ba)
+            self.assertEqual(len(data), 1)
 
     def test_non_us_bas_raise_valueerror(self):
         for ba in self.can_mex:
@@ -137,8 +142,8 @@ class TestEIAGenMix(TestEIA):
 
         # test flags
         for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
         # test fuel names
         fuels = set([d['fuel_name'] for d in data])
@@ -176,7 +181,7 @@ class TestEIAGenMix(TestEIA):
         data = c.get_generation(**kwargs)
 
         # test number
-        self.assertGreater(len(data), 1)
+        self.assertGreaterEqual(len(data), 1)
 
         # test contents
         for dp in data:
