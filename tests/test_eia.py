@@ -10,13 +10,10 @@ import pytz
 """Test EIA client.
 To use, set the your EIA key as an environment variable:
     export EIA_KEY=my-eia-api-key
-"""
 
-# Start here:
-# Re-run and fix tests- logging has created or exposed issues
-# Then figure out how to deal with problem BAs more gracefully. Try/except?
-# More error handling would be good- try/except
-# PR!
+Run tests as follows:
+    python setup.py test -s tests.test_eia.TestEIA.test_get_generation
+"""
 
 
 class TestEIA(TestCase):
@@ -643,10 +640,6 @@ class TestEIATrade(TestEIA):
             data = c.get_trade(**kwargs)
 
             self.assertEqual(data, [])
-
-# python setup.py test -s tests.test_eia.TestEIA.test_get_generation
-# python setup.py test -s tests.test_load.TestEIALoad.test_date_range_some
-# source venv/bin/activate
 
 if __name__ == '__main__':
     unittest.main()

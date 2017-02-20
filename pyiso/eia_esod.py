@@ -54,7 +54,6 @@ class EIACLIENT(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.NAME)
         result = self.request(self.url)
         if result is not None:
             result_json = json.loads(result.text)
@@ -317,7 +316,7 @@ class EIACLIENT(BaseClient):
         """Output EIA API results in pyiso format"""
         try:
             assert('series' in data)
-        except:         # Handle throttling errors
+        except:
             LOGGER.error('Unable to format result for %s' % data['request'])
             raise ValueError('Query error for %s:' % data['request'])
 
