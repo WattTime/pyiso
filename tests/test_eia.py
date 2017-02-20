@@ -1,10 +1,8 @@
 import unittest
 from unittest import TestCase
 from pyiso import client_factory
-from pyiso.base import BaseClient
 from pyiso.eia_esod import EIACLIENT
 from datetime import datetime, timedelta
-from dateutil.parser import parse as dateutil_parse
 from pyiso import BALANCING_AUTHORITIES
 import mock
 import pytz
@@ -124,14 +122,6 @@ class TestEIAGenMix(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_test(ba, forecast=True)
 
-    def test_get_generation_naive_start_at(self):
-        for ba in self.us_bas:
-            self._run_test(ba, start_at="20161212", end_at="20161222T04Z")
-
-    def test_get_generation_naive_end_at(self):
-        for ba in self.us_bas:
-            self._run_test(ba, start_at="20161212T04Z", end_at="20161222")
-
     def _test_latest(self, ba):
         # basic test
         data = self._run_test(ba, latest=True)
@@ -139,17 +129,7 @@ class TestEIAGenMix(TestEIA):
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
-
-        # test flags
-        for dp in data:
-            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
-
-        # test fuel names
-        fuels = set([d['fuel_name'] for d in data])
-        expected_fuels = ['other']
-        for expfuel in expected_fuels:
-            self.assertIn(expfuel, fuels)
+        return data
 
     def _test_date_range(self, ba):
         # basic test
@@ -211,6 +191,7 @@ class TestEIAGenMix(TestEIA):
                 self.assertGreaterEqual(dp['timestamp'], start_at)
                 self.assertLessEqual(dp['timestamp'], end_at)
 
+        # return
         return data
 
     def _run_notimplemented_test(self, ba_name, **kwargs):
