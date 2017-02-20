@@ -10,6 +10,7 @@ from time import sleep
 from pyiso import LOGGER
 from pytz import AmbiguousTimeError
 import ssl
+import certifi
 
 
 try:
@@ -231,9 +232,8 @@ class BaseClient(object):
 
     def fetch_xls(self, url):
         # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
-        # context = ssl._create_unverified_context()
-        # socket = urlopen(url, context=context)
-        socket = urlopen(url)
+        context = ssl.create_default_context(cafile=certifi.where())
+        socket = urlopen(url, context=context)
         xd = pd.ExcelFile(socket)
         return xd
 
