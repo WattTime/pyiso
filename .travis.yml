@@ -2,8 +2,6 @@ language: python
 python:
 - '2.7'
 - '3.4'
-env:
-  global:
 install:
 
      # Install miniconda for python 2.7
