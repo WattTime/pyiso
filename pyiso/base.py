@@ -233,7 +233,7 @@ class BaseClient(object):
         # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
         # context = ssl._create_unverified_context()
         # socket = urlopen(url, context=context)
-        socket = urlopne(url)
+        socket = urlopen(url)
         xd = pd.ExcelFile(socket)
         return xd
 
