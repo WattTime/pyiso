@@ -231,8 +231,9 @@ class BaseClient(object):
 
     def fetch_xls(self, url):
         # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
-        context = ssl._create_unverified_context()
-        socket = urlopen(url, context=context)
+        # context = ssl._create_unverified_context()
+        # socket = urlopen(url, context=context)
+        socket = urlopne(url)
         xd = pd.ExcelFile(socket)
         return xd
 
@@ -256,7 +257,7 @@ class BaseClient(object):
 
         # carry out request
         try:
-            response = getattr(session, mode)(url, verify=False,
+            response = getattr(session, mode)(url, verify=True,
                                               timeout=self.timeout_seconds,
                                               **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
