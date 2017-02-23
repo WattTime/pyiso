@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 from pyiso import client_factory
-from pyiso.eia_esod import EIACLIENT
+from pyiso.eia_esod import EIAClient
 from datetime import datetime, timedelta
 from pyiso import BALANCING_AUTHORITIES
 import mock
@@ -19,7 +19,7 @@ Run tests as follows:
 class TestEIA(TestCase):
     def setUp(self):
         # bc = BaseClient()
-        c = EIACLIENT()
+        c = EIAClient()
         self.MARKET_CHOICES = c.MARKET_CHOICES
         self.FREQUENCY_CHOICES = c.FREQUENCY_CHOICES
         self.FUEL_CHOICES = c.FUEL_CHOICES
@@ -34,9 +34,9 @@ class TestEIA(TestCase):
         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.load_bas if i not in self.delay_bas]
-        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA", "PSCO"]
-        self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP-EIA"]
-        self.problem_bas_load = ["GRID", "SCL", "SRP-EIA"]
+        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA", "PSCO", "JEA"]
+        self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP-EIA", "JEA"]
+        self.problem_bas_load = ["GRID", "SCL", "SRP-EIA", "JEA"]
         self.problem_bas_load_forecast = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA",
                                           "TEPC-EIA", "SC", "PSCO"]
 
@@ -281,18 +281,6 @@ class TestEIALoad(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_test(ba, start_at=two_days_ago, end_at=today)
 
-    def test_get_load_naive_start_at(self):
-        for ba in self.load_bas:
-            if ba in self.problem_bas_load:
-                continue
-            self._run_test(ba, start_at="20161212", end_at="20161222T04Z")
-
-    def test_get_load_naive_end_at(self):
-        for ba in self.load_bas:
-            if ba in self.problem_bas_load:
-                continue
-            self._run_test(ba, start_at="20161212T04Z", end_at="20161222")
-
     def test_get_load_with_unsupported_ba_raises_valueerror(self):
         for ba in self.no_load_bas:
             with self.assertRaises(ValueError):
@@ -454,7 +442,7 @@ class TestEIALoad(TestEIA):
 
 
 class TestEIATrade(TestEIA):
-
+    # start here- fix Trade tests
     def test_null_response(self):
         self._run_null_response_test(self.us_bas[0], latest=True)
 
@@ -512,6 +500,8 @@ class TestEIATrade(TestEIA):
     def test_forecast_raises_valueerror(self):
         """Ensure get trade with forecast raises an error."""
         for ba in self.no_delay_bas:
+            if ba in self.problem_bas_trade:
+                continue
             with self.assertRaises(ValueError):
                 self._run_net_test(ba, forecast=True)
 
@@ -522,18 +512,6 @@ class TestEIATrade(TestEIA):
             with self.assertRaises(ValueError):
                 self._run_net_test(ba, start_at=today+timedelta(days=1),
                                    end_at=today+timedelta(days=2))
-
-    def test_get_trade_naive_start_at(self):
-        for ba in self.us_bas:
-            if ba in self.problem_bas_trade:
-                continue
-            self._run_net_test(ba, start_at="20161212", end_at="20161222T04Z")
-
-    def test_get_trade_naive_end_at(self):
-        for ba in self.us_bas:
-            if ba in self.problem_bas_trade:
-                continue
-            self._run_net_test(ba, start_at="20161212T04Z", end_at="20161222")
 
     def test_get_trade_yesterday(self):
         for ba in self.no_delay_bas:

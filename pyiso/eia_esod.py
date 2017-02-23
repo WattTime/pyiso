@@ -7,7 +7,7 @@ import pytz
 from pyiso import LOGGER
 
 
-class EIACLIENT(BaseClient):
+class EIAClient(BaseClient):
     """
     Interface to EIA API.
 
@@ -32,7 +32,7 @@ class EIACLIENT(BaseClient):
     FUEL_CHOICES = ['other']
 
     def __init__(self, *args, **kwargs):
-        super(EIACLIENT, self).__init__(*args, **kwargs)
+        super(EIAClient, self).__init__(*args, **kwargs)
         try:
             self.auth = environ['EIA_KEY']
         except KeyError:
@@ -127,45 +127,66 @@ class EIACLIENT(BaseClient):
         """
         Process and store keyword argument options.
         """
-        super(EIACLIENT, self).handle_options(**kwargs)
+        super(EIAClient, self).handle_options(**kwargs)
         self.options = kwargs
         self.validate_options()
 
-        """Clean up time values (same as base.py)"""
-        if self.options.get('start_at', None) and self.options.get('end_at', None):
-            assert self.options['start_at'] < self.options['end_at']
-            self.options['start_at'] = self.utcify(self.options['start_at'])
-            self.options['end_at'] = self.utcify(self.options['end_at'])
-            self.options['sliceable'] = True
-            self.options['latest'] = False
-
-            # force forecast to be True if end_at is in the future
-            if self.options['end_at'] > pytz.utc.localize(datetime.utcnow()):
-                self.options['forecast'] = True
+    # BEGIN PASTE
+    # ensure market and freq are set
+        if 'market' not in self.options:
+            if self.options['forecast']:
+                self.options['market'] = self.MARKET_CHOICES.dam
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
+                self.options['market'] = self.MARKET_CHOICES.dam
             else:
-                self.options['forecast'] = False
+                self.options['market'] = self.MARKET_CHOICES.fivemin
+        if 'freq' not in self.options:
+            if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            else:
+                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
 
-        # set start_at and end_at for yesterday in local time
-        elif self.options.get('yesterday', None):
-            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
-            self.options['end_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            self.options['start_at'] = self.options['end_at'] - timedelta(days=1)
-            self.options['sliceable'] = True
-            self.options['latest'] = False
-            self.options['forecast'] = False
+    # END PASTE
 
-        # set start_at and end_at for today + tomorrow in local time
-        elif self.options.get('forecast', None):
-            local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
-            self.options['start_at'] = local_now.replace(microsecond=0)
-            self.options['end_at'] = self.options['start_at'] + timedelta(days=2)
-            self.options['sliceable'] = True
-            self.options['latest'] = False
-            self.options['forecast'] = True
 
-        else:
-            self.options['sliceable'] = False
-            self.options['forecast'] = False
+        # START EXCESSIVE HANDLE OPTIONS:
+        # # """Clean up time values (same as base.py)"""
+        # if self.options.get('start_at', None) and self.options.get('end_at', None):
+        #     assert self.options['start_at'] < self.options['end_at']
+        #     self.options['start_at'] = self.utcify(self.options['start_at'])
+        #     self.options['end_at'] = self.utcify(self.options['end_at'])
+        #     self.options['sliceable'] = True
+        #     self.options['latest'] = False
+        #
+        #     # force forecast to be True if end_at is in the future
+        #     if self.options['end_at'] > pytz.utc.localize(datetime.utcnow()):
+        #         self.options['forecast'] = True
+        #     else:
+        #         self.options['forecast'] = False
+        #
+        # # set start_at and end_at for yesterday in local time
+        # elif self.options.get('yesterday', None):
+        #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+        #     self.options['end_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        #     self.options['start_at'] = self.options['end_at'] - timedelta(days=1)
+        #     self.options['sliceable'] = True
+        #     self.options['latest'] = False
+        #     self.options['forecast'] = False
+        #
+        # # set start_at and end_at for today + tomorrow in local time
+        # elif self.options.get('forecast', None):
+        #     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
+        #     self.options['start_at'] = local_now.replace(microsecond=0)
+        #     self.options['end_at'] = self.options['start_at'] + timedelta(days=2)
+        #     self.options['sliceable'] = True
+        #     self.options['latest'] = False
+        #     self.options['forecast'] = True
+        #
+        # else:
+        #     self.options['sliceable'] = False
+        #     self.options['forecast'] = False
 
     def handle_ba_limitations(self):
         """Handle BA limitations"""
@@ -177,10 +198,17 @@ class EIACLIENT(BaseClient):
                      'TAL', 'TIDC', 'TPWR']
         canada_mexico = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO',
                          'CFE', 'SPC']
-
-        if self.options['end_at'] and self.NAME in delay_bas:
-            if self.options['end_at'] > two_days_ago:
+        print(self.NAME)
+        print(self.options)
+        # print(self.options['end_at'] > two_days_ago)
+        if self.NAME in delay_bas:
+            if self.options['end_at'] and self.options['end_at'] > two_days_ago:
                 LOGGER.error('No data for %s due to 2 day delay' % self.NAME)
+                raise ValueError('No data: 2 day delay for this BA.')
+            elif self.options['yesterday']:
+                LOGGER.error('No data for %s due to 2 day delay' % self.NAME)
+                raise ValueError('No data: 2 day delay for this BA.')
+            elif self.options['forecast']:
                 raise ValueError('No data: 2 day delay for this BA.')
 
         if self.NAME in load_not_supported_bas:
@@ -207,7 +235,7 @@ class EIACLIENT(BaseClient):
 
         if self.options['data'] == 'gen':
             if self.options['forecast']:
-                LOGGER.error('Forecast generation data error for %s' % self.NAME)
+                LOGGER.error('Forecast not supported for generation.')
                 raise ValueError('Forecast not supported for generation.')
             else:
                 self.set_url('series', '-ALL.NG.H')
@@ -218,7 +246,7 @@ class EIACLIENT(BaseClient):
                 self.set_url('series', '-ALL.D.H')
         elif self.options['data'] == 'trade':
             if self.options['forecast']:
-                LOGGER.error('Forecast trade data error for %s' % self.NAME)
+                LOGGER.error('Forecast not supported for generation.')
                 raise ValueError('Forecast not supported for trade.')
             else:
                 self.set_url('series', '-ALL.TI.H')
