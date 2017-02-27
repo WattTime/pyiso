@@ -104,13 +104,16 @@ class EIAClient(BaseClient):
     # start here- trim this/further incorporate with handle_options
     def validate_options(self):
         """Validate options"""
+        if self.options.get('start_at', None) and self.options.get('end_at', None):
+            assert self.options['start_at'] < self.options['end_at']
+            self.options['start_at'] = self.utcify(self.options['start_at'])
+            self.options['end_at'] = self.utcify(self.options['end_at'])
         if 'latest' not in self.options:
             self.options['latest'] = False
         if 'forecast' not in self.options:
             # force forecast to be True if end_at is in the future
-            if self.options['start_at']:
-                if dateutil_parse(self.options['end_at']) > datetime.utcnow():
-                # if self.options['end_at'] > datetime.utcnow():
+            if self.options['end_at']:
+                if self.options['end_at'] > self.utcify(datetime.utcnow()):
                     self.options['forecast'] = True
                 else:
                     self.options['forecast'] = False
@@ -131,10 +134,6 @@ class EIAClient(BaseClient):
         elif self.options['start_at'] and not self.options['end_at']:
             LOGGER.error('No end_at date provided')
             raise ValueError('You must specify an end_at date.')
-        if self.options.get('start_at', None) and self.options.get('end_at', None):
-            assert self.options['start_at'] < self.options['end_at']
-            self.options['start_at'] = self.utcify(self.options['start_at'])
-            self.options['end_at'] = self.utcify(self.options['end_at'])
 
     def handle_options(self, **kwargs):
         """
