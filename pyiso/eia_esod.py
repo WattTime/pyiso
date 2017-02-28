@@ -101,47 +101,11 @@ class EIAClient(BaseClient):
             LOGGER.error('No results for %s' % self.NAME)
             return []
 
-    # start here- trim this/further incorporate with handle_options
-    def validate_options(self):
-        """Validate options"""
-        if self.options.get('start_at', None) and self.options.get('end_at', None):
-            assert self.options['start_at'] < self.options['end_at']
-            self.options['start_at'] = self.utcify(self.options['start_at'])
-            self.options['end_at'] = self.utcify(self.options['end_at'])
-        if 'latest' not in self.options:
-            self.options['latest'] = False
-        if 'forecast' not in self.options:
-            # force forecast to be True if end_at is in the future
-            if self.options['end_at']:
-                if self.options['end_at'] > self.utcify(datetime.utcnow()):
-                    self.options['forecast'] = True
-                else:
-                    self.options['forecast'] = False
-            else:
-                self.options['forecast'] = False
-        if 'yesterday' not in self.options:
-            self.options['yesterday'] = False
-        if 'market' not in self.options:
-            if self.options['forecast']:
-                self.options['market'] = self.MARKET_CHOICES.dam
-            else:
-                self.options['market'] = self.MARKET_CHOICES.hourly
-        if 'freq' not in self.options:
-            self.options['freq'] = self.FREQUENCY_CHOICES.hourly
-        if not self.options['start_at'] and self.options['end_at']:
-            LOGGER.error('No start_at date provided')
-            raise ValueError('You must specify a start_at date.')
-        elif self.options['start_at'] and not self.options['end_at']:
-            LOGGER.error('No end_at date provided')
-            raise ValueError('You must specify an end_at date.')
-
     def handle_options(self, **kwargs):
         """
         Process and store keyword argument options.
         """
         super(EIAClient, self).handle_options(**kwargs)
-        self.options = kwargs
-        self.validate_options()
 
         if 'market' not in self.options:
             if self.options['forecast']:
@@ -149,14 +113,16 @@ class EIAClient(BaseClient):
             elif self.options['sliceable'] and self.options['data'] == 'gen':
                 self.options['market'] = self.MARKET_CHOICES.dam
             else:
-                self.options['market'] = self.MARKET_CHOICES.fivemin
+                self.options['market'] = self.MARKET_CHOICES.hourly
         if 'freq' not in self.options:
             if self.options['forecast']:
                 self.options['freq'] = self.FREQUENCY_CHOICES.hourly
             elif self.options['sliceable'] and self.options['data'] == 'gen':
                 self.options['freq'] = self.FREQUENCY_CHOICES.hourly
             else:
-                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+        if 'yesterday' not in self.options:
+            self.options['yesterday'] = False
 
     def handle_ba_limitations(self):
         """Handle BA limitations"""
