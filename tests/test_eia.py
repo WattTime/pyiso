@@ -24,30 +24,33 @@ class TestEIA(TestCase):
         self.MARKET_CHOICES = c.MARKET_CHOICES
         self.FREQUENCY_CHOICES = c.FREQUENCY_CHOICES
         self.FUEL_CHOICES = c.FUEL_CHOICES
-        self.BA_CHOICES = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'eia_esod']
+
+        self.BA_CHOICES = c.EIA_BAs
         self.can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE',
                         'SPC']
         self.us_bas = [i for i in self.BA_CHOICES if i not in self.can_mex]
-        self.no_load_bas = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-                            'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+        self.no_load_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                            'HGMA', 'SEPA', 'WWA', 'YAD']
         self.load_bas = [i for i in self.us_bas if i not in self.no_load_bas]
         self.delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.load_bas if i not in self.delay_bas]
-        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP-EIA", "PSCO", "JEA", "ISNE"]
-        self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP-EIA", "JEA", "ISNE"]
-        self.problem_bas_load = ["GRID", "SCL", "SRP-EIA", "JEA"]
-        self.problem_bas_load_forecast = ["SEC", "OVEC", "MISO-EIA", "SRP-EIA",
-                                          "TEPC-EIA", "SC", "PSCO"]
+        self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP", "PSCO", "JEA",
+                                "ISNE"]
+        self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP", "JEA",
+                                  "ISNE"]
+        self.problem_bas_load = ["GRID", "SCL", "SRP", "JEA", "CPLE", "CPLW",
+                                 "DUK"]
+        self.problem_bas_load_forecast = ["SEC", "OVEC", "MISO", "SRP",
+                                          "TEPC", "SC", "PSCO"]
 
     def tearDown(self):
         self.c = None
 
     def _run_test(self, ba_name, data_type, **kwargs):
-        # set up
-        c = client_factory(ba_name)
+        c = client_factory("EIA")
+        c.set_ba(ba_name)         # set BA name
         # get data
-
         if data_type == "gen":
             data = c.get_generation(**kwargs)
             data_key = 'gen_MW'
@@ -105,13 +108,16 @@ class TestEIA(TestCase):
         timestamps = [d['timestamp'] for d in data]
         if c.options["latest"]:
             self.assertEqual(len(set(timestamps)), 1)
+        if c.options['forecast']:
+            self.assertGreaterEqual(len(set(timestamps)), 1)
         else:
             self.assertGreater(len(set(timestamps)), 1)
 
         return data
 
     def _run_null_response_test(self, ba_name, data_type, **kwargs):
-        c = client_factory(ba_name)
+        c = client_factory("EIA")
+        c.set_ba(ba_name)         # set BA name
 
         # mock request
         with mock.patch.object(c, 'request') as mock_request:
@@ -390,7 +396,7 @@ class TestEIATrade(TestEIA):
     def test_all_us_bas(self):
         for ba in self.us_bas:
             self._run_test(ba, data_type="trade",
-                                  market=self.MARKET_CHOICES.hourly)
+                           market=self.MARKET_CHOICES.hourly)
 
     def test_non_us_bas_raise_valueerror(self):
         for ba in self.can_mex:

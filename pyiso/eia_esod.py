@@ -31,7 +31,22 @@ class EIAClient(BaseClient):
 
     FUEL_CHOICES = ['other']
 
+    EIA_BAs = ['AEC', 'AECI', 'AESO', 'AVA', 'AZPS', 'BANC', 'BCTC',
+               'BPAT', 'CISO', 'CFE', 'CHPD', 'CISO', 'CPLE', 'CPLW',
+               'DEAA', 'DOPD', 'DUK', 'EEI', 'EPE', 'ERCO', 'FMPP',
+               'FPC', 'FPL', 'GCPD', 'GRID', 'GRIF', 'GRMA', 'GVL',
+               'GWA', 'HGMA', 'HQT', 'HST', 'IESO', 'IID', 'IPCO',
+               'ISNE', 'JEA', 'LDWP', 'LGEE', 'MHEB', 'MISO', 'NBSO',
+               'NEVP', 'NSB', 'NWMT', 'NYIS', 'OVEC', 'PACE', 'PACW',
+               'PGE', 'PJM', 'PNM', 'PSCO', 'PSEI', 'SC', 'SCEG',
+               'SCL', 'SEC', 'SEPA', 'SOCO', 'SPA', 'SPC', 'SRP',
+               'SWPP', 'TAL', 'TEC', 'TEPC', 'TIDC', 'TPWR', 'TVA',
+               'WACM', 'WALC', 'WAUW', 'WWA', 'YAD']
+
     def __init__(self, *args, **kwargs):
+        # start here- add method to set BA
+        # would need to add ba as a parameter
+
         super(EIAClient, self).__init__(*args, **kwargs)
         try:
             self.auth = environ['EIA_KEY']
@@ -44,12 +59,20 @@ class EIAClient(BaseClient):
         self.series_url = '{url}series/?api_key={key}&series_id=EBA.'.format(
             url=self.base_url, key=self.auth)
 
+    def set_ba(self, bal_auth):
+        if bal_auth in self.EIA_BAs:
+            self.BA = bal_auth
+        else:
+            LOGGER.error('Unknown BA: %s' % bal_auth)
+            raise ValueError('Unknown BA: %s' % bal_auth)
+
     def get_generation(self, latest=False, yesterday=False,
                        start_at=False, end_at=False, **kwargs):
         """
         Scrape and parse generation fuel mix data.
         Note: Generation may be quite low for HST and NSB BAs.
         """
+
         self.handle_options(data='gen', latest=latest, yesterday=yesterday,
                             start_at=start_at, end_at=end_at, **kwargs)
         self.handle_ba_limitations()
@@ -60,7 +83,7 @@ class EIAClient(BaseClient):
             result_formatted = self.format_result(result_json)
             return result_formatted
         else:
-            LOGGER.error('No results for %s' % self.NAME)
+            LOGGER.error('No results for %s' % self.BA)
             return []
 
     def get_load(self, latest=False, yesterday=False, start_at=False,
@@ -73,13 +96,16 @@ class EIAClient(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
+        print(self.BA)
         result = self.request(self.url)
+        # print(result.text)
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
+            print(result_formatted)
             return result_formatted
         else:
-            LOGGER.error('No results for %s' % self.NAME)
+            LOGGER.error('No results for %s' % self.BA)
             return []
 
     def get_trade(self, latest=False, yesterday=False, start_at=False,
@@ -98,7 +124,7 @@ class EIAClient(BaseClient):
             result_formatted = self.format_result(result_json)
             return result_formatted
         else:
-            LOGGER.error('No results for %s' % self.NAME)
+            LOGGER.error('No results for %s' % self.BA)
             return []
 
     def handle_options(self, **kwargs):
@@ -106,6 +132,10 @@ class EIAClient(BaseClient):
         Process and store keyword argument options.
         """
         super(EIAClient, self).handle_options(**kwargs)
+
+        if not hasattr(self, 'BA'):
+            LOGGER.error('Balancing authority not set.')
+            raise ValueError('Balancing authority not set.')
 
         if 'market' not in self.options:
             if self.options['forecast']:
@@ -128,44 +158,37 @@ class EIAClient(BaseClient):
         """Handle BA limitations"""
         today = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
         two_days_ago = today - timedelta(days=2)
-        load_not_supported_bas = ['DEAA-EIA', 'EEI', 'GRIF-EIA', 'GRMA', 'GWA',
-                                  'HGMA-EIA', 'SEPA', 'WWA', 'YAD']
+        load_not_supported_bas = ['DEAA', 'EEI', 'GRIF', 'GRMA', 'GWA',
+                                  'HGMA', 'SEPA', 'WWA', 'YAD']
         delay_bas = ['AEC', 'DOPD', 'GVL', 'HST', 'NSB', 'PGE', 'SCL',
                      'TAL', 'TIDC', 'TPWR']
         canada_mexico = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO',
                          'CFE', 'SPC']
-        if self.NAME in delay_bas:
+        if self.BA in delay_bas:
             if self.options['end_at'] and self.options['end_at'] > two_days_ago:
-                LOGGER.error('No data for %s due to 2 day delay' % self.NAME)
+                LOGGER.error('No data for %s due to 2 day delay' % self.BA)
                 raise ValueError('No data: 2 day delay for this BA.')
             elif self.options['yesterday']:
-                LOGGER.error('No data for %s due to 2 day delay' % self.NAME)
+                LOGGER.error('No data for %s due to 2 day delay' % self.BA)
                 raise ValueError('No data: 2 day delay for this BA.')
             elif self.options['forecast']:
                 raise ValueError('No data: 2 day delay for this BA.')
 
-        if self.NAME in load_not_supported_bas:
+        if self.BA in load_not_supported_bas:
             if self.options['data'] == 'load':
-                LOGGER.error('Load data not supported for %s' % self.NAME)
+                LOGGER.error('Load data not supported for %s' % self.BA)
                 raise ValueError('Load data not supported for this BA.')
-        if self.NAME in canada_mexico:
-            LOGGER.error('Data not supported for %s' % self.NAME)
+        if self.BA in canada_mexico:
+            LOGGER.error('Data not supported for %s' % self.BA)
             raise ValueError('Data not currently supported for Canada and Mexico')
 
     def set_url(self, type, text):
-        # Handle -EIA string, added to BAs to distringuish BA data vs EIA data
-        if "-EIA" in self.NAME:
-            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                                  ba=self.NAME.replace("-EIA", ""),
-                                                  abbrev=text)
-        else:
-            self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                                  ba=self.NAME,
-                                                  abbrev=text)
+        self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
+                                              ba=self.BA,
+                                              abbrev=text)
 
     def format_url(self):
         """Set EIA API URL based on options"""
-
         if self.options['data'] == 'gen':
             if self.options['forecast']:
                 LOGGER.error('Forecast not supported for generation.')
@@ -220,7 +243,7 @@ class EIAClient(BaseClient):
 
     def _format_list(self, data, timestamp, d_type, mkt):
         pyiso_format = {
-                        'ba_name': self.NAME,
+                        'ba_name': self.BA,
                         'timestamp': timestamp,
                         'freq': self.options['freq'],
                         d_type: data,
@@ -274,7 +297,7 @@ class EIAClient(BaseClient):
                 assert ((self.options['start_at'] >= yesterday) and (self.options['end_at'] <= tomorrow))
                 formatted_sliced = [i for i in data if i['timestamp'] >= self.options['start_at'] and i['timestamp'] <= self.options['end_at']]
             except:
-                LOGGER.error('Generation data error for %s' % self.NAME)
+                LOGGER.error('Generation data error for %s' % self.BA)
                 raise ValueError('Generation data is available for the \
                                  previous and current day.', self.options)
         return formatted_sliced
