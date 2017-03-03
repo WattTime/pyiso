@@ -18,7 +18,6 @@ Run tests as follows:
 
 class TestEIA(TestCase):
     def setUp(self):
-        # bc = BaseClient()
         c = EIAClient()
         self.longMessage = True
         self.MARKET_CHOICES = c.MARKET_CHOICES
