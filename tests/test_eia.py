@@ -3,7 +3,6 @@ from unittest import TestCase
 from pyiso import client_factory
 from pyiso.eia_esod import EIAClient
 from datetime import datetime, timedelta
-from pyiso import BALANCING_AUTHORITIES
 import mock
 import pytz
 
@@ -35,9 +34,9 @@ class TestEIA(TestCase):
                           'TAL', 'TIDC', 'TPWR']
         self.no_delay_bas = [i for i in self.load_bas if i not in self.delay_bas]
         self.problem_bas_gen = ["WWA", "SEPA", "GWA", "SRP", "PSCO", "JEA",
-                                "ISNE"]
+                                "BPAT"]
         self.problem_bas_trade = ["WWA", "GWA", "SCL", "SRP", "JEA",
-                                  "ISNE"]
+                                  "BPAT"]
         self.problem_bas_load = ["GRID", "SCL", "SRP", "JEA", "CPLE", "CPLW",
                                  "DUK"]
         self.problem_bas_load_forecast = ["SEC", "OVEC", "MISO", "SRP",
@@ -84,11 +83,15 @@ class TestEIA(TestCase):
                           msg='BA is %s' % ba_name)
 
             if data_type == "load" and c.options["forecast"]:
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.dam)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.dam)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.dam,
+                                 msg='BA is %s' % ba_name)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.dam,
+                                 msg='BA is %s' % ba_name)
             else:
-                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
-                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+                self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly,
+                                 msg='BA is %s' % ba_name)
+                self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly,
+                                 msg='BA is %s' % ba_name)
 
             # test for numeric value
             self.assertGreaterEqual(dp[data_key]+1, dp[data_key],
@@ -106,11 +109,14 @@ class TestEIA(TestCase):
 
         timestamps = [d['timestamp'] for d in data]
         if c.options["latest"]:
-            self.assertEqual(len(set(timestamps)), 1)
-        if c.options['forecast']:
-            self.assertGreaterEqual(len(set(timestamps)), 1)
+            self.assertEqual(len(set(timestamps)), 1,
+                             msg='BA is %s' % ba_name)
+        elif c.options['forecast']:
+            self.assertGreaterEqual(len(set(timestamps)), 1,
+                                    msg='BA is %s' % ba_name)
         else:
-            self.assertGreater(len(set(timestamps)), 1)
+            self.assertGreater(len(set(timestamps)), 1,
+                               msg='BA is %s' % ba_name)
 
         return data
 
@@ -175,7 +181,7 @@ class TestEIAGenMix(TestEIA):
             self._run_test(ba, data_type="gen",
                            market=self.MARKET_CHOICES.hourly)
 
-    def test_all_latest(self):
+    def test_latest_all(self):
         for ba in self.us_bas:
             if ba in self.problem_bas_gen:
                 continue

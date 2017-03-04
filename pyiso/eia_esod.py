@@ -96,13 +96,10 @@ class EIAClient(BaseClient):
                             end_at=end_at, **kwargs)
         self.handle_ba_limitations()
         self.format_url()
-        print(self.BA)
         result = self.request(self.url)
-        # print(result.text)
         if result is not None:
             result_json = json.loads(result.text)
             result_formatted = self.format_result(result_json)
-            print(result_formatted)
             return result_formatted
         else:
             LOGGER.error('No results for %s' % self.BA)
