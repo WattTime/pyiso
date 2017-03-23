@@ -42,6 +42,7 @@ class PJMClient(BaseClient):
         'Other': 'other',
         'Multiple Fuels': 'thermal',
         'Hydro': 'hydro',
+        'Black Liquor': 'other', # Is this the right mapping? What about 'thermal'? 'other'?
     }
 
     def time_as_of(self, content):
@@ -464,6 +465,7 @@ class PJMClient(BaseClient):
 
         # parse data
         data = []
+
         for raw_dp in raw_data['data']:
             dp = {
                 'timestamp': ts,
