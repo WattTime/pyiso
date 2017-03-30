@@ -51,6 +51,12 @@ To make a release, run these commands (replacing 0.x.y with the correct version 
    git push origin master --tags
    python setup.py sdist upload
 
+Releasing via twine:
+
+.. code-block:: bash
+
+   python setup.py sdist
+   twine upload dist/pyiso-VERSION.tar.gz
 
 Legal things
 ---------------
