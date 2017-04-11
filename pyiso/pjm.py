@@ -486,6 +486,7 @@ class PJMClient(BaseClient):
 
         # fetch and parse
         soup = self.fetch_markets_operations_soup()
+
         if soup:
             data = self.parse_realtime_genmix(soup)
         else:
