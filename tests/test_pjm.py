@@ -159,7 +159,9 @@ class TestPJM(TestCase):
         soup = self.c.fetch_markets_operations_soup()
         ts = self.c.parse_date_from_markets_operations(soup)
         td = self.c.local_now() - ts
-        self.assertLess(td.total_seconds(), 60*60)
+
+        # Test that the timestamp is within the last 24 hours
+        self.assertLess(td.total_seconds(), 60*60*24)
 
     def test_parse_realtime_genmix(self):
         soup = self.c.fetch_markets_operations_soup()

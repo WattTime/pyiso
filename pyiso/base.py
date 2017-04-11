@@ -200,7 +200,7 @@ class BaseClient(object):
         # parse
         try:
             local_ts = dateutil_parse(local_ts_str)
-        except AttributeError:  # already parsed
+        except (AttributeError, TypeError):  # already parsed
             local_ts = local_ts_str
 
         # localize
