@@ -410,14 +410,15 @@ class TestCAISOBase(TestCase):
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 55)
         self.assertEqual(str(data[0]).lower(), '<report_data>\n\
-<data_item>SYS_FCST_15MIN_MW</data_item>\n\
-<resource_name>CA ISO-TAC</resource_name>\n\
+<data_item>sys_fcst_15min_mw</data_item>\n\
+<resource_name>ca iso-tac</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
-<interval_num>50</interval_num>\n\
-<interval_start_gmt>2014-05-08T19:15:00-00:00</interval_start_gmt>\n\
-<interval_end_gmt>2014-05-08T19:30:00-00:00</interval_end_gmt>\n\
-<value>26723</value>\n\
+<interval_num>49</interval_num>\n\
+<interval_start_gmt>2014-05-08t19:00:00-00:00</interval_start_gmt>\n\
+<interval_end_gmt>2014-05-08t19:15:00-00:00</interval_end_gmt>\n\
+<value>26731</value>\n\
 </report_data>'.lower())
+
 
     def test_fetch_oasis_csv(self):
         c = client_factory('CAISO')
