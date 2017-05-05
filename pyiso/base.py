@@ -360,7 +360,7 @@ class BaseClient(object):
                     filelike = StringIO(filelike)
 
             # read csv
-            df = pd.read_csv(filelike, **kwargs)
+            df = pd.read_csv(filelike, engine='python', **kwargs)
 
         # do xls
         elif mode == 'xls':
