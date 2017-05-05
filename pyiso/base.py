@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
@@ -296,6 +297,13 @@ class BaseClient(object):
         else:
             # non-throttle error
             LOGGER.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
+
+        if os.environ.get('VERBOSE_REQUESTS') == 'verbose':
+            LOGGER.info(mode)
+            LOGGER.info(url)
+            LOGGER.info(kwargs)
+            LOGGER.info(response.status_code)
+            print(response.text)
 
         return response
 
