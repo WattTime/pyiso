@@ -1,3 +1,4 @@
+import sys
 import imp
 import os.path
 from os import environ
@@ -12,7 +13,7 @@ LOG_LEVEL = int(environ.get('LOG_LEVEL', logging.INFO))
 
 # logger: create here to only add the handler once!
 LOGGER = logging.getLogger(__name__)
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stdout)
 LOGGER.addHandler(handler)
 LOGGER.setLevel(LOG_LEVEL)
 
