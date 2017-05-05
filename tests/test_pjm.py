@@ -150,7 +150,7 @@ class TestPJM(TestCase):
 
         # Manually checked form xls file
         # These tests should fail if timezones are improperly handled
-        tz_func = lambda x: pd.tslib.Timestamp(pytz.utc.normalize(est.localize(x)))
+        tz_func = lambda x: pd.Timestamp(pytz.utc.normalize(est.localize(x)))
         self.assertEqual(df.ix[tz_func(datetime(2015, 2, 2, 14))]['load_MW'], 105714.638)
         self.assertEqual(df.ix[tz_func(datetime(2015, 6, 4, 2))]['load_MW'], 64705.985)
         self.assertEqual(df.ix[tz_func(datetime(2015, 12, 15, 23))]['load_MW'], 79345.672)
