@@ -2,6 +2,7 @@ from pyiso import client_factory
 from unittest import TestCase
 from datetime import datetime
 import mock
+from mock import patch
 import pytz
 
 
@@ -41,7 +42,8 @@ class TestEU(TestCase):
         r = self.c.auth()
         self.assertIn('Unknown error:', r)
 
-    def test_throttled(self):
+    @patch('time.sleep', return_value=True)
+    def test_throttled(self, patched_time_sleep):
         self.c.session = mock.MagicMock()
         response = mock.MagicMock()
         response.text = ''

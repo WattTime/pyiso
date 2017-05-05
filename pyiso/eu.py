@@ -1,10 +1,10 @@
+import time
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import requests
 import pandas as pd
 import numpy as np
 from io import StringIO
-from time import sleep
 from datetime import datetime, timedelta
 import pytz
 from os import environ
@@ -177,7 +177,7 @@ class EUClient(BaseClient):
                 LOGGER.warn('Request failed, no response found after %i attempts' % count)
                 return False
             # throttled
-            sleep(5)
+            time.sleep(5)
             return self.fetch_entsoe(url, payload, count + 1)
         if 'UNKNOWN_EXCEPTION' in r.text:
             LOGGER.warn('UNKNOWN EXCEPTION')
