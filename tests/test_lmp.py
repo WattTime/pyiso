@@ -3,7 +3,7 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 
 class TestBaseLMP(TestCase):

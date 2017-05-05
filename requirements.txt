@@ -12,6 +12,6 @@ html5lib
 requests-cache
 mock
 requests-mock
-nose_parameterized
+parameterized
 libfaketime
 certifi
