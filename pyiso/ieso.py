@@ -83,7 +83,8 @@ class IESOClient(BaseClient):
 
     def _generation_forecast(self, fuel_mix):
         """
-        Iterate over calls to _year_generation_mix for all historical dates in the start_at to end_at range.
+        Iterate over calls to generator forecast reports for hours prior to the end_at date or until no more forecast
+        information is available.
 
         :param list fuel_mix: The list of dicts to append results to.
         """
@@ -97,7 +98,7 @@ class IESOClient(BaseClient):
 
     def _generation_historical(self, fuel_mix):
         """
-        Iterate over calls to _year_generation_mix for all historical dates in the start_at to end_at range.
+        Iterate over calls to historical generator output reports for hours in the range start_at to end_at.
 
         :param list fuel_mix: The list of dicts to append results to.
         """
