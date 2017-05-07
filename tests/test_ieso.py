@@ -15,12 +15,12 @@ class TestIESO(TestCase):
         end_at = datetime(year=2016, month=4, day=29, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
         self.c.handle_options(start_at=start_at, end_at=end_at)
 
-        # Simplified, offline copy of complete April 29, 2016 report
+        # Reduced, offline copy of complete April 29, 2016 report
         xml = open('../responses/IESO_reduced_GenOutputCapability_20160429.xml')
         fuel_mix = self.c._parse_output_capability_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 72)  # 24 hours of three fuels
-        for val in fuel_mix:  # Spot check known values
+        for val in fuel_mix:  # Spot check fuel summations using known values
             if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 1250)
             elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 4):
@@ -39,12 +39,12 @@ class TestIESO(TestCase):
         end_at = datetime(year=2016, month=5, day=1, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
         self.c.handle_options(start_at=start_at, end_at=end_at)
 
-        # Simplified, offline copy of partial May 1, 2016 report
+        # Reduced, offline copy of partial May 1, 2016 report
         xml = open('../responses/IESO_reduced_GenOutputCapability_20160501.xml')
         fuel_mix = self.c._parse_output_capability_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 12)  # 4 hours of three fuels
-        for val in fuel_mix:  # Spot check known values
+        for val in fuel_mix:  # Spot check fuel summations using known values
             if (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 716)
             elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 8):
@@ -88,7 +88,7 @@ class TestIESO(TestCase):
         fuel_mix = self.c._parse_adequacy_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 168)  # 7 fuels * 24 hours
-        for val in fuel_mix:  # Spot check known values
+        for val in fuel_mix:  # Spot check fuel summations using known values
             if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 14) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 7904)
             elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 14) & (val['timestamp'].hour == 5):
