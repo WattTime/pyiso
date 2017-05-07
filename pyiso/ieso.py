@@ -141,7 +141,7 @@ class IESOClient(BaseClient):
 
         :param str xml_content: The XML content of the Adequacy Report.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC.
+            Timestamps are in UTC.
         :rtype: list
         """
         document = objectify.fromstring(xml_content)
@@ -167,7 +167,7 @@ class IESOClient(BaseClient):
 
         :param str xml_content: The XML content of the Generator Output and Capability Report.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC.
+            Timestamps are in UTC.
         :rtype: list
         """
         imo_document = objectify.fromstring(xml_content)
@@ -215,7 +215,7 @@ class IESOClient(BaseClient):
 
         :param str xml_content: The XML content of the Generator Output by Fuel Type Hourly Report.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-        Timestamps are in UTC.
+            Timestamps are in UTC.
         :rtype: list
         """
         document = objectify.fromstring(xml_content)
@@ -262,7 +262,7 @@ class IESOClient(BaseClient):
         """
         :param datetime dt: A timezone-aware datetime value.
         :return: Whether a datetime falls within the reporting time range for generation fuel mix, the current year or
-        previous year.
+            previous year.
         :rtype: bool
         """
         return dt.astimezone(pytz.timezone(self.TZ_NAME)).year >= self.local_now().year - 1
@@ -273,7 +273,7 @@ class IESOClient(BaseClient):
 
         :param datetime dt: A timezone-aware datetime value.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
         :rtype: list
         """
         base_output_capability_url = self.base_url + 'GenOutputCapability/'
@@ -287,7 +287,7 @@ class IESOClient(BaseClient):
 
         :param datetime dt: The datetime (local) of the Adequacy Report to parse.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
         :rtype: list
         """
         base_adequacy_url = self.base_url + 'Adequacy/'
@@ -302,7 +302,7 @@ class IESOClient(BaseClient):
 
         :param local_year: The year (local) of the Generator Output and Capability Report to parse.
         :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-           Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
         :rtype: list
         """
         base_output_by_fuel_url = self.base_url + 'GenOutputbyFuelHourly/'
