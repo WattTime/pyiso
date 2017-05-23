@@ -4,7 +4,7 @@ import os.path
 from os import environ
 import logging
 
-__version__ = '0.3.18'
+__version__ = '0.3.19'
 
 
 # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10

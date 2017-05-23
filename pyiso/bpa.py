@@ -15,6 +15,7 @@ class BPAClient(BaseClient):
         'Hydro': 'hydro',
         'Wind': 'wind',
         'Thermal': 'thermal',
+        'Fossil/Biomass': 'biomass',
     }
 
     TZ_NAME = 'America/Los_Angeles'
@@ -112,6 +113,11 @@ class BPAClient(BaseClient):
         sliced.rename(columns=self.fuels, inplace=True)
         pivoted = self.unpivot(sliced)
         pivoted.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
+
+        for fuel in pivoted['fuel_name'].unique():
+            if fuel not in self.fuels.values():
+                raise ValueError("Unhandled fuel type %s" % fuel)
+
 
         # return
         return pivoted
