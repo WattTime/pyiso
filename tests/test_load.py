@@ -23,7 +23,6 @@ class TestBaseLoad(TestCase):
     def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
         # set up
         c = client_factory(ba_name)
-
         # get data
         data = c.get_load(**kwargs)
 

@@ -13,6 +13,9 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``CAISO.get_load``        yes         yes                                yes           yes
 ``CAISO.get_trade``       yes         yes                                yes           yes
 ``CAISO.get_lmp``         yes         yes                                yes           yes
+``EIA.get_generation``    yes         yes                                yes           no
+``EIA.get_load``          yes         yes                                yes           yes
+``EIA.get_trade``         yes         yes                                yes           no
 ``ERCOT.get_generation``  yes         no                                 no            no
 ``ERCOT.get_lmp``         yes         yes                                no            yes
 ``ERCOT.get_load``        yes         yes                                no            yes

@@ -82,7 +82,7 @@ class TestBaseGenMix(TestCase):
 
 class TestISONEGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('ISONE', latest=True)
+        self._run_null_response_test('ISONE', latest=True)
 
     def test_latest(self):
         # basic test
