@@ -1,4 +1,4 @@
-from pyiso import client_factory
+from pyiso import client_factory, BALANCING_AUTHORITIES
 from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
@@ -22,7 +22,6 @@ class TestBaseTrade(TestCase):
     def _run_net_test(self, ba_name, **kwargs):
         # set up
         c = client_factory(ba_name)
-
         # get data
         data = c.get_trade(**kwargs)
 
@@ -91,6 +90,20 @@ class TestBaseTrade(TestCase):
 
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_trade)
+
+    def _run_null_repsonse_test(self, ba_name, **kwargs):
+        # set up
+        c = client_factory(ba_name)
+
+        # mock request
+        with mock.patch.object(c, 'request') as mock_request:
+            mock_request.return_value = None
+
+            # get data
+            data = c.get_trade(**kwargs)
+
+            # test
+            self.assertEqual(data, [])
 
     def _run_failing_test(self, ba_name, **kwargs):
         # set up
