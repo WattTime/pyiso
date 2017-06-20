@@ -79,21 +79,21 @@ class TestIESO(TestCase):
                 self.assertEquals(val['gen_MW'], 4749)
 
     def test_parse_adequacy_report(self):
-        start_at = datetime(year=2016, month=5, day=14, hour=0, minute=0, second=0, tzinfo=timezone(self.c.TZ_NAME))
-        end_at = datetime(year=2016, month=5, day=14, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
+        start_at = datetime(year=2017, month=6, day=18, hour=0, minute=0, second=0, tzinfo=timezone(self.c.TZ_NAME))
+        end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
         self.c.handle_options(start_at=start_at, end_at=end_at)
 
         # Offline copy of 2016 report, as if it were requested on January 8th.
-        xml = open('../responses/IESO_full_Adequacy_20160514.xml')
+        xml = open('../responses/IESO_full_Adequacy2_20170618.xml')
         fuel_mix = self.c._parse_fuel_mix_from_adequacy_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 168)  # 7 fuels * 24 hours
         for val in fuel_mix:  # Spot check fuel summations using known values
-            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 14) & (val['timestamp'].hour == 5):
-                self.assertEquals(val['gen_MW'], 7904)
-            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 14) & (val['timestamp'].hour == 5):
-                self.assertEquals(val['gen_MW'], 967)
-            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 15) & (val['timestamp'].hour == 4):
-                self.assertEquals(val['gen_MW'], 14)
-            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 15) & (val['timestamp'].hour == 4):
-                self.assertEquals(val['gen_MW'], 3393)
+            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 5):
+                self.assertEquals(val['gen_MW'], 11130)
+            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 5):
+                self.assertEquals(val['gen_MW'], 744)
+            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
+                self.assertEquals(val['gen_MW'], 0)
+            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
+                self.assertEquals(val['gen_MW'], 3570)

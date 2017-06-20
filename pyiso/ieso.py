@@ -207,16 +207,15 @@ class IESOClient(BaseClient):
 
         fuel_mix = list([])
         day = doc_body.DeliveryDate
-        for system in doc_body.System:
-            if system.SystemName == 'Ontario':
-                for internal_resource in system.InternalResources.InternalResource:
-                    fuel = str.upper(internal_resource.FuelType.text)
-                    if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
-                        for scheduled in internal_resource.FuelScheduled.Scheduled:
-                            ts_local = day + ' ' + str(scheduled.DeliveryHour - 1).zfill(2) + ':00'
-                            fuel_gen_mw = scheduled.EnergyMW.pyval
-                            self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
-                                                  market=self.MARKET_CHOICES.dam)
+        # InternalResources is misleading. Each fuel is an internal resource, and we iterate hours of each fuel.
+        for internal_resource in doc_body.ForecastSupply.InternalResources.InternalResource:
+            fuel = str.upper(internal_resource.FuelType.text)
+            if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
+                for schedule in internal_resource.Schedules.Schedule:
+                    ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
+                    fuel_gen_mw = schedule.EnergyMW.pyval
+                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
+                                          market=self.MARKET_CHOICES.dam)
         return fuel_mix
 
     def _parse_load_from_adequacy_report(self, xml_content):
@@ -374,7 +373,7 @@ class IESOClient(BaseClient):
 
 def main():
     client = IESOClient()
-    client.get_load(forecast=True)
+    client.get_generation(forecast=True)
 
 if __name__ == '__main__':
     main()
