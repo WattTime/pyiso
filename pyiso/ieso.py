@@ -47,6 +47,7 @@ class IESOClient(BaseClient):
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         fuel_mix = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+        self.options['data'] = 'gen'
 
         if self.options.get('latest', None):
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
@@ -56,14 +57,30 @@ class IESOClient(BaseClient):
             if self.options.get('current_day', False):
                 fuel_mix += self._day_generation_mix(dt=self.local_now())
             if self.options.get('forecast', False):
-                self._generation_forecast(fuel_mix=fuel_mix)
+                self._generation_forecast(ts_data=fuel_mix)
         else:
             LOGGER.warn('No valid options were supplied.')
 
         return fuel_mix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
+        load_ts = list([])
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+        self.options['data'] = 'load'
+
+        if self.options.get('latest', None):
+            LOGGER.warn('Not implemented yet.')
+        elif self.options.get('latest', None) or (self.options.get('start_at', None) and self.options.get('end_at', None)):
+            if self.options.get('historical', False):
+                LOGGER.warn('Not implemented yet.')
+            if self.options.get('current_day', False):
+                LOGGER.warn('Not implemented yet.')
+            if self.options.get('forecast', False):
+                self._generation_forecast(ts_data=load_ts)
+        else:
+            LOGGER.warn('No valid options were supplied.')
+
+        return load_ts
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
@@ -77,23 +94,64 @@ class IESOClient(BaseClient):
         :rtype: str
         """
         if local_date is not None:
-            return local_date.strftime('PUB_Adequacy_%Y%m%d.xml')
+            return local_date.strftime('PUB_Adequacy2_%Y%m%d.xml')
         else:
-            return 'PUB_Adequacy.xml'
+            return 'PUB_Adequacy2.xml'
 
-    def _generation_forecast(self, fuel_mix):
+    def _append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel, market):
+        """
+        Conditionally appends a generation mix value to a list if it falls within the 'start_at' and 'end_at' datetime
+        options.
+
+        :param list fuel_mix: The generation fuel mix list to have a value appended.
+        :param str ts_local: A local (EST) timestamp in 'yyyy-MM-dd hh:mm' format.
+        :param float gen_mw: Electricity generation in megawatts (MW)
+        :param str fuel: IESO fuel name (will be converted to WattTime name).
+        """
+        report_dt_utc = self.utcify(local_ts_str=ts_local)
+        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
+            fuel_mix.append({
+                'ba_name': self.NAME,
+                'timestamp': report_dt_utc,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': market,
+                'fuel_name': self.fuels[fuel],
+                'gen_MW': gen_mw
+            })
+
+    def _append_load(self, loads, ts_local, load_mw, market):
+        """
+        Appends a dict to the provided list, each with the keys [ba_name, timestamp, freq, market, load_MW].
+        Timestamps are in UTC.
+        :param list loads:
+        :param str ts_local:
+        :param float load_mw:
+        :param str market:
+        :return:
+        """
+        report_dt_utc = self.utcify(local_ts_str=ts_local)
+        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
+            loads.append({
+                'ba_name': self.NAME,
+                'timestamp': report_dt_utc,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': market,
+                'load_MW': load_mw
+            })
+
+    def _generation_forecast(self, ts_data):
         """
         Iterate over calls to generator forecast reports for hours prior to the end_at date or until no more forecast
         information is available.
 
-        :param list fuel_mix: The list of dicts to append results to.
+        :param list ts_data: The timeseries list of dicts to append results to.
         """
         local_last_forecast_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999) \
             + timedelta(days=1)  # Last possible forecast is the end of the next day.
         iter_dt = copy(self.local_now())
         while iter_dt <= self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)) \
                 and iter_dt <= local_last_forecast_dt:
-            fuel_mix += self._forecast_generation_mix(dt=iter_dt)
+            ts_data += self._forecast_generation_mix(dt=iter_dt)
             iter_dt = iter_dt.replace(day=iter_dt.day + 1)
 
     def _generation_historical(self, fuel_mix):
@@ -136,13 +194,12 @@ class IESOClient(BaseClient):
         else:
             return 'PUB_GenOutputbyFuelHourly.xml'
 
-    def _parse_adequacy_report(self, xml_content):
+    def _parse_fuel_mix_from_adequacy_report(self, xml_content):
         """
-        Parse the Adequacy Report which contains forecast data.
+        Parse generation and fuel type information from forecast data contained in the Adequacy Report.
 
         :param str xml_content: The XML content of the Adequacy Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``. Timestamps are in UTC.
         :rtype: list
         """
         document = objectify.fromstring(xml_content)
@@ -161,6 +218,25 @@ class IESOClient(BaseClient):
                             self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
                                                   market=self.MARKET_CHOICES.dam)
         return fuel_mix
+
+    def _parse_load_from_adequacy_report(self, xml_content):
+        """
+        Parse load data from forecast data contained in the Adequacy Report.
+        :param xml_content: The XML content of the Adequacy Report.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, gen_MW]``.
+        """
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+
+        loads = list([])
+        day = doc_body.DeliveryDate
+        for total_requirements in doc_body.ForecastDemand.TotalRequirements:
+            for requirement in total_requirements.Requirement:
+                ts_local = day + ' ' + str(requirement.DeliveryHour - 1).zfill(2) + ':00'
+                load_mw = requirement.EnergyMW.pyval
+                self._append_load(loads=loads, ts_local=ts_local, load_mw=load_mw,
+                                  market=self.MARKET_CHOICES.dam)
+        return loads
 
     def _parse_output_capability_report(self, xml_content):
         """
@@ -238,27 +314,6 @@ class IESOClient(BaseClient):
 
         return fuel_mix
 
-    def _append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel, market):
-        """
-        Conditionally appends a generation mix value to a list if it falls within the 'start_at' and 'end_at' datetime
-        options.
-
-        :param list fuel_mix: The generation fuel mix list to have a value appended.
-        :param str ts_local: A local (EST) timestamp in 'yyyy-MM-dd hh:mm' format.
-        :param float gen_mw: Electricity generation in megawatts (MW)
-        :param string fuel: IESO fuel name (will be converted to WattTime name).
-        """
-        report_dt_utc = self.utcify(local_ts_str=ts_local)
-        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
-            fuel_mix.append({
-                'ba_name': self.NAME,
-                'timestamp': report_dt_utc,
-                'freq': self.FREQUENCY_CHOICES.hourly,
-                'market': market,
-                'fuel_name': self.fuels[fuel],
-                'gen_MW': gen_mw
-            })
-
     def _is_in_generation_mix_time_range(self, dt):
         """
         :param datetime dt: A timezone-aware datetime value.
@@ -287,14 +342,19 @@ class IESOClient(BaseClient):
         For generation mix times in the future, the Adequacy Report must be parsed for forecast values.
 
         :param datetime dt: The datetime (local) of the Adequacy Report to parse.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
+        :return: List of dicts, trimmed to fall between start_at and end_at options. The keys in dict elements vary
+            depending on request type.
         :rtype: list
         """
-        base_adequacy_url = self.base_url + 'Adequacy/'
+        base_adequacy_url = self.base_url + 'Adequacy2/'
         filename = self._adequacy_filename(local_date=dt.astimezone(pytz.timezone(self.TZ_NAME)))
         response = self.request(url=base_adequacy_url + filename)
-        return self._parse_adequacy_report(response.content)
+        if self.options['data'] == 'gen':
+            return self._parse_fuel_mix_from_adequacy_report(response.content)
+        elif self.options['data'] == 'load':
+            return self._parse_load_from_adequacy_report(response.content)
+        else:
+            LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
 
     def _year_generation_mix(self, local_year):
         """
@@ -314,8 +374,7 @@ class IESOClient(BaseClient):
 
 def main():
     client = IESOClient()
-    client.get_generation(start_at=client.utcify(local_ts_str='2016-05-28 05:00:00'),
-                          end_at=client.utcify(local_ts_str='2016-05-29 01:00:00'))
+    client.get_load(forecast=True)
 
 if __name__ == '__main__':
     main()

@@ -85,7 +85,7 @@ class TestIESO(TestCase):
 
         # Offline copy of 2016 report, as if it were requested on January 8th.
         xml = open('../responses/IESO_full_Adequacy_20160514.xml')
-        fuel_mix = self.c._parse_adequacy_report(xml.read())
+        fuel_mix = self.c._parse_fuel_mix_from_adequacy_report(xml.read())
 
         self.assertEquals(len(fuel_mix), 168)  # 7 fuels * 24 hours
         for val in fuel_mix:  # Spot check fuel summations using known values
