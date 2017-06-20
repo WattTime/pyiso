@@ -229,12 +229,11 @@ class IESOClient(BaseClient):
 
         loads = list([])
         day = doc_body.DeliveryDate
-        for total_requirements in doc_body.ForecastDemand.TotalRequirements:
-            for requirement in total_requirements.Requirement:
-                ts_local = day + ' ' + str(requirement.DeliveryHour - 1).zfill(2) + ':00'
-                load_mw = requirement.EnergyMW.pyval
-                self._append_load(loads=loads, ts_local=ts_local, load_mw=load_mw,
-                                  market=self.MARKET_CHOICES.dam)
+        for demand in doc_body.ForecastDemand.OntarioDemand.ForecastOntDemand.Demand:
+            ts_local = day + ' ' + str(demand.DeliveryHour - 1).zfill(2) + ':00'
+            load_mw = demand.EnergyMW.pyval
+            self._append_load(loads=loads, ts_local=ts_local, load_mw=load_mw,
+                              market=self.MARKET_CHOICES.dam)
         return loads
 
     def _parse_output_capability_report(self, xml_content):
@@ -373,7 +372,7 @@ class IESOClient(BaseClient):
 
 def main():
     client = IESOClient()
-    client.get_generation(forecast=True)
+    client.get_load(forecast=True)
 
 if __name__ == '__main__':
     main()
