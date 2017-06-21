@@ -20,6 +20,12 @@ For example::
    >>> isone = client_factory('ISONE')
 
 
+Requests made to external data sources will automatically time out after 20 seconds.
+To change this value, add a keyword argument in the constructor::
+
+   >>> isone = client_factory('ISONE', timeout_seconds=60)
+
+
 Each client returned by ``client_factory`` is derived from :py:class:`BaseClient` and provides one or more of the following methods (see also :doc:`options`):
 
 .. automethod:: BaseClient.get_generation

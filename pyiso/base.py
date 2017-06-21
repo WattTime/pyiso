@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
@@ -9,6 +10,9 @@ from io import StringIO, BytesIO
 from time import sleep
 from pyiso import LOGGER
 from pytz import AmbiguousTimeError
+import ssl
+import certifi
+
 
 try:
     from urllib2 import urlopen
@@ -39,11 +43,14 @@ class BaseClient(object):
     # name
     NAME = ''
 
-    # default connection timeout
     TIMEOUT_SECONDS = 20
 
-    def __init__(self):
+    def __init__(self, timeout_seconds=20):
+        # will hold query options
         self.options = {}
+
+        # connection timeout
+        self.timeout_seconds = timeout_seconds
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
@@ -135,7 +142,7 @@ class BaseClient(object):
         """
         Process and store keyword argument options.
         """
-        self.options.update(kwargs)
+        self.options = kwargs
 
         # check start_at and end_at args
         if self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -163,7 +170,7 @@ class BaseClient(object):
         # set start_at and end_at for today+tomorrow in local time
         elif self.options.get('forecast', None):
             local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone(self.TZ_NAME))
-            self.options['start_at'] = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.options['start_at'] = local_now.replace(microsecond=0)
             self.options['end_at'] = self.options['start_at'] + timedelta(days=2)
             self.options['sliceable'] = True
             self.options['latest'] = False
@@ -194,7 +201,7 @@ class BaseClient(object):
         # parse
         try:
             local_ts = dateutil_parse(local_ts_str)
-        except AttributeError:  # already parsed
+        except (AttributeError, TypeError):  # already parsed
             local_ts = local_ts_str
 
         # localize
@@ -225,7 +232,9 @@ class BaseClient(object):
         return cleaned_vals
 
     def fetch_xls(self, url):
-        socket = urlopen(url)
+        # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
+        context = ssl.create_default_context(cafile=certifi.where())
+        socket = urlopen(url, context=context)
         xd = pd.ExcelFile(socket)
         return xd
 
@@ -249,8 +258,8 @@ class BaseClient(object):
 
         # carry out request
         try:
-            response = getattr(session, mode)(url, verify=False,
-                                              timeout=self.TIMEOUT_SECONDS,
+            response = getattr(session, mode)(url, verify=True,
+                                              timeout=self.timeout_seconds,
                                               **kwargs)
         # except requests.exceptions.ChunkedEncodingError as e:
         #     # JSON incomplete or not found
@@ -288,6 +297,13 @@ class BaseClient(object):
         else:
             # non-throttle error
             LOGGER.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
+
+        if os.environ.get('VERBOSE_REQUESTS') == 'verbose':
+            LOGGER.info(mode)
+            LOGGER.info(url)
+            LOGGER.info(kwargs)
+            LOGGER.info(response.status_code)
+            print(response.text)
 
         return response
 
@@ -352,6 +368,7 @@ class BaseClient(object):
                     filelike = StringIO(filelike)
 
             # read csv
+            kwargs['engine'] = 'python'
             df = pd.read_csv(filelike, **kwargs)
 
         # do xls
@@ -468,10 +485,10 @@ class BaseClient(object):
 
         return data
 
-    def serialize_faster(self, df, extras={}):
+    def serialize_faster(self, df, extras={}, drop_index=False):
         """DF is a DataFrame with DateTimeIndex and columns fuel_type and gen_MW (or load_mW).
         Index and columns are already properly named."""
-        df = df.reset_index()
+        df = df.reset_index(drop=drop_index)
         for key in extras:
             df[key] = extras[key]
         return df.to_dict(orient='records')

@@ -3,21 +3,21 @@ Contributing
 
 Right now, pyiso only has interfaces for collecting a small subset of the interesting electricity data that the ISOs provide.
 You can help by adding more!
-Please get in touch with Anna <anna@watttime.org> if you have questions about any of this.
+Please create an issue on `github <https://github.com/WattTime/pyiso/issues>`_
+if you have questions about any of this.
 
 
 For developers
 ---------------
 
-If you want to submit a new issue or work on an existing one,
-head over to `github <https://github.com/WattTime/pyiso/issues`_.
-
 When you're ready to get started coding:
 
 * fork the `repo <https://github.com/WattTime/pyiso>`_
 * install in development mode: ``python setup.py develop``
-* run the tests: ``python setup.py test``
+* run the tests: ``python setup.py test`` (or ``python setup.py test -s tests.test_some_file.TestSomeClass.test_some_method`` to run a specific subset of the tests)
 * add tests to the :py:mod:`tests` directory and code to the :py:mod:`pyiso` directory, following the conventions that you see in the existing code
+* add docs to the `docs/source` directory
+* add a note to the changelog in `README.md`
 * send a pull request
 * sign the CLA at https://www.clahub.com/agreements/WattTime/pyiso (see below)
 
@@ -25,11 +25,38 @@ When you're ready to get started coding:
 For data users
 ---------------
 
-Know of a data source that you think pyiso should include?
-Please add it to the `project wiki <https://github.com/WattTime/pyiso/wiki>`_.
+Found a bug, or know of a data source that you think pyiso should include?
+Please add an issue to `github <https://github.com/WattTime/pyiso/issues>`_.
 Ideas of new balancing authorities (anywhere in the world)
-and of new data streams from ISOs we already support
-are both very welcome.
+and of new data streams from ISOs we already support are both very welcome.
+
+
+For project admins
+------------------
+
+Before making a release, check that these are true in the master branch of the GitHub repo:
+
+* the changelog in `README.md` includes all changes since the last release
+* test coverage is good and the tests pass locally and on Travis
+* changes are reflected in the docs in `docs/source`
+* the version number is upgraded in `pyiso/__init__.py`
+
+To make a release, run these commands (replacing 0.x.y with the correct version number):
+
+.. code-block:: bash
+
+   git checkout master
+   git pull origin master
+   git tag v0.x.y
+   git push origin master --tags
+   python setup.py sdist upload
+
+Releasing via twine:
+
+.. code-block:: bash
+
+   python setup.py sdist
+   twine upload dist/pyiso-VERSION.tar.gz
 
 Legal things
 ---------------

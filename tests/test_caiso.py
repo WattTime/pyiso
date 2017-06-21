@@ -1,3 +1,4 @@
+import os
 from pyiso import client_factory
 from unittest import TestCase, expectedFailure, skip
 from io import StringIO
@@ -8,6 +9,10 @@ from bs4 import BeautifulSoup
 import numpy
 import mock
 import requests
+
+fixtures_base_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+def read_fixture(filename):
+    return open(os.path.join(fixtures_base_path, filename), 'r').read()
 
 
 class TestCAISOBase(TestCase):
@@ -286,6 +291,8 @@ class TestCAISOBase(TestCase):
 </OASISReport>\n\
 ")
 
+        self.systemconditions_html = read_fixture('caiso_systemconditions.html')
+
         self.todays_outlook_renewables = StringIO(u"<!doctype html public \"-//W3C//DTD HTML 3.2 Final//EN\">\n\
 \n\
 <HTML>\n\
@@ -315,6 +322,11 @@ class TestCAISOBase(TestCase):
 </HTML>\n\
 \n\
 ")
+
+
+
+
+
 
     def test_request_renewable_report(self):
         c = client_factory('CAISO')
@@ -376,7 +388,7 @@ class TestCAISOBase(TestCase):
     def test_oasis_payload(self):
         c = client_factory('CAISO')
         c.handle_options(start_at='2014-01-01', end_at='2014-02-01',
-                         market=c.MARKET_CHOICES.fivemin)
+                         market=c.MARKET_CHOICES.fivemin, data='load')
         constructed = c.construct_oasis_payload('SLD_FCST')
         expected = {'queryname': 'SLD_FCST',
                     'market_run_id': 'RTM',
@@ -397,15 +409,16 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 55)
-        self.assertEqual(str(data[0]), '<report_data>\n\
-<data_item>SYS_FCST_15MIN_MW</data_item>\n\
-<resource_name>CA ISO-TAC</resource_name>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
+<data_item>sys_fcst_15min_mw</data_item>\n\
+<resource_name>ca iso-tac</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
-<interval_num>50</interval_num>\n\
-<interval_start_gmt>2014-05-08T19:15:00-00:00</interval_start_gmt>\n\
-<interval_end_gmt>2014-05-08T19:30:00-00:00</interval_end_gmt>\n\
-<value>26723</value>\n\
-</report_data>')
+<interval_num>49</interval_num>\n\
+<interval_start_gmt>2014-05-08t19:00:00-00:00</interval_start_gmt>\n\
+<interval_end_gmt>2014-05-08t19:15:00-00:00</interval_end_gmt>\n\
+<value>26731</value>\n\
+</report_data>'.lower())
+
 
     def test_fetch_oasis_csv(self):
         c = client_factory('CAISO')
@@ -424,8 +437,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_fcst_xml)
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.sld_fcst_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
@@ -439,10 +452,10 @@ class TestCAISOBase(TestCase):
                     'load_MW': 26755.0}
         self.assertEqual(expected, parsed_data[0])
 
-    def test_parse_todays_outlook_renwables(self):
+    def test_parse_todays_outlook_renewables(self):
         # set up soup and ts
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.todays_outlook_renewables)
+        soup = BeautifulSoup(self.todays_outlook_renewables, 'lxml')
         ts = c.utcify('2014-05-08 12:00')
 
         # set up options
@@ -460,6 +473,15 @@ class TestCAISOBase(TestCase):
                      'timestamp': datetime(2014, 5, 8, 19, 0, tzinfo=pytz.utc)}]
         self.assertEqual(parsed_data, expected)
 
+    def test_parse_systemconditions(self):
+        """Test for a newly discovered edge case: an extra, empty `docdata` cell."""
+        c = client_factory('CAISO')
+        soup = BeautifulSoup(self.systemconditions_html, 'lxml')
+        c.handle_options()
+        parsed_data = c.todays_outlook_time(soup)
+        expected = datetime(2017, 1, 5, 21, 50, tzinfo=pytz.utc)
+        self.assertEqual(parsed_data, expected)
+
     def test_fetch_oasis_demand_dam(self):
         c = client_factory('CAISO')
         ts = c.utcify('2014-05-08 12:00')
@@ -471,7 +493,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 5)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>SYS_FCST_DA_MW</data_item>\n\
 <resource_name>CA ISO-TAC</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
@@ -479,7 +501,7 @@ class TestCAISOBase(TestCase):
 <interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
 <interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
 <value>26559.38</value>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_fetch_oasis_slrs_dam(self):
         c = client_factory('CAISO')
@@ -492,7 +514,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 17)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>ISO_TOT_EXP_MW</data_item>\n\
 <resource_name>Caiso_Totals</resource_name>\n\
 <opr_date>2014-05-08</opr_date>\n\
@@ -500,7 +522,7 @@ class TestCAISOBase(TestCase):
 <interval_start_gmt>2014-05-08T19:00:00-00:00</interval_start_gmt>\n\
 <interval_end_gmt>2014-05-08T20:00:00-00:00</interval_end_gmt>\n\
 <value>1044</value>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_fetch_oasis_ren_dam(self):
         c = client_factory('CAISO')
@@ -513,7 +535,7 @@ class TestCAISOBase(TestCase):
         payload.update(c.base_payload)
         data = c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 4)
-        self.assertEqual(str(data[0]), '<report_data>\n\
+        self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>RENEW_FCST_DA_MW</data_item>\n\
 <opr_date>2014-05-08</opr_date>\n\
 <interval_num>13</interval_num>\n\
@@ -522,13 +544,13 @@ class TestCAISOBase(TestCase):
 <value>813.7</value>\n\
 <trading_hub>NP15</trading_hub>\n\
 <renewable_type>Solar</renewable_type>\n\
-</report_data>')
+</report_data>'.lower())
 
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml)
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='gen', market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
@@ -545,8 +567,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_slrs_trade_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.ene_slrs_xml)
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='trade', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
@@ -563,8 +585,8 @@ class TestCAISOBase(TestCase):
     def test_parse_oasis_renewables_dam(self):
         # set up list of data
         c = client_factory('CAISO')
-        soup = BeautifulSoup(self.sld_ren_fcst_xml)
-        data = soup.find_all('report_data')
+        soup = BeautifulSoup(self.sld_ren_fcst_xml, 'xml')
+        data = soup.find_all('REPORT_DATA')
 
         # parse
         c.handle_options(data='gen', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
@@ -610,7 +632,7 @@ class TestCAISOBase(TestCase):
 
     def test_get_lmp_dataframe_fifteen(self):
         c = client_factory('CAISO')
-        ts = pytz.utc.localize(datetime(2016, 3, 1, 12))
+        ts = pytz.utc.localize(datetime(2016, 10, 1, 12))
         start = ts - timedelta(hours=2)
         lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
         lmps = c._standardize_lmp_dataframe(lmps)

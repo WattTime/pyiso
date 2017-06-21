@@ -84,11 +84,19 @@ class TestBaseClient(TestCase):
         bc = BaseClient()
         bc.handle_options(forecast=True)
         self.assertTrue(bc.options['sliceable'])
-        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc)
-        midnight_today = datetime(local_now.year, local_now.month, local_now.day, 0, tzinfo=pytz.utc)
-        self.assertEqual(bc.options['start_at'], midnight_today)
-        self.assertEqual(bc.options['end_at'], midnight_today + timedelta(days=2))
+        local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.utc).replace(microsecond=0)
+        self.assertEqual(bc.options['start_at'], local_now)
+        self.assertEqual(bc.options['end_at'], local_now + timedelta(days=2))
         self.assertTrue(bc.options['forecast'])
+
+    def test_handle_options_twice(self):
+        """Overwrite options on second call"""
+        bc = BaseClient()
+        bc.handle_options(forecast=True)
+        self.assertTrue(bc.options['forecast'])
+
+        bc.handle_options(yesterday=True)
+        self.assertFalse(bc.options['forecast'])
 
     def test_handle_options_set_forecast(self):
         bc = BaseClient()
@@ -107,3 +115,10 @@ class TestBaseClient(TestCase):
         indf = pd.DataFrame()
         outdf = bc.slice_times(indf, {'latest': True})
         self.assertEqual(len(outdf), 0)
+
+    def test_timeout(self):
+        bc = BaseClient()
+        self.assertEqual(bc.timeout_seconds, 20)
+
+        bc = BaseClient(timeout_seconds=30)
+        self.assertEqual(bc.timeout_seconds, 30)

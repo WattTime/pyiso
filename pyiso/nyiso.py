@@ -1,4 +1,5 @@
 from pyiso.base import BaseClient
+from pyiso import LOGGER
 import numpy as np
 import pandas as pd
 from datetime import timedelta
@@ -115,7 +116,7 @@ class NYISOClient(BaseClient):
                             start_at=start_at, end_at=end_at, **kwargs)
 
         # get data
-        if self.options['forecast']:
+        if self.options['forecast'] or self.options.get('market', None) == self.MARKET_CHOICES.dam:
             # always include today
             dates_list = self.dates() + [self.local_now().date()]
 
@@ -196,7 +197,10 @@ class NYISOClient(BaseClient):
 
         # if failure, try zipped monthly data
         datestr = date.strftime('%Y%m01')
-        url = '%s/%s/%s%s_csv.zip' % (self.base_url, label, datestr, label)
+        if self.options['data'] == 'lmp':
+            url = '%s/%s/%s%s_zone_csv.zip' % (self.base_url, label, datestr, label)
+        else:
+            url = '%s/%s/%s%s_csv.zip' % (self.base_url, label, datestr, label)
 
         # make request and unzip
         response_zipped = self.request(url)
@@ -207,6 +211,7 @@ class NYISOClient(BaseClient):
 
         # return
         if unzipped:
+            LOGGER.info('Failed to find daily %s data for %s but found monthly data, using that' % (self.options['data'], date))
             return unzipped
         else:
             return []

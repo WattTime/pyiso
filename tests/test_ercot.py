@@ -150,7 +150,7 @@ ga('send', 'pageview');
 
         # test for expected data
         self.assertLessEqual(len(df), 96)
-        for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_BEGINNING']:
+        for key in ['DSTFlag', 'ACTUAL_SYSTEM_WIDE', 'HOUR_ENDING']:
             self.assertIn(key, df.columns)
 
     def test_request_report_load_7day(self):
@@ -171,7 +171,7 @@ ga('send', 'pageview');
         self.assertEqual(s.min().date(), now.date())
         self.assertEqual(s.max().date(), now.date())
 
-        node_counts = [612, 613, 614, 615, 616]
+        node_counts = range(612, 630)
         self.assertIn(len(df), [n*24 for n in node_counts])  # nodes * 24 hrs/day
 
     def test_request_report_rt5m_lmp(self):
@@ -183,5 +183,5 @@ ga('send', 'pageview');
         self.assertLess((s.min() - now).total_seconds(), 8*60)
         self.assertLess((s.max() - now).total_seconds(), 8*60)
 
-        node_counts = [612, 613, 614, 615, 616]
+        node_counts = range(612, 630)
         self.assertIn(len(df), node_counts)

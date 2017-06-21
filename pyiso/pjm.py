@@ -5,6 +5,8 @@ import pandas as pd
 from dateutil.parser import parse
 import pytz
 from datetime import datetime, timedelta
+import re
+import json
 
 
 class PJMClient(BaseClient):
@@ -13,6 +15,7 @@ class PJMClient(BaseClient):
     base_url = 'https://datasnapshot.pjm.com/content/'
     base_dataminer_url = 'https://dataminer.pjm.com/dataminer/rest/public/api'
     oasis_url = 'http://oasis.pjm.com/system.htm'
+    markets_operations_url = 'http://www.pjm.com/markets-and-operations.aspx'
 
     zonal_aggregate_nodes = {
         'AECO': 51291,
@@ -27,13 +30,28 @@ class PJMClient(BaseClient):
         'DPL': 51293,
     }
 
+    fuels = {
+        'Coal': 'coal',
+        'Gas': 'natgas',
+        'Nuclear': 'nuclear',
+        'Other': 'other',
+        'Wind': 'wind',
+        'Solar': 'solar',
+        'Other Renewables': 'renewable',
+        'Oil': 'oil',
+        'Other': 'other',
+        'Multiple Fuels': 'thermal',
+        'Hydro': 'hydro',
+        'Black Liquor': 'other', # Is this the right mapping? What about 'thermal'? 'other'?
+    }
+
     def time_as_of(self, content):
         """
         Returns a UTC timestamp if one is found in the html content,
         or None if an error was encountered.
         """
         # soup it up
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         # like 12.11.2015 17:15
         ts_elt = soup.find(id='ctl00_ContentPlaceHolder1_DateAndTime')
@@ -104,10 +122,10 @@ class PJMClient(BaseClient):
         url = 'http://www.pjm.com/pub/operations/hist-meter-load/%s-hourly-loads.xls' % year
         df = pd.read_excel(url, sheetname=region_name)
 
-        # drop unneded cols
-        drop_col = ['Unnamed: 0', 'Unnamed: 27', 'Unnamed: 28', 'Unnamed: 29', 'Unnamed: 30',
-                    'MAX', 'HOUR', 'DATE.1', 'Unnamed: 34', 'MIN', 'HOUR.1', 'DATE.2']
-        df.drop(drop_col, axis=1, inplace=True)
+        # drop unneeded cols
+        drop_cols = ['Unnamed: %d' % i for i in range(35)]
+        drop_cols += ['MAX', 'HOUR', 'DATE.1', 'MIN', 'HOUR.1', 'DATE.2']
+        df.drop(drop_cols, axis=1, inplace=True, errors='ignore')
 
         # reshape from wide to tall
         df = pd.melt(df, id_vars=['DATE', 'COMP'])
@@ -163,8 +181,8 @@ class PJMClient(BaseClient):
             # return
             return data
 
-        elif end_at and end_at < datetime.now(pytz.utc) - timedelta(hours=1):
-            df = self.fetch_historical_load(start_at.year)
+        elif self.options['end_at'] and self.options['end_at'] < datetime.now(pytz.utc) - timedelta(hours=1):
+            df = self.fetch_historical_load(self.options['start_at'].year)
             sliced = self.slice_times(df)
 
             # format
@@ -317,12 +335,30 @@ class PJMClient(BaseClient):
             # special handling for five minute lmps
             elif self.options['market'] == self.MARKET_CHOICES.fivemin:
                 self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
+
                 # no historical data for 5min lmp
+                if self.options.get('start_at') or self.options.get('end_at') or not self.options.get('latest'):
+                        raise ValueError('PJM 5-minute lmp only available for latest, not for date ranges')
                 self.options['latest'] = True
+
+        # load specific options
+        if self.options['data'] == 'load':
+            if not self.options['latest']:
+                # for historical, only DAHR load allowed
+                if self.options.get('market'):
+                    if self.options['market'] != self.MARKET_CHOICES.dam:
+                        raise ValueError('PJM historical load data only available for %s' % self.MARKET_CHOICES.dam)
+                else:
+                    self.options['market'] = self.MARKET_CHOICES.dam
+
+        # gen specific options
+        if self.options['data'] == 'gen':
+            if not self.options['latest']:
+                raise ValueError('PJM generation mix only available with latest=True')
 
     def parse_date_from_oasis(self, content):
         # find timestamp
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         # the datetime is the only bold text on the page, this could break easily
         ts_elt = soup.find('b')
@@ -376,9 +412,92 @@ class PJMClient(BaseClient):
         else:
             raise ValueError('Cannot parse OASIS LMP data for %s' % self.options['data'])
 
-    def get_lmp(self, node_id='APS', **kwargs):
+    def fetch_markets_operations_soup(self):
+        response = self.request(self.markets_operations_url)
+
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'lxml')
+        return soup
+
+    def parse_date_from_markets_operations(self, soup):
+        # get text of element with timestamp
+        elt = soup.find(id='genFuelMix')
+        time_str = elt.find(id='asOfDate').contents[0]
+
+        # string like ' As of 6:00 p.m. EPT'
+        time_str = time_str.replace(' As of ', '')
+
+        # error at 10pm?
+        try:
+            naive_local_ts = parse(time_str)
+        except ValueError:
+            raise ValueError('Error parsing %s from %s' % (time_str, elt))
+
+        # return
+        return self.utcify(naive_local_ts)
+
+    def parse_realtime_genmix(self, soup):
+        # get text of element with data
+        elt = soup.find(id='genFuelMix')
+        data_str = elt.find(id='rtschartallfuelspjmGenFuel_container').next_sibling.contents[0]
+
+        # set up regex to match data json
+        match = re.search(r'data: \[.*?\]', data_str)
+        match_str = match.group(0)
+
+        # transform from json
+        json_str = '{' + match_str + '}'
+        json_str = json_str.replace('data:', '"data":')
+        json_str = json_str.replace('color:', '"color":')
+        json_str = json_str.replace('name:', '"name":')
+        json_str = json_str.replace('y:', '"y":')
+        json_str = json_str.replace('\'', '"')
+        raw_data = json.loads(json_str)
+
+        # get date
+        try:
+            ts = self.parse_date_from_markets_operations(soup)
+        except ValueError:
+            # error handling date, assume no data
+            return []
+
+        # parse data
+        data = []
+
+        for raw_dp in raw_data['data']:
+            dp = {
+                'timestamp': ts,
+                'gen_MW': raw_dp['y'],
+                'fuel_name': self.fuels[raw_dp['name']],
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.hourly,
+                'ba_name': self.NAME,
+            }
+            data.append(dp)
+
+        # return
+        return data
+
+    def get_generation(self, latest=False, **kwargs):
+        # handle options
+        self.handle_options(data='gen', latest=latest, **kwargs)
+
+        # fetch and parse
+        soup = self.fetch_markets_operations_soup()
+
+        if soup:
+            data = self.parse_realtime_genmix(soup)
+        else:
+            return []
+
+        # return
+        return data
+
+    def get_lmp(self, node_id='APS', latest=False, **kwargs):
         """ Allegheny Power Systems is APS"""
-        self.handle_options(data='lmp', **kwargs)
+        self.handle_options(data='lmp', latest=latest, **kwargs)
 
         # standardize node_id
         if not isinstance(node_id, list):

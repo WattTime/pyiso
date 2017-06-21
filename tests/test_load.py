@@ -23,7 +23,6 @@ class TestBaseLoad(TestCase):
     def _run_test(self, ba_name, expect_data=True, tol_min=0, **kwargs):
         # set up
         c = client_factory(ba_name)
-
         # get data
         data = c.get_load(**kwargs)
 
@@ -53,6 +52,13 @@ class TestBaseLoad(TestCase):
                                         pytz.utc.localize(datetime.utcnow())-timedelta(minutes=tol_min))
             else:
                 self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+
+            # test within date range
+            start_at = c.options.get('start_at', False)
+            end_at = c.options.get('end_at', False)
+            if start_at and end_at:
+                self.assertGreaterEqual(dp['timestamp'], start_at)
+                self.assertLessEqual(dp['timestamp'], end_at)
 
         # return
         return data
@@ -106,6 +112,10 @@ class TestBPALoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('BPA', start_at='2016-05-01', end_at='2016-05-03')
+
     def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
@@ -138,11 +148,16 @@ class TestCAISOLoad(TestBaseLoad):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+                              end_at=today-timedelta(days=1),
+                              tol_min=1)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('CAISO', start_at='2016-05-01', end_at='2016-05-03')
 
 #     @freezegun.freeze_time('2015-05-20 14:30', tz_offset=0, tick=True)
 #     @requests_mock.mock()
@@ -227,6 +242,10 @@ class TestISONELoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('ISONE', start_at='2016-05-01', end_at='2016-05-03')
+
     def test_forecast(self):
         # basic test
         data = self._run_test('ISONE', forecast=True, market='DAHR', freq='1hr')
@@ -284,6 +303,10 @@ class TestNEVPLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('NEVP', start_at='2016-05-01', end_at='2016-05-03')
+
 #     @libfaketime.fake_time('2016-05-20 14:45')
 #     @requests_mock.mock()
 #     def test_date_range_farpast(self, mocker):
@@ -326,6 +349,10 @@ class TestNYISOLoad(TestBaseLoad):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('NYISO', start_at='2016-05-01', end_at='2016-05-03')
 
     def test_forecast(self):
         # basic test
@@ -384,6 +411,14 @@ class TestPJMLoad(TestBaseLoad):
         # TODO handle DST transitions instead of dropping them
         self.assertEqual(len(set(timestamps)), 364*24-2)
 
+    def test_date_range_strings(self):
+        data = self._run_test('PJM', start_at='2016-06-10', end_at='2016-06-11')
+
+        timestamps = [d['timestamp'] for d in data]
+
+        # 3 days plus 1 hr
+        self.assertEqual(len(set(timestamps)), 24 + 1)
+
 
 class TestSPPLoad(TestBaseLoad):
     def test_failing(self):
@@ -429,6 +464,10 @@ class TestSPPCLoad(TestBaseLoad):
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('SPPC', start_at=today-timedelta(days=35),
                               end_at=today-timedelta(days=33))
+
+    def test_date_range_strings(self):
+        # basic test
+        self._run_test('SPPC', start_at='2016-05-01', end_at='2016-05-03')
 
 
 class TestSVERILoad(TestBaseLoad):

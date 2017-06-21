@@ -1,0 +1,246 @@
+{
+    "SevenDayForecasts": {
+        "SevenDayForecast": [
+            {
+                "BeginDate": "2016-01-01T00:00:00.000-05:00",
+                "CreationDate": "2016-01-01T09:45:12.343-05:00",
+                "MarketDay": [
+                    {
+                        "@Day": "2",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 0,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-02T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 1581,
+                        "PeakImportMw": 2988,
+                        "PeakLoadMw": 16040,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 207,
+                        "RtegMw": 0,
+                        "SurplusDeficiencyMw": 15460,
+                        "TotAvailGenImportMw": 33971,
+                        "TotAvailGenMw": 30983,
+                        "TotLoadPlusReqdReserveMw": 18511,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 22,
+                                    "HighTempF": 38
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": 18,
+                                    "HighTempF": 37
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "@Day": "3",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 0,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-03T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 2194,
+                        "PeakImportMw": 2988,
+                        "PeakLoadMw": 16530,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 269,
+                        "RtegMw": 0,
+                        "SurplusDeficiencyMw": 14357,
+                        "TotAvailGenImportMw": 33358,
+                        "TotAvailGenMw": 30370,
+                        "TotLoadPlusReqdReserveMw": 19001,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 23,
+                                    "HighTempF": 39
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": 21,
+                                    "HighTempF": 39
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "@Day": "4",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 1540,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-04T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 2682,
+                        "PeakImportMw": 3188,
+                        "PeakLoadMw": 19090,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 269,
+                        "RtegMw": 132,
+                        "SurplusDeficiencyMw": 9969,
+                        "TotAvailGenImportMw": 31530,
+                        "TotAvailGenMw": 28342,
+                        "TotLoadPlusReqdReserveMw": 21561,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 22,
+                                    "HighTempF": 32
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": 19,
+                                    "HighTempF": 31
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "@Day": "5",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 1711,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-05T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 2910,
+                        "PeakImportMw": 3188,
+                        "PeakLoadMw": 19130,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 269,
+                        "RtegMw": 132,
+                        "SurplusDeficiencyMw": 9530,
+                        "TotAvailGenImportMw": 31131,
+                        "TotAvailGenMw": 27943,
+                        "TotLoadPlusReqdReserveMw": 21601,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 0,
+                                    "HighTempF": 23
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": -3,
+                                    "HighTempF": 24
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "@Day": "6",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 0,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-06T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 3160,
+                        "PeakImportMw": 3188,
+                        "PeakLoadMw": 18320,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 269,
+                        "RtegMw": 132,
+                        "SurplusDeficiencyMw": 11801,
+                        "TotAvailGenImportMw": 32592,
+                        "TotAvailGenMw": 29404,
+                        "TotLoadPlusReqdReserveMw": 20791,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 12,
+                                    "HighTempF": 37
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": 7,
+                                    "HighTempF": 37
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "@Day": "7",
+                        "ColdWeatherEvent": "N",
+                        "ColdWeatherOutagesMw": 0,
+                        "ColdWeatherWarn": "N",
+                        "ColdWeatherWatch": "N",
+                        "CsoMw": 30389,
+                        "DelistMw": 2175,
+                        "EnergyEmergency": "N",
+                        "MarketDate": "2016-01-07T00:00:00.000-05:00",
+                        "OtherGenOutagesMw": 3327,
+                        "PeakImportMw": 3188,
+                        "PeakLoadMw": 17910,
+                        "PowerWarn": "N",
+                        "PowerWatch": "N",
+                        "ReplReserveReqMw": 180,
+                        "ReqdReserveInclReplMw": 2471,
+                        "ReqdReserveMw": 2291,
+                        "RtdrMw": 269,
+                        "RtegMw": 132,
+                        "SurplusDeficiencyMw": 12044,
+                        "TotAvailGenImportMw": 32425,
+                        "TotAvailGenMw": 29237,
+                        "TotLoadPlusReqdReserveMw": 20381,
+                        "Weather": {
+                            "CityWeather": [
+                                {
+                                    "CityName": "Boston",
+                                    "DewPointF": 17,
+                                    "HighTempF": 40
+                                },
+                                {
+                                    "CityName": "Hartford",
+                                    "DewPointF": 13,
+                                    "HighTempF": 41
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

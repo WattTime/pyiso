@@ -74,10 +74,14 @@ class CAISOClient(BaseClient):
         if 'market' not in self.options:
             if self.options['forecast']:
                 self.options['market'] = self.MARKET_CHOICES.dam
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
+                self.options['market'] = self.MARKET_CHOICES.dam
             else:
                 self.options['market'] = self.MARKET_CHOICES.fivemin
         if 'freq' not in self.options:
             if self.options['forecast']:
+                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
+            elif self.options['sliceable'] and self.options['data'] == 'gen':
                 self.options['freq'] = self.FREQUENCY_CHOICES.hourly
             else:
                 self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
@@ -90,7 +94,7 @@ class CAISOClient(BaseClient):
 
         if self.options['latest']:
             return self._generation_latest()
-        elif self.options['forecast']:
+        elif self.options['forecast'] or self.options['market'] == self.MARKET_CHOICES.dam:
             return self._generation_forecast()
         else:
             return self._generation_historical()
@@ -491,8 +495,11 @@ class CAISOClient(BaseClient):
                 pivoted = self.unpivot(subsetted)
                 pivoted.rename(columns={'level_1': 'fuel_name', 0: 'gen_MW'}, inplace=True)
 
+                # slice times
+                sliced = self.slice_times(pivoted)
+
                 # store
-                parsed_data += self.serialize(pivoted,
+                parsed_data += self.serialize(sliced,
                                       header=['timestamp', 'fuel_name', 'gen_MW'],
                                       extras={'ba_name': self.NAME,
                                               'market': self.MARKET_CHOICES.hourly,
@@ -534,15 +541,14 @@ class CAISOClient(BaseClient):
             return default_return_val
 
         # check xml content for errors
-        soup = BeautifulSoup(content[0], 'lxml')
-        error = soup.find('m:error')
+        soup = BeautifulSoup(content[0], 'xml')
+        error = soup.find(['error', 'ERROR'])
         if error:
-            code = error.find('m:err_code')
-            desc = error.find('m:err_desc')
+            code = error.find(['err_code', 'ERR_CODE'])
+            desc = error.find(['err_desc', 'ERR_DESC'])
             msg = 'XML error for CAISO OASIS with payload %s: %s %s' % (payload, code, desc)
             LOGGER.error(msg)
             return default_return_val
-
         # return xml or csv data
         if payload.get('resultformat', False) == 6:
             # If we requested CSV files
@@ -553,10 +559,10 @@ class CAISOClient(BaseClient):
         else:
             # Return XML content
             if return_all_files:
-                raw_data = [BeautifulSoup(thisfile).find_all('report_data') for thisfile in content]
+                raw_data = [BeautifulSoup(thisfile, 'xml').find_all(['REPORT_DATA', 'report_data']) for thisfile in content]
                 return raw_data
             else:
-                raw_data = soup.find_all('report_data')
+                raw_data = soup.find_all(['REPORT_DATA', 'report_data'])
                 return raw_data
 
     def parse_oasis_renewable(self, raw_data):
@@ -569,14 +575,14 @@ class CAISOClient(BaseClient):
 
         for raw_soup_dp in raw_data:
             # set up storage for timestamp
-            ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
+            ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
             if ts not in preparsed_data:
                 preparsed_data[ts] = {'wind': 0, 'solar': 0}
 
             # store generation value
             try:
-                fuel_name = raw_soup_dp.find('renewable_type').string.lower()
-                gen_MW = float(raw_soup_dp.find('value').string)
+                fuel_name = raw_soup_dp.find(['RENEWABLE_TYPE', 'renewable_type']).string.lower()
+                gen_MW = float(raw_soup_dp.find(['VALUE', 'value']).string)
                 preparsed_data[ts][fuel_name] += gen_MW
             except TypeError:
                 LOGGER.error('Error in schema for CAISO OASIS result %s' % raw_soup_dp.prettify())
@@ -625,16 +631,16 @@ class CAISOClient(BaseClient):
 
         # extract values from xml
         for raw_soup_dp in raw_data:
-            data_item = raw_soup_dp.find('data_item').string
+            data_item = raw_soup_dp.find(['DATA_ITEM', 'data_item']).string
             if data_item in data_items:
                 # parse timestamp
-                ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
+                ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
 
                 # parse val
                 if data_item == 'ISO_TOT_IMP_MW':
-                    val = -float(raw_soup_dp.find('value').string)
+                    val = -float(raw_soup_dp.find(['VALUE', 'value']).string)
                 else:
-                    val = float(raw_soup_dp.find('value').string)
+                    val = float(raw_soup_dp.find(['VALUE', 'value']).string)
 
                 # add to storage
                 try:
@@ -670,11 +676,11 @@ class CAISOClient(BaseClient):
 
         # extract values from xml
         for raw_soup_dp in raw_data:
-            if raw_soup_dp.find('data_item').string == data_item_key and \
-                    raw_soup_dp.find('resource_name').string == 'CA ISO-TAC':
+            if raw_soup_dp.find(['DATA_ITEM', 'data_item']).string == data_item_key and \
+                    raw_soup_dp.find(['RESOURCE_NAME', 'resource_name']).string == 'CA ISO-TAC':
 
                 # parse timestamp
-                ts = self.utcify(raw_soup_dp.find('interval_start_gmt').string)
+                ts = self.utcify(raw_soup_dp.find(['INTERVAL_START_GMT', 'interval_start_gmt']).string)
 
                 # set up base
                 parsed_dp = {'timestamp': ts,
@@ -683,30 +689,27 @@ class CAISOClient(BaseClient):
                              'ba_name': self.NAME}
 
                 # store generation value
-                parsed_dp['load_MW'] = float(raw_soup_dp.find('value').string)
+                parsed_dp['load_MW'] = float(raw_soup_dp.find(['VALUE', 'value']).string)
                 parsed_data.append(parsed_dp)
 
         # return
         return parsed_data
 
-    def todays_outlook_time(self):
-       # get timestamp
-        response = self.request(self.base_url_outlook+'systemconditions.html')
-        if not response:
-            return None
-
-        demand_soup = BeautifulSoup(response.content)
+    def todays_outlook_time(self, demand_soup):       
         for ts_soup in demand_soup.find_all(class_='docdate'):
-            match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', ts_soup.string)
+            if str(ts_soup) is None:
+                continue
+            match = re.search('\d{1,2}-[a-zA-Z]+-\d{4} \d{1,2}:\d{2}', str(ts_soup))
             if match:
                 ts_str = match.group(0)
                 return self.utcify(ts_str)
+        return None
 
     def fetch_todays_outlook_renewables(self):
         # get renewables data
         response = self.request(self.base_url_outlook+'renewables.html')
         try:
-            return BeautifulSoup(response.content)
+            return BeautifulSoup(response.content, 'lxml')
         except AttributeError:
             LOGGER.warn('No response for CAISO today outlook renewables')
             return None
@@ -758,7 +761,14 @@ class CAISOClient(BaseClient):
             return []
 
         # parse "Today's Outlook" data
-        ts = self.todays_outlook_time()
+
+        # get timestamp
+        response = self.request(self.base_url_outlook+'systemconditions.html')
+        ts = None
+        if response:
+            demand_soup = BeautifulSoup(response.content, 'lxml')
+            ts = self.todays_outlook_time(demand_soup)
+
         parsed_data += self.parse_todays_outlook_renewables(soup, ts)
         if len(parsed_data) == 0:
             return parsed_data

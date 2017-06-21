@@ -3,7 +3,7 @@ from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 
 class TestBaseLMP(TestCase):
@@ -89,11 +89,11 @@ class TestCAISOLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def date_range(self, market):
+    def date_range(self, market, n_days=1, node_id='SLAP_PGP2-APND'):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', node_id='SLAP_PGP2-APND',
-                              start_at=today-timedelta(days=2),
+        data = self._run_test('CAISO', node_id=node_id,
+                              start_at=today-timedelta(days=(n_days+1)),
                               end_at=today-timedelta(days=1),
                               market=market)
 
@@ -109,6 +109,11 @@ class TestCAISOLMP(TestBaseLMP):
         self.assertGreaterEqual(len(data), 12*23)
         self.assertLessEqual(len(data), 12*24)
 
+    def test_date_range_long_rtm(self):
+        data = self.date_range(self.MARKET_CHOICES.fivemin, n_days=10, node_id='DLAP_SCE-APND')
+        self.assertGreaterEqual(len(data), 12*23*10)
+        self.assertLessEqual(len(data), 12*24*10)
+
     def test_date_range_dam(self):
         data = self.date_range(self.MARKET_CHOICES.dam)
         self.assertEqual(len(data), 24)
@@ -120,7 +125,7 @@ class TestCAISOLMP(TestBaseLMP):
 
     def test_date_range_rtpd(self):
         data = self.date_range(self.MARKET_CHOICES.fifteenmin)
-        self.assertEqual(len(data), 24*4)
+        self.assertIn(len(data), [24*4, 24*4-1, 24*4-2])
 
     def test_forecast(self):
         # basic test
@@ -212,7 +217,7 @@ class TestNYISOLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.dam)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
 
-    def test_date_range(self):
+    def test_date_range_default(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
         data = self._run_test('NYISO', node_id='LONGIL',
@@ -223,14 +228,46 @@ class TestNYISOLMP(TestBaseLMP):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+        # test default is RT5M
+        markets = set([d['market'] for d in data])
+        self.assertEqual(len(set(markets)), 1)
+        self.assertEqual(markets.pop(), 'RT5M')
+
+    def test_date_range_dahr(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NYISO', node_id='LONGIL', market='DAHR',
+                              start_at=today-timedelta(days=2),
+                              end_at=today-timedelta(days=1))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test DAHR
+        markets = set([d['market'] for d in data])
+        self.assertEqual(len(set(markets)), 1)
+        self.assertEqual(markets.pop(), 'DAHR')
+
+    def test_farpast_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NYISO', node_id='LONGIL',
+                              start_at=today-timedelta(days=42),
+                              end_at=today-timedelta(days=41))
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
 
 class TestPJMLMP(TestBaseLMP):
-    def test_latest(self):
+    def test_rt5m(self):
         # basic test
-        data = self._run_test('PJM', node_id='COMED',
+        data = self._run_test('PJM', node_id='COMED', latest=True,
                               market=self.MARKET_CHOICES.fivemin)
 
-        # test all timestamps are equal
+        # test rt5m is latest
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
@@ -239,11 +276,11 @@ class TestPJMLMP(TestBaseLMP):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    def test_latest_oasis(self):
-        data = self._run_test('PJM', node_id=None, tol_min=10,
+    def test_rt5m_oasis(self):
+        data = self._run_test('PJM', node_id=None, tol_min=10, latest=True,
                               market=self.MARKET_CHOICES.fivemin)
 
-        # test all timestamps are equal
+        # test rt5m is latest
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
@@ -251,6 +288,14 @@ class TestPJMLMP(TestBaseLMP):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_no_rt5m_historical(self):
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        self.assertRaises(ValueError, self._run_test,
+                          'PJM', node_id=None, tol_min=10,
+                          market=self.MARKET_CHOICES.fivemin,
+                          start_at=today-timedelta(days=2),
+                          end_at=today-timedelta(hours=40))
 
     def test_date_range_dayahead_hourly(self):
         # basic test
@@ -263,6 +308,11 @@ class TestPJMLMP(TestBaseLMP):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
+        # test DAHR
+        markets = set([d['market'] for d in data])
+        self.assertEqual(len(set(markets)), 1)
+        self.assertEqual(markets.pop(), 'DAHR')
+
     def test_date_range_realtime_hourly(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
@@ -274,6 +324,11 @@ class TestPJMLMP(TestBaseLMP):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+        # test RTHR
+        markets = set([d['market'] for d in data])
+        self.assertEqual(len(set(markets)), 1)
+        self.assertEqual(markets.pop(), 'RTHR')
 
     def test_multiple_lmp_realtime(self):
         node_list = ['AECO', 'AEP', 'APS', 'ATSI', 'BGE', 'COMED', 'DAY', 'DAY',
@@ -414,9 +469,22 @@ class TestERCOTLMP(TestBaseLMP):
 
     def test_dam_historical(self):
         start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=30)
-        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1))
+        data = self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1),
+                              market=self.MARKET_CHOICES.dam)
         # slicing is inclusive
         self.assertIn(len(data), [24, 25])
+
+    def test_dam_missing_farpast(self):
+        start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=32)
+        self._run_test('ERCOT', start_at=start, end_at=start+timedelta(days=1),
+                       market=self.MARKET_CHOICES.dam,
+                       expect_data=False)
+
+    def test_rt5m_missing_farpast(self):
+        start = datetime.today().replace(tzinfo=pytz.utc) - timedelta(days=32)
+        self._run_test('ERCOT', start_at=start, end_at=start+timedelta(minutes=10),
+                       market=self.MARKET_CHOICES.fivemin,
+                       expect_data=False)
 
 
 class TestMinimumLMP(TestBaseLMP):

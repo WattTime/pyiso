@@ -1,9 +1,10 @@
+import sys
 import imp
 import logging
 import os.path
 from os import environ
 
-__version__ = '0.3.2'
+__version__ = '0.3.19'
 
 
 # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
@@ -12,34 +13,34 @@ LOG_LEVEL = int(environ.get('LOG_LEVEL', logging.INFO))
 
 # logger: create here to only add the handler once!
 LOGGER = logging.getLogger(__name__)
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stdout)
 LOGGER.addHandler(handler)
 LOGGER.setLevel(LOG_LEVEL)
 
-
 BALANCING_AUTHORITIES = {
-    'AZPS': {'module': 'sveri', 'class': 'SVERIClient'},
-    'BPA': {'module': 'bpa', 'class': 'BPAClient'},
-    'CAISO': {'module': 'caiso', 'class': 'CAISOClient'},
-    'DEAA': {'module': 'sveri', 'class': 'SVERIClient'},
-    'ELE': {'module': 'sveri', 'class': 'SVERIClient'},
-    'ERCOT': {'module': 'ercot', 'class': 'ERCOTClient'},
-    'HGMA': {'module': 'sveri', 'class': 'SVERIClient'},
-    'IESO': {'module': 'ieso', 'class': 'IESOClient'},
-    'IID': {'module': 'sveri', 'class': 'SVERIClient'},
-    'ISONE': {'module': 'isone', 'class': 'ISONEClient'},
-    'GRIF': {'module': 'sveri', 'class': 'SVERIClient'},
-    'MISO': {'module': 'miso', 'class': 'MISOClient'},
-    'NEVP': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
-    'NYISO': {'module': 'nyiso', 'class': 'NYISOClient'},
-    'PJM': {'module': 'pjm', 'class': 'PJMClient'},
-    'PNM': {'module': 'sveri', 'class': 'SVERIClient'},
-    'SPPC': {'module': 'nvenergy', 'class': 'NVEnergyClient'},
-    'SPP': {'module': 'spp', 'class': 'SPPClient'},
-    'SRP': {'module': 'sveri', 'class': 'SVERIClient'},
-    'TEPC': {'module': 'sveri', 'class': 'SVERIClient'},
-    'WALC': {'module': 'sveri', 'class': 'SVERIClient'},
-    'EU': {'module': 'eu', 'class': 'EUClient'},
+    'AZPS': {'class': 'SVERIClient', 'module': 'sveri'},
+    'BPA': {'class': 'BPAClient', 'module': 'bpa'},
+    'CAISO': {'class': 'CAISOClient', 'module': 'caiso'},
+    'DEAA': {'class': 'SVERIClient', 'module': 'sveri'},
+    'EIA': {'class': 'EIAClient', 'module': 'eia_esod'},
+    'ELE': {'class': 'SVERIClient', 'module': 'sveri'},
+    'ERCOT': {'class': 'ERCOTClient', 'module': 'ercot'},
+    'EU': {'class': 'EUClient', 'module': 'eu'},
+    'GRIF': {'class': 'SVERIClient', 'module': 'sveri'},
+    'HGMA': {'class': 'SVERIClient', 'module': 'sveri'},
+    'IESO': {'class': 'IESOClient', 'module': 'ieso'},
+    'IID': {'class': 'SVERIClient', 'module': 'sveri'},
+    'ISONE': {'class': 'ISONEClient', 'module': 'isone'},
+    'MISO': {'class': 'MISOClient', 'module': 'miso'},
+    'NEVP': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
+    'NYISO': {'class': 'NYISOClient', 'module': 'nyiso'},
+    'PJM': {'class': 'PJMClient', 'module': 'pjm'},
+    'PNM': {'class': 'SVERIClient', 'module': 'sveri'},
+    'SPP': {'class': 'SPPClient', 'module': 'spp'},
+    'SPPC': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
+    'SRP': {'class': 'SVERIClient', 'module': 'sveri'},
+    'TEPC': {'class': 'SVERIClient', 'module': 'sveri'},
+    'WALC': {'class': 'SVERIClient', 'module': 'sveri'},
 }
 
 

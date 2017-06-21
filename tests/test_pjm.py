@@ -135,16 +135,6 @@ class TestPJM(TestCase):
         self.assertLessEqual(min(timestamps), start_at)
         self.assertGreaterEqual(max(timestamps), end_at)
 
-    def test_get_lmp_oasis(self):
-        now = datetime.now(pytz.utc)
-        data = self.c.get_lmp(node_id=33092371, market='RT5M')
-
-        timestamps = [d['timestamp'] for d in data]
-
-        # no historical data
-        self.assertEqual(len(set(timestamps)), 1)
-        self.assertLessEqual(abs((timestamps[0] - now).total_seconds()), 60*10)
-
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)
         self.assertEqual(df['load_MW'][0], 94001.713000000003)
@@ -160,8 +150,22 @@ class TestPJM(TestCase):
 
         # Manually checked form xls file
         # These tests should fail if timezones are improperly handled
-        tz_func = lambda x: pd.tslib.Timestamp(pytz.utc.normalize(est.localize(x)))
+        tz_func = lambda x: pd.Timestamp(pytz.utc.normalize(est.localize(x)))
         self.assertEqual(df.ix[tz_func(datetime(2015, 2, 2, 14))]['load_MW'], 105714.638)
         self.assertEqual(df.ix[tz_func(datetime(2015, 6, 4, 2))]['load_MW'], 64705.985)
         self.assertEqual(df.ix[tz_func(datetime(2015, 12, 15, 23))]['load_MW'], 79345.672)
 
+    def test_parse_date_from_markets_operations(self):
+        soup = self.c.fetch_markets_operations_soup()
+        ts = self.c.parse_date_from_markets_operations(soup)
+        td = self.c.local_now() - ts
+
+        # Test that the timestamp is within the last 24 hours
+        self.assertLess(td.total_seconds(), 60*60*24)
+
+    def test_parse_realtime_genmix(self):
+        soup = self.c.fetch_markets_operations_soup()
+        data = self.c.parse_realtime_genmix(soup)
+
+        # expect 10 fuels
+        self.assertEqual(len(data), 10)

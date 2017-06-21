@@ -40,7 +40,8 @@ class MISOClient(BaseClient):
 
         # get data
         if self.options['latest']:
-            data = self.latest_fuel_mix()
+            content = self.get_latest_fuel_mix()
+            data = self.parse_latest_fuel_mix(content)
             extras = {
                 'ba_name': self.NAME,
                 'market': self.MARKET_CHOICES.fivemin,
@@ -95,25 +96,37 @@ class MISOClient(BaseClient):
         # return
         return self.serialize_faster(data, extras=extras)
 
-    def latest_fuel_mix(self):
+    def get_latest_fuel_mix(self):
         # set up request
         url = self.base_url + '/ria/FuelMix.aspx?CSV=True'
 
         # carry out request
         response = self.request(url)
         if not response:
-            return pd.DataFrame()
+            return None
 
         # test for valid content
         if 'The page cannot be displayed' in response.text:
             LOGGER.error('MISO: Error in source data for generation')
+            return None
+
+        # return good
+        return response.content
+
+    def parse_latest_fuel_mix(self, content):
+        # handle bad input
+        if not content:
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(BytesIO(response.content), header=0, index_col=0, parse_dates=True)
+        df = pd.read_csv(BytesIO(content), header=0, index_col=0, parse_dates=True)
 
         # set index
-        df.index = self.utcify_index(df.index)
+        try:
+            df.index = self.utcify_index(df.index)
+        except AttributeError:
+            LOGGER.error('MISO: Error in source data for generation %s' % content)
+            return pd.DataFrame()
         df.index.set_names(['timestamp'], inplace=True)
 
         # set names and labels

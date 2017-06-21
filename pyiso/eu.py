@@ -1,10 +1,10 @@
+import time
 from pyiso.base import BaseClient
 from pyiso import LOGGER
 import requests
 import pandas as pd
 import numpy as np
 from io import StringIO
-from time import sleep
 from datetime import datetime, timedelta
 import pytz
 from os import environ
@@ -145,11 +145,12 @@ class EUClient(BaseClient):
         if not getattr(self, 'session', None):
             self.session = requests.Session()
 
-        payload = {'j_username': environ['ENTSOe_USERNAME'],
-                   'j_password': environ['ENTSOe_PASSWORD']}
+        payload = {'username': environ['ENTSOe_USERNAME'],
+                   'password': environ['ENTSOe_PASSWORD'],
+                   'url': '/dashboard/show'}
 
         # Fake an ajax login to get the cookie
-        r = self.session.post(self.base_url + 'j_spring_security_check', params=payload,
+        r = self.session.post(self.base_url + 'login', params=payload,
                               headers={'X-Ajax-call': 'true'})
 
         msg = r.text
@@ -176,7 +177,7 @@ class EUClient(BaseClient):
                 LOGGER.warn('Request failed, no response found after %i attempts' % count)
                 return False
             # throttled
-            sleep(5)
+            time.sleep(5)
             return self.fetch_entsoe(url, payload, count + 1)
         if 'UNKNOWN_EXCEPTION' in r.text:
             LOGGER.warn('UNKNOWN EXCEPTION')
