@@ -85,6 +85,9 @@ class IESOClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
+    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+        pass
+
     @staticmethod
     def _adequacy_filename(local_date=None):
         """
