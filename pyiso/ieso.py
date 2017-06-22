@@ -1,8 +1,7 @@
 from copy import copy
-from datetime import datetime
-from datetime import timedelta
 
 import pytz
+from datetime import timedelta
 from lxml import objectify
 
 from pyiso import LOGGER
@@ -86,7 +85,8 @@ class IESOClient(BaseClient):
         pass
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
+        raise NotImplementedError('The IESO does not use locational marginal pricing. See '
+                                  'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
 
     @staticmethod
     def _adequacy_filename(local_date=None):
