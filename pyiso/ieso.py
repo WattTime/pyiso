@@ -50,8 +50,7 @@ class IESOClient(BaseClient):
 
         if self.options.get('latest', None):
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
-        elif self.options.get('latest', None) or \
-                (self.options.get('start_at', None) and self.options.get('end_at', None)):
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False):
                 self._generation_historical(fuel_mix=fuel_mix)
             if self.options.get('current_day', False):
@@ -70,8 +69,7 @@ class IESOClient(BaseClient):
 
         if self.options.get('latest', None):
             LOGGER.warn('Not implemented yet.')
-        elif self.options.get('latest', None) or \
-                (self.options.get('start_at', None) and self.options.get('end_at', None)):
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False):
                 LOGGER.warn('Not implemented yet.')
             if self.options.get('current_day', False):
