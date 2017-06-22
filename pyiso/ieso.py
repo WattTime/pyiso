@@ -167,8 +167,7 @@ class IESOClient(BaseClient):
         while iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year <= \
                 self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)).year:
             if self._is_in_generation_mix_time_range(iter_dt):
-                fuel_mix += self._year_generation_mix(local_year=
-                                                      iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
+                fuel_mix += self._year_generation_mix(local_year=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
             iter_dt = iter_dt.replace(year=iter_dt.year + 1)
 
     @staticmethod
