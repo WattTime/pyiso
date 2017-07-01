@@ -2,6 +2,7 @@ from copy import copy
 from collections import OrderedDict
 
 import pytz
+from datetime import datetime
 from datetime import timedelta
 from lxml import objectify
 
@@ -50,6 +51,7 @@ class IESOClient(BaseClient):
         self.options['data'] = 'gen'
 
         if self.options.get('latest', None):
+            # TODO Latest should result in only one value.
             fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False):
@@ -68,14 +70,13 @@ class IESOClient(BaseClient):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         self.options['data'] = 'load'
 
-        if self.options.get('latest', None):
-            LOGGER.warn('Not implemented yet.')
-        elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('historical', False):
-                LOGGER.warn('Not implemented yet.')
-            if self.options.get('current_day', False):
-                LOGGER.warn('Not implemented yet.')
+        # TODO Latest should result in only one value.
+        if self.options.get('start_at', None) and self.options.get('end_at', None):
+            if self.options.get('historical', False) or self.options.get('current_day', False):
+                # TODO 5-minute forecasts for the remainder of current day can use Predispatch Constrained Totals.
+                self._5min_demand(start_at=self.options['start_at'], end_at=self.options['end_at'], ts_data=load_ts)
             if self.options.get('forecast', False):
+                # TODO If start_at/end_at contains both historical and forecast data, there is an overlap of timestamps.
                 self._generation_forecast(ts_data=load_ts)
         else:
             LOGGER.warn('No valid options were supplied.')
@@ -139,13 +140,14 @@ class IESOClient(BaseClient):
                 'gen_MW': gen_mw
             })
 
-    def _append_load(self, loads, ts_local, load_mw, market):
+    def _append_load(self, loads, ts_local, load_mw, frequency, market):
         """
         Appends a dict to the provided list, each with the keys [ba_name, timestamp, freq, market, load_MW].
         Timestamps are in UTC.
         :param list loads:
         :param str ts_local:
         :param float load_mw:
+        :param str frequency:
         :param str market:
         """
         report_dt_utc = self.utcify(local_ts_str=ts_local)
@@ -153,7 +155,7 @@ class IESOClient(BaseClient):
             loads.append({
                 'ba_name': self.NAME,
                 'timestamp': report_dt_utc,
-                'freq': self.FREQUENCY_CHOICES.hourly,
+                'freq': frequency,
                 'market': market,
                 'load_MW': load_mw
             })
@@ -178,6 +180,20 @@ class IESOClient(BaseClient):
                     'market': market,
                     'net_exp_MW': net_exp_mw
                 })
+
+    @staticmethod
+    def _realtime_constrained_totals_filename(local_date=None):
+        """
+        :param datetime local_date: An optional local date object. If provided the filename for that hour will be built.
+            If not, the latest report filename will be built.
+        :return: Realtime Constrained Totals Report filename.
+        :rtype: str
+        """
+        if local_date is not None:
+            delivery_hour = local_date.hour + 1
+            return local_date.strftime('PUB_RealtimeConstTotals_%Y%m%d' + str(delivery_hour).zfill(2) + '.xml')
+        else:
+            return 'PUB_RealtimeConstTotals.xml'
 
     def _generation_forecast(self, ts_data):
         """
@@ -272,7 +288,7 @@ class IESOClient(BaseClient):
             ts_local = day + ' ' + str(demand.DeliveryHour - 1).zfill(2) + ':00'
             load_mw = demand.EnergyMW.pyval
             self._append_load(loads=loads, ts_local=ts_local, load_mw=load_mw,
-                              market=self.MARKET_CHOICES.dam)
+                              frequency=self.FREQUENCY_CHOICES.hourly, market=self.MARKET_CHOICES.dam)
         return loads
 
     def _parse_output_capability_report(self, xml_content):
@@ -322,6 +338,32 @@ class IESOClient(BaseClient):
                     self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
                                           market=self.MARKET_CHOICES.hourly)
         return fuel_mix
+
+    def _parse_realtime_constrained_totals_report(self, xml_content):
+        """
+        Parse the Realtime Constrained Totals Report.
+
+        :param str xml_content: The XML content of the Realtime Constrained Totals Report.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, gen_MW]``. Timestamps are in UTC.
+        :rtype: list
+        """
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+
+        loads = list([])
+        day = doc_body.DeliveryDate
+        hour = doc_body.DeliveryHour - 1
+        # TODO Ask maintainers, do we parse total demand or total load (i.e. demand + losses)?
+        # Currently, using ONTARIO DEMAND aligns with the "Forcast Demand, Total Requirement" from the Adequacy Report.
+        for interval_energy in doc_body.Energies.IntervalEnergy:
+            minute = (interval_energy.Interval - 1) * 5
+            ts_local = day + ' ' + str(hour).zfill(2) + ':' + (str(minute).zfill(2))
+            for mq in interval_energy.MQ:
+                if mq.MarketQuantity == 'ONTARIO DEMAND':
+                    load_mw = mq.EnergyMW.pyval
+                    self._append_load(loads=loads, ts_local=ts_local, load_mw=load_mw,
+                                      frequency=self.FREQUENCY_CHOICES.fivemin, market=self.MARKET_CHOICES.fivemin)
+        return loads
 
     def _parse_output_by_fuel_report(self, xml_content):
         """
@@ -398,6 +440,27 @@ class IESOClient(BaseClient):
         response = self.request(url=base_output_capability_url + filename)
         return self._parse_output_capability_report(response.content)
 
+    def _5min_demand(self, start_at, end_at, ts_data):
+        """
+        Request the five-minute demand the time range start_at to end_at.
+
+        :param datetime start_at:
+        :param datetime end_at:
+        :param list ts_data: The timeseries list of dicts to append results to, each with keys
+            ``[ba_name, timestamp, freq, market, gen_MW]``. Timestamps are in UTC. Only values falling between start_at
+            and end_at will be appended.
+        """
+        earliest_historical_dt = self.local_now().replace(hour=0, minute=0, second=0, microsecond=0) \
+            - timedelta(days=31)  # Earliest historical data available is 31 days in the past.
+        iter_dt = copy(start_at)
+        while earliest_historical_dt < iter_dt <= self.local_now() and iter_dt <= end_at:
+            base_rt_constrained_totals_url = self.base_url + 'RealtimeConstTotals/'
+            filename = self._realtime_constrained_totals_filename(
+                local_date=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)))
+            response = self.request(url=base_rt_constrained_totals_url + filename)
+            ts_data += self._parse_realtime_constrained_totals_report(response.content)
+            iter_dt += timedelta(hours=1)
+
     def _forecast_generation_mix(self, dt):
         """
         For generation mix times in the future, the Adequacy Report must be parsed for forecast values.
@@ -437,7 +500,10 @@ class IESOClient(BaseClient):
 
 def main():
     client = IESOClient()
-    client.get_trade(forecast=True)
+    local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
+    start_at = local_now - timedelta(hours=10)
+    end_at = local_now + timedelta(days=1)
+    client.get_load(start_at=start_at, end_at=end_at)
 
 if __name__ == '__main__':
     main()

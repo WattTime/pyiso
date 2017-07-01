@@ -97,3 +97,27 @@ class TestIESO(TestCase):
                 self.assertEquals(val['gen_MW'], 0)
             elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
                 self.assertEquals(val['gen_MW'], 3570)
+
+    def test_parse_realtime_constrained_totals_report(self):
+        start_at = datetime(year=2017, month=7, day=1, hour=0, minute=0, second=0, tzinfo=timezone(self.c.TZ_NAME))
+        end_at = datetime(year=2017, month=7, day=1, hour=0, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
+        self.c.handle_options(start_at=start_at, end_at=end_at)
+
+        # Offline copy of July 1, 2017 report for delivery hour #1.
+        xml = open('./fixtures/ieso_full_RealtimeConstTotals_2017070101.xml')
+        loads = self.c._parse_realtime_constrained_totals_report(xml.read())
+
+        self.assertEquals(len(loads), 12)  # 12 five-minute intervals in 1 hour.
+        # Spot check fuel summations using known values
+        self.assertEquals(loads[0]['load_MW'], 13531.9)
+        self.assertEquals(loads[1]['load_MW'], 13629.1)
+        self.assertEquals(loads[2]['load_MW'], 13520.8)
+        self.assertEquals(loads[3]['load_MW'], 13417.6)
+        self.assertEquals(loads[4]['load_MW'], 13297.8)
+        self.assertEquals(loads[5]['load_MW'], 13231.5)
+        self.assertEquals(loads[6]['load_MW'], 13177.3)
+        self.assertEquals(loads[7]['load_MW'], 13160.7)
+        self.assertEquals(loads[8]['load_MW'], 13135.3)
+        self.assertEquals(loads[9]['load_MW'], 13083.5)
+        self.assertEquals(loads[10]['load_MW'], 12985.5)
+        self.assertEquals(loads[11]['load_MW'], 12971.7)
