@@ -1,4 +1,5 @@
 from copy import copy
+from collections import OrderedDict
 
 import pytz
 from datetime import timedelta
@@ -82,7 +83,23 @@ class IESOClient(BaseClient):
         return load_ts
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
+        trade_ts = list([])
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+        self.options['data'] = 'trade'
+
+        if self.options.get('latest', None):
+            LOGGER.warn('Not implemented yet.')
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
+            if self.options.get('historical', False):
+                LOGGER.warn('Not implemented yet.')
+            if self.options.get('current_day', False):
+                LOGGER.warn('Not implemented yet.')
+            if self.options.get('forecast', False):
+                self._generation_forecast(ts_data=trade_ts)
+        else:
+            LOGGER.warn('No valid options were supplied.')
+
+        return trade_ts
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         raise NotImplementedError('The IESO does not use locational marginal pricing. See '
@@ -130,7 +147,6 @@ class IESOClient(BaseClient):
         :param str ts_local:
         :param float load_mw:
         :param str market:
-        :return:
         """
         report_dt_utc = self.utcify(local_ts_str=ts_local)
         if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
@@ -141,6 +157,27 @@ class IESOClient(BaseClient):
                 'market': market,
                 'load_MW': load_mw
             })
+
+    def _append_trade(self, trades, imports_exports, market):
+        """
+        Appends a dict to the provided list, each with the keys [ba_name, timestamp, freq, market, net_exp_MW].
+        Timestamps are in UTC.
+        :param list trades:
+        :param OrderedDict imports_exports: An ordered dictionary of the form {'ts_local':{'import'|'export',val_mw}}
+        :param str market:
+        """
+        for ts_local, imp_exp in imports_exports.iteritems():
+            report_dt_utc = self.utcify(local_ts_str=ts_local)
+            if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
+                # Handle export passed as positive/negative value
+                net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
+                trades.append({
+                    'ba_name': self.NAME,
+                    'timestamp': report_dt_utc,
+                    'freq': self.FREQUENCY_CHOICES.hourly,
+                    'market': market,
+                    'net_exp_MW': net_exp_mw
+                })
 
     def _generation_forecast(self, ts_data):
         """
@@ -155,7 +192,7 @@ class IESOClient(BaseClient):
         while iter_dt <= self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)) \
                 and iter_dt <= local_last_forecast_dt:
             ts_data += self._forecast_generation_mix(dt=iter_dt)
-            iter_dt = iter_dt.replace(day=iter_dt.day + 1)
+            iter_dt = iter_dt + timedelta(days=1)
 
     def _generation_historical(self, fuel_mix):
         """
@@ -314,6 +351,30 @@ class IESOClient(BaseClient):
 
         return fuel_mix
 
+    def _parse_trade_from_adequacy_report(self, xml_content):
+        """
+        Parse import/export data from forecast data contained in the Adequacy Report.
+        :param xml_content: The XML content of the Adequacy Report.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, net_exp_MW]``.
+        """
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+
+        trades = list([])
+        day = doc_body.DeliveryDate
+        imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
+        for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
+            ts_local = day + ' ' + str(import_schedule.DeliveryHour - 1).zfill(2) + ':00'
+            imports_exports[ts_local] = {'import': import_schedule.EnergyMW.pyval}
+        for export_schedule in doc_body.ForecastDemand.ZonalExports.TotalExports.Schedules.Schedule:
+            ts_local = day + ' ' + str(export_schedule.DeliveryHour - 1).zfill(2) + ':00'
+            hr_entry = imports_exports.get(ts_local)
+            hr_entry.update({'export': export_schedule.EnergyMW.pyval})
+            imports_exports[ts_local] = hr_entry
+
+        self._append_trade(trades=trades, imports_exports=imports_exports, market=self.MARKET_CHOICES.dam)
+        return trades
+
     def _is_in_generation_mix_time_range(self, dt):
         """
         :param datetime dt: A timezone-aware datetime value.
@@ -353,6 +414,8 @@ class IESOClient(BaseClient):
             return self._parse_fuel_mix_from_adequacy_report(response.content)
         elif self.options['data'] == 'load':
             return self._parse_load_from_adequacy_report(response.content)
+        elif self.options['data'] == 'trade':
+            return self._parse_trade_from_adequacy_report(response.content)
         else:
             LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
 
@@ -374,7 +437,7 @@ class IESOClient(BaseClient):
 
 def main():
     client = IESOClient()
-    client.get_load(forecast=True)
+    client.get_trade(forecast=True)
 
 if __name__ == '__main__':
     main()
