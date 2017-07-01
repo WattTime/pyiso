@@ -45,7 +45,7 @@ class IESOClient(BaseClient):
             if self.options['end_at'] >= local_current_day_start_dt:
                 self.options['current_day'] = True
 
-    def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+    def get_generation(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         fuel_mix = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         self.options['data'] = 'gen'
@@ -65,7 +65,7 @@ class IESOClient(BaseClient):
 
         return fuel_mix
 
-    def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+    def get_load(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         load_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         self.options['data'] = 'load'
@@ -83,26 +83,26 @@ class IESOClient(BaseClient):
 
         return load_ts
 
-    def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+    def get_trade(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         trade_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         self.options['data'] = 'trade'
 
-        if self.options.get('latest', None):
-            LOGGER.warn('Not implemented yet.')
-        elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('historical', False):
-                LOGGER.warn('Not implemented yet.')
-            if self.options.get('current_day', False):
-                LOGGER.warn('Not implemented yet.')
+        # TODO Latest should result in only one value.
+        if self.options.get('start_at', None) and self.options.get('end_at', None):
+            if self.options.get('historical', False) or self.options.get('current_day', False):
+                # TODO For current day, five-minute trade forecasts are available from Intertie Schedule and Flow Report
+                self._trade_historical(start_at=self.options['start_at'], end_at=self.options['end_at'],
+                                       ts_data=trade_ts)
             if self.options.get('forecast', False):
+                # TODO If start_at/end_at contains both historical and forecast data, there is an overlap of timestamps.
                 self._generation_forecast(ts_data=trade_ts)
         else:
             LOGGER.warn('No valid options were supplied.')
 
         return trade_ts
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+    def get_lmp(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         raise NotImplementedError('The IESO does not use locational marginal pricing. See '
                                   'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
 
@@ -160,26 +160,25 @@ class IESOClient(BaseClient):
                 'load_MW': load_mw
             })
 
-    def _append_trade(self, trades, imports_exports, market):
+    def _append_trade(self, trades, ts_local, net_exp_mw, frequency, market):
         """
         Appends a dict to the provided list, each with the keys [ba_name, timestamp, freq, market, net_exp_MW].
         Timestamps are in UTC.
         :param list trades:
-        :param OrderedDict imports_exports: An ordered dictionary of the form {'ts_local':{'import'|'export',val_mw}}
+        :param str ts_local:
+        :param float net_exp_mw:
+        :param str frequency:
         :param str market:
         """
-        for ts_local, imp_exp in imports_exports.iteritems():
-            report_dt_utc = self.utcify(local_ts_str=ts_local)
-            if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
-                # Handle export passed as positive/negative value
-                net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
-                trades.append({
-                    'ba_name': self.NAME,
-                    'timestamp': report_dt_utc,
-                    'freq': self.FREQUENCY_CHOICES.hourly,
-                    'market': market,
-                    'net_exp_MW': net_exp_mw
-                })
+        report_dt_utc = self.utcify(local_ts_str=ts_local)
+        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
+            trades.append({
+                'ba_name': self.NAME,
+                'timestamp': report_dt_utc,
+                'freq': frequency,
+                'market': market,
+                'net_exp_MW': net_exp_mw
+            })
 
     @staticmethod
     def _realtime_constrained_totals_filename(local_date=None):
@@ -222,6 +221,19 @@ class IESOClient(BaseClient):
             if self._is_in_generation_mix_time_range(iter_dt):
                 fuel_mix += self._year_generation_mix(local_year=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
             iter_dt = iter_dt.replace(year=iter_dt.year + 1)
+
+    @staticmethod
+    def _intertie_schedule_flow_filename(local_date=None):
+        """
+        :param datetime local_date: An optional local date object. If provided the filename for that day will be built.
+            If not, the latest report filename will be built.
+        :return: Intertie Schedule and Flow Report filename.
+        :rtype: str
+        """
+        if local_date is not None:
+            return local_date.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
+        else:
+            return 'PUB_IntertieScheduleFlow.xml'
 
     @staticmethod
     def _output_capability_filename(local_date=None):
@@ -393,6 +405,30 @@ class IESOClient(BaseClient):
 
         return fuel_mix
 
+    def _parse_intertie_schedule_flow_report(self, xml_content):
+        """
+        Parse the Intertie Schedule and Flow Report.
+
+        :param str xml_content: The XML content of the Intertie Schedule and Flow Report.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
+            Timestamps are in UTC.
+        :rtype: list
+        """
+        document = objectify.fromstring(xml_content)
+        doc_body = document.IMODocBody
+
+        trades = list([])
+        doc_date_local = doc_body.Date  # %Y%m%d
+        for actual in doc_body.Totals.Actuals.Actual:
+            hour_local = str(actual.Hour - 1).zfill(2)  # Delivery hour 1 is 00
+            minute_local = str((actual.Interval - 1) * 5).zfill(2)  # Interval 1 is minute 00
+            ts_local = doc_date_local + ' ' + hour_local + ':' + minute_local
+            net_exp_mw = actual.Flow
+
+            self._append_trade(trades=trades, ts_local=ts_local, net_exp_mw=net_exp_mw,
+                               frequency=self.FREQUENCY_CHOICES.fivemin, market=self.MARKET_CHOICES.hourly)
+        return trades
+
     def _parse_trade_from_adequacy_report(self, xml_content):
         """
         Parse import/export data from forecast data contained in the Adequacy Report.
@@ -414,7 +450,11 @@ class IESOClient(BaseClient):
             hr_entry.update({'export': export_schedule.EnergyMW.pyval})
             imports_exports[ts_local] = hr_entry
 
-        self._append_trade(trades=trades, imports_exports=imports_exports, market=self.MARKET_CHOICES.dam)
+        for ts_local, imp_exp in imports_exports.iteritems():
+            # Handle export passed as positive/negative value
+            net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
+            self._append_trade(trades=trades, ts_local=ts_local, net_exp_mw=net_exp_mw,
+                               frequency=self.FREQUENCY_CHOICES.hourly, market=self.MARKET_CHOICES.dam)
         return trades
 
     def _is_in_generation_mix_time_range(self, dt):
@@ -482,6 +522,27 @@ class IESOClient(BaseClient):
         else:
             LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
 
+    def _trade_historical(self, start_at, end_at, ts_data):
+        """
+        Request the import/export data for a time range from start_at to end_at.
+
+        :param datetime start_at:
+        :param datetime end_at:
+        :param list ts_data: The timeseries list of dicts to append results to, each with keys
+            ``[ba_name, timestamp, freq, market, net_exp_MW]``. Timestamps are in UTC. Only values falling between
+            start_at and end_at will be appended.
+        """
+        earliest_historical_dt = self.local_now().replace(hour=0, minute=0, second=0, microsecond=0) \
+            - timedelta(days=90)  # Earliest historical data available is three months in the past.
+        iter_dt = copy(start_at)
+        while earliest_historical_dt < iter_dt <= self.local_now() and iter_dt <= end_at:
+            intertie_schedule_flow_url = self.base_url + 'IntertieScheduleFlow/'
+            filename = self._intertie_schedule_flow_filename(
+                local_date=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)))
+            response = self.request(url=intertie_schedule_flow_url + filename)
+            ts_data += self._parse_intertie_schedule_flow_report(response.content)
+            iter_dt += timedelta(days=1)
+
     def _year_generation_mix(self, local_year):
         """
         For long generation mix time ranges at least one day in the past, it is most efficient to request the Generator
@@ -501,9 +562,9 @@ class IESOClient(BaseClient):
 def main():
     client = IESOClient()
     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
-    start_at = local_now - timedelta(hours=10)
-    end_at = local_now + timedelta(days=1)
-    client.get_load(start_at=start_at, end_at=end_at)
+    start_at = local_now - timedelta(hours=4)
+    end_at = local_now + timedelta(days=2)
+    client.get_trade(start_at=start_at, end_at=end_at)
 
 if __name__ == '__main__':
     main()

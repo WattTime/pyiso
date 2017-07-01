@@ -121,3 +121,17 @@ class TestIESO(TestCase):
         self.assertEquals(loads[9]['load_MW'], 13083.5)
         self.assertEquals(loads[10]['load_MW'], 12985.5)
         self.assertEquals(loads[11]['load_MW'], 12971.7)
+
+    def test_parse_intertie_schedule_and_flow__report(self):
+        start_at = datetime(year=2017, month=6, day=30, hour=0, minute=0, second=0, tzinfo=timezone(self.c.TZ_NAME))
+        end_at = datetime(year=2017, month=6, day=30, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
+        self.c.handle_options(start_at=start_at, end_at=end_at)
+
+        # Offline copy of June 30, 2017 report requested as if it were July 1st.
+        xml = open('./fixtures/ieso_full_IntertieScheduleFlow_20170630.xml')
+        trades = self.c._parse_intertie_schedule_flow_report(xml.read())
+
+        self.assertEquals(len(trades), 288)  # 12 five-minute intervals * 24 hours.
+        # Spot check fuel summations using known values
+        self.assertEquals(trades[0]['net_exp_MW'], 2269.4)
+        self.assertEquals(trades[287]['net_exp_MW'], 2242)
