@@ -559,6 +559,52 @@ class IESOClient(BaseClient):
         return self._parse_output_by_fuel_report(response.content)
 
 
+class BaseIesoReportHandler(object):
+    """
+    Base class to standardize how IESO market reports are parsed and to define date-related attributes.
+    """
+
+    def frequency(self):
+        """
+        The frequency of the report data.
+        :return: One of BaseClient.FREQUENCY_CHOICES
+        """
+        raise NotImplementedError('Derived classes must implement the frequency method.')
+
+    def market(self):
+        """
+        The market which the report data is for.
+        :return: One of BaseClient.MARKET_CHOICES
+        """
+        raise NotImplementedError('Derived classes must implement the market method.')
+
+    def report_filename(self, local_date=None):
+        """
+        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
+            If not, the latest report filename will be built.
+        :return: The report filename for the provided datetime, or the current report filename if no datetime is
+            provided.
+        :rtype: str
+        """
+        raise NotImplementedError('Derived classes must implement the report_filename method.')
+
+    def earliest_available_datetime(self):
+        """
+        :return: A local datetime representing the earliest datetime that (historical) report data is publicly
+            available.
+        :rtype: datetime
+        """
+        raise NotImplementedError('Derived classes must implement the earliest_available_datetime method.')
+
+    def latest_available_datetime(self):
+        """
+        :return: A local datetime representing the latest datetime that (current/future) report data is publicly
+            available.
+        :rtype: datetime
+        """
+        raise NotImplementedError('Derived classes must implement the latest_available_datetime method.')
+
+
 def main():
     client = IESOClient()
     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
