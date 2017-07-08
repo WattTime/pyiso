@@ -563,6 +563,7 @@ class BaseIesoReportHandler(object):
     """
     Base class to standardize how IESO market reports are parsed and to define date-related attributes.
     """
+    BASE_URL = 'http://reports.ieso.ca/public/'
 
     def frequency(self):
         """
@@ -578,19 +579,18 @@ class BaseIesoReportHandler(object):
         """
         raise NotImplementedError('Derived classes must implement the market method.')
 
-    def report_filename(self, local_date=None):
+    def report_url(self, report_datetime=None):
         """
-        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
-            If not, the latest report filename will be built.
-        :return: The report filename for the provided datetime, or the current report filename if no datetime is
-            provided.
+        :param datetime report_datetime: If provided, report URL for that date will be constructed. If no datetime is
+            provided, the current report URL will be constructed.
+        :return: The fully-qualified request URL.
         :rtype: str
         """
-        raise NotImplementedError('Derived classes must implement the report_filename method.')
+        raise NotImplementedError('Derived classes must implement the request_report method.')
 
     def earliest_available_datetime(self):
         """
-        :return: A local datetime representing the earliest datetime that (historical) report data is publicly
+        :return: A tz-aware datetime representing the earliest EST datetime that (historical) report data is publicly
             available.
         :rtype: datetime
         """
@@ -598,11 +598,38 @@ class BaseIesoReportHandler(object):
 
     def latest_available_datetime(self):
         """
-        :return: A local datetime representing the latest datetime that (current/future) report data is publicly
+        :return: A tz-aware datetime representing the latest EST datetime that (current/future) report data is publicly
             available.
         :rtype: datetime
         """
         raise NotImplementedError('Derived classes must implement the latest_available_datetime method.')
+
+    @staticmethod
+    def est_now():
+        """Returns a tz-aware datetime equal to the current moment, in Eastern Standard Time."""
+        return pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
+
+
+class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
+    def frequency(self):
+        return BaseClient.FREQUENCY_CHOICES.fivemin
+
+    def market(self):
+        return BaseClient.MARKET_CHOICES.hourly
+
+    def report_url(self, report_datetime=None):
+        filename = 'PUB_IntertieScheduleFlow.xml'
+        if report_datetime is not None:
+            est_datetime = report_datetime.astimezone(pytz.timezone('EST'))
+            filename = est_datetime.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
+        return self.BASE_URL + 'IntertieScheduleFlow/' + filename
+
+    def earliest_available_datetime(self):
+        # Earliest historical data available is three months in the past.
+        return self.est_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+
+    def latest_available_datetime(self):
+        self.est_now()
 
 
 def main():
