@@ -1,5 +1,6 @@
 from copy import copy
 from collections import OrderedDict
+from collections import namedtuple
 
 import pytz
 from datetime import datetime
@@ -8,6 +9,10 @@ from lxml import objectify
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
+
+
+ParserFormat = namedtuple('ParserFormat', ['generation', 'load', 'trade', 'lmp'])
+ReportInterval = namedtuple('ReportInterval', ['hourly', 'daily'])
 
 
 class IESOClient(BaseClient):
@@ -25,6 +30,8 @@ class IESOClient(BaseClient):
         'BIOFUEL': 'biomass',
         'OTHER': 'other'
     }
+
+    PARSER_FORMATS = ParserFormat(generation='generation', load='load', trade='trade', lmp='lmp')
 
     def handle_options(self, **kwargs):
         # regular handle options
@@ -91,9 +98,12 @@ class IESOClient(BaseClient):
         # TODO Latest should result in only one value.
         if self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False) or self.options.get('current_day', False):
-                # TODO For current day, five-minute trade forecasts are available from Intertie Schedule and Flow Report
-                self._trade_historical(start_at=self.options['start_at'], end_at=self.options['end_at'],
-                                       ts_data=trade_ts)
+                report_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
+                range_start = max(self.options['start_at'], report_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], report_handler.latest_available_datetime())
+                self._get_data_range(result_ts=trade_ts, report_handler=report_handler,
+                                     parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
+                                     range_end=range_end)
             if self.options.get('forecast', False):
                 # TODO If start_at/end_at contains both historical and forecast data, there is an overlap of timestamps.
                 self._generation_forecast(ts_data=trade_ts)
@@ -105,6 +115,22 @@ class IESOClient(BaseClient):
     def get_lmp(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         raise NotImplementedError('The IESO does not use locational marginal pricing. See '
                                   'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
+
+    def _get_data_range(self, result_ts, report_handler, parser_format, range_start, range_end):
+        report_interval = report_handler.report_interval()
+        report_datetime = range_start.astimezone(pytz.timezone(self.TZ_NAME))
+
+        if report_interval == report_handler.REPORT_INTERVALS.daily:
+            report_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif report_interval == report_handler.REPORT_INTERVALS.hourly:
+            report_datetime.replace(minute=0, second=0, microsecond=0)
+
+        while report_datetime <= min(range_end, report_handler.latest_available_datetime()):
+            report_url = report_handler.report_url(report_datetime=report_datetime)
+            response = self.request(url=report_url)
+            report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
+                                        min_datetime=range_start, max_datetime=range_end)
+            report_datetime += report_handler.interval_timedelta()
 
     @staticmethod
     def _adequacy_filename(local_date=None):
@@ -221,19 +247,6 @@ class IESOClient(BaseClient):
             if self._is_in_generation_mix_time_range(iter_dt):
                 fuel_mix += self._year_generation_mix(local_year=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
             iter_dt = iter_dt.replace(year=iter_dt.year + 1)
-
-    @staticmethod
-    def _intertie_schedule_flow_filename(local_date=None):
-        """
-        :param datetime local_date: An optional local date object. If provided the filename for that day will be built.
-            If not, the latest report filename will be built.
-        :return: Intertie Schedule and Flow Report filename.
-        :rtype: str
-        """
-        if local_date is not None:
-            return local_date.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
-        else:
-            return 'PUB_IntertieScheduleFlow.xml'
 
     @staticmethod
     def _output_capability_filename(local_date=None):
@@ -405,30 +418,6 @@ class IESOClient(BaseClient):
 
         return fuel_mix
 
-    def _parse_intertie_schedule_flow_report(self, xml_content):
-        """
-        Parse the Intertie Schedule and Flow Report.
-
-        :param str xml_content: The XML content of the Intertie Schedule and Flow Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC.
-        :rtype: list
-        """
-        document = objectify.fromstring(xml_content)
-        doc_body = document.IMODocBody
-
-        trades = list([])
-        doc_date_local = doc_body.Date  # %Y%m%d
-        for actual in doc_body.Totals.Actuals.Actual:
-            hour_local = str(actual.Hour - 1).zfill(2)  # Delivery hour 1 is 00
-            minute_local = str((actual.Interval - 1) * 5).zfill(2)  # Interval 1 is minute 00
-            ts_local = doc_date_local + ' ' + hour_local + ':' + minute_local
-            net_exp_mw = actual.Flow
-
-            self._append_trade(trades=trades, ts_local=ts_local, net_exp_mw=net_exp_mw,
-                               frequency=self.FREQUENCY_CHOICES.fivemin, market=self.MARKET_CHOICES.hourly)
-        return trades
-
     def _parse_trade_from_adequacy_report(self, xml_content):
         """
         Parse import/export data from forecast data contained in the Adequacy Report.
@@ -522,27 +511,6 @@ class IESOClient(BaseClient):
         else:
             LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
 
-    def _trade_historical(self, start_at, end_at, ts_data):
-        """
-        Request the import/export data for a time range from start_at to end_at.
-
-        :param datetime start_at:
-        :param datetime end_at:
-        :param list ts_data: The timeseries list of dicts to append results to, each with keys
-            ``[ba_name, timestamp, freq, market, net_exp_MW]``. Timestamps are in UTC. Only values falling between
-            start_at and end_at will be appended.
-        """
-        earliest_historical_dt = self.local_now().replace(hour=0, minute=0, second=0, microsecond=0) \
-            - timedelta(days=90)  # Earliest historical data available is three months in the past.
-        iter_dt = copy(start_at)
-        while earliest_historical_dt < iter_dt <= self.local_now() and iter_dt <= end_at:
-            intertie_schedule_flow_url = self.base_url + 'IntertieScheduleFlow/'
-            filename = self._intertie_schedule_flow_filename(
-                local_date=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)))
-            response = self.request(url=intertie_schedule_flow_url + filename)
-            ts_data += self._parse_intertie_schedule_flow_report(response.content)
-            iter_dt += timedelta(days=1)
-
     def _year_generation_mix(self, local_year):
         """
         For long generation mix time ranges at least one day in the past, it is most efficient to request the Generator
@@ -564,6 +532,13 @@ class BaseIesoReportHandler(object):
     Base class to standardize how IESO market reports are parsed and to define date-related attributes.
     """
     BASE_URL = 'http://reports.ieso.ca/public/'
+    REPORT_INTERVALS = ReportInterval(hourly='hourly', daily='daily')
+
+    def __init__(self, ieso_client):
+        """
+        :param IESOClient ieso_client: The WattTime client that this report handler is parsing data for.
+        """
+        self.ieso_client = ieso_client
 
     def frequency(self):
         """
@@ -604,10 +579,90 @@ class BaseIesoReportHandler(object):
         """
         raise NotImplementedError('Derived classes must implement the latest_available_datetime method.')
 
-    @staticmethod
-    def est_now():
-        """Returns a tz-aware datetime equal to the current moment, in Eastern Standard Time."""
-        return pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
+    def report_interval(self):
+        """
+        The amount of time time between reports.
+        :return: One of BaseIesoReportHandler.REPORT_INTERVALS
+        """
+        raise NotImplementedError('Derived classes must implement the report_interval method.')
+
+    def interval_timedelta(self):
+        """
+        :return: The timedelta used to stop through a series of report requests.
+        :rtype: timedelta
+        """
+        if self.report_interval() == self.REPORT_INTERVALS.hourly:
+            return timedelta(hours=1)
+        else:
+            return timedelta(days=1)
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        """
+        Parses the report content and appends them to a timeseries of results, in one of several WattTime client
+        formats.
+
+        :param str xml_content: The XML response body of the report.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to. Timestamps are in
+            UTC.
+        :param tuple parser_format: The parser format used to append results.
+        :param datetime min_datetime: The minimum datetime that can be appended to the results.
+        :param datetime max_datetime: The maximum datetime that can be appended to the results.
+        """
+        raise NotImplementedError('Derived classes must implement the parse_report method.')
+
+    def append_fuel_mix(self, result_ts, ts_local, gen_mw, fuel):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, fuel_name, gen_MW].
+        Timestamps are in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param str ts_local: The local datetime of the data.
+        :param float gen_mw: Electricity generation in megawatts (MW)
+        :param str fuel: IESO fuel name (will be converted to WattTime name).
+        """
+        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
+        result_ts.append({
+            'ba_name': IESOClient.NAME,
+            'timestamp': report_dt_utc,
+            'freq': self.frequency(),
+            'market': self.market(),
+            'fuel_name': IESOClient.fuels[fuel],
+            'gen_MW': gen_mw
+        })
+
+    def append_load(self, result_ts, ts_local, load_mw):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW]. Timestamps are
+        in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param str ts_local: The local datetime of the data.
+        :param float load_mw: Electricity load in megawatts (MW).
+        """
+        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
+        result_ts.append({
+            'ba_name': IESOClient.NAME,
+            'timestamp': report_dt_utc,
+            'freq': self.frequency(),
+            'market': self.market(),
+            'load_MW': load_mw
+        })
+
+    def append_trade(self, result_ts, ts_local, net_exp_mw):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, net_exp_MW]. Timestamps
+        are in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param str ts_local: The local datetime of the data.
+        :param float net_exp_mw: The net exported megawatts (MW) (i.e. export - import). Negative values indicate that
+            more electricity was imported than exported.
+        """
+        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
+        result_ts.append({
+            'ba_name': IESOClient.NAME,
+            'timestamp': report_dt_utc,
+            'freq': self.frequency(),
+            'market': self.market(),
+            'net_exp_MW': net_exp_mw
+        })
 
 
 class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
@@ -626,16 +681,52 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
 
     def earliest_available_datetime(self):
         # Earliest historical data available is three months in the past.
-        return self.est_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
-        self.est_now()
+        # Latest available forecase
+        return self.ieso_client.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    def report_interval(self):
+        return self.REPORT_INTERVALS.daily
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        if parser_format == IESOClient.PARSER_FORMATS.trade:
+            document = objectify.fromstring(xml_content)
+            doc_body = document.IMODocBody
+            doc_date_local = doc_body.Date  # %Y%m%d
+
+            # Actuals child elements used for historical and times <= now.
+            for actual in doc_body.Totals.Actuals.Actual:
+                hour_local = str(actual.Hour - 1).zfill(2)
+                minute_local = str((actual.Interval - 1) * 5).zfill(2)  # Interval 1 is minute 00
+                ts_local = doc_date_local + ' ' + hour_local + ':' + minute_local
+                net_exp_mw = actual.Flow
+                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+
+                # Batches of 5-minute observations are posted hourly, at the end of the hour. Time between the end of
+                # an hour and the report's availability online is typically 30 minutes. The lag between a row's
+                # datetime and the availability of observations for that datetime can be as long as ~1.5 hours.
+                # The report fills "Actual" elements in the future with 0, so treat 0 as missing data.
+                if (min_datetime <= row_datetime <= self.ieso_client.local_now()) and net_exp_mw > 0:
+                    self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
+
+            # Schedules child elements used for times > now.
+            for schedule in doc_body.Totals.Schedules.Schedule:
+                hour_local = str(schedule.Hour - 1).zfill(2)
+                ts_local = doc_date_local + ' ' + hour_local + ':00'
+                net_exp_mw = schedule.Export - schedule.Import
+                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                if self.ieso_client.local_now() < row_datetime <= max_datetime:
+                    self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
+        else:
+            raise NotImplementedError('Intertie Schedule Flow Report should only be parsed into the trade format.')
 
 
 def main():
     client = IESOClient()
     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
-    start_at = local_now - timedelta(hours=4)
+    start_at = local_now - timedelta(hours=2)
     end_at = local_now + timedelta(days=2)
     client.get_trade(start_at=start_at, end_at=end_at)
 

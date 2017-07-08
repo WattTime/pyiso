@@ -1,3 +1,4 @@
+from pyiso import ieso
 from datetime import datetime
 from unittest import TestCase
 
@@ -122,14 +123,24 @@ class TestIESO(TestCase):
         self.assertEquals(loads[10]['load_MW'], 12985.5)
         self.assertEquals(loads[11]['load_MW'], 12971.7)
 
-    def test_parse_intertie_schedule_and_flow__report(self):
-        start_at = datetime(year=2017, month=6, day=30, hour=0, minute=0, second=0, tzinfo=timezone(self.c.TZ_NAME))
-        end_at = datetime(year=2017, month=6, day=30, hour=23, minute=59, second=59, tzinfo=timezone(self.c.TZ_NAME))
-        self.c.handle_options(start_at=start_at, end_at=end_at)
+
+class TestIntertieScheduleFlowReport(TestCase):
+    def setUp(self):
+        self.ieso_client = client_factory('IESO')
+        self.report_handler = ieso.IntertieScheduleFlowReportHandler(ieso_client=self.ieso_client)
+
+    def test_parse_report(self):
+        start_at = datetime(year=2017, month=6, day=30, hour=0, minute=0, second=0,
+                            tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        end_at = datetime(year=2017, month=6, day=30, hour=23, minute=59, second=59,
+                          tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Offline copy of June 30, 2017 report requested as if it were July 1st.
         xml = open('./fixtures/ieso_full_IntertieScheduleFlow_20170630.xml')
-        trades = self.c._parse_intertie_schedule_flow_report(xml.read())
+        trades =list([])
+        self.report_handler.parse_report(xml_content=xml.read(), result_ts=trades,
+                                         parser_format=ieso.IESOClient.PARSER_FORMATS.trade,
+                                         min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(trades), 288)  # 12 five-minute intervals * 24 hours.
         # Spot check fuel summations using known values
