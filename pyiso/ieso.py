@@ -69,7 +69,6 @@ class IESOClient(BaseClient):
                 self._generation_forecast(ts_data=fuel_mix)
         else:
             LOGGER.warn('No valid options were supplied.')
-
         return fuel_mix
 
     def get_load(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
@@ -82,34 +81,37 @@ class IESOClient(BaseClient):
             if self.options.get('historical', False) or self.options.get('current_day', False):
                 # TODO 5-minute forecasts for the remainder of current day can use Predispatch Constrained Totals.
                 self._5min_demand(start_at=self.options['start_at'], end_at=self.options['end_at'], ts_data=load_ts)
+
             if self.options.get('forecast', False):
                 # TODO If start_at/end_at contains both historical and forecast data, there is an overlap of timestamps.
                 self._generation_forecast(ts_data=load_ts)
         else:
             LOGGER.warn('No valid options were supplied.')
-
         return load_ts
 
     def get_trade(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         trade_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
-        self.options['data'] = 'trade'
 
         # TODO Latest should result in only one value.
         if self.options.get('start_at', None) and self.options.get('end_at', None):
+            inter_sched_flow_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
+            adequacy_handler = AdequacyReportHandler(ieso_client=self)
             if self.options.get('historical', False) or self.options.get('current_day', False):
-                report_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
-                range_start = max(self.options['start_at'], report_handler.earliest_available_datetime())
-                range_end = min(self.options['end_at'], report_handler.latest_available_datetime())
-                self._get_data_range(result_ts=trade_ts, report_handler=report_handler,
+                range_start = max(self.options['start_at'], inter_sched_flow_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], inter_sched_flow_handler.latest_available_datetime())
+                self._get_data_range(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
                                      parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
                                      range_end=range_end)
             if self.options.get('forecast', False):
-                # TODO If start_at/end_at contains both historical and forecast data, there is an overlap of timestamps.
-                self._generation_forecast(ts_data=trade_ts)
+                range_start = max(self.options['start_at'], inter_sched_flow_handler.latest_available_datetime(),
+                                  adequacy_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
+                self._get_data_range(result_ts=trade_ts, report_handler=adequacy_handler,
+                                     parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
+                                     range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
-
         return trade_ts
 
     def get_lmp(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
@@ -184,26 +186,6 @@ class IESOClient(BaseClient):
                 'freq': frequency,
                 'market': market,
                 'load_MW': load_mw
-            })
-
-    def _append_trade(self, trades, ts_local, net_exp_mw, frequency, market):
-        """
-        Appends a dict to the provided list, each with the keys [ba_name, timestamp, freq, market, net_exp_MW].
-        Timestamps are in UTC.
-        :param list trades:
-        :param str ts_local:
-        :param float net_exp_mw:
-        :param str frequency:
-        :param str market:
-        """
-        report_dt_utc = self.utcify(local_ts_str=ts_local)
-        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
-            trades.append({
-                'ba_name': self.NAME,
-                'timestamp': report_dt_utc,
-                'freq': frequency,
-                'market': market,
-                'net_exp_MW': net_exp_mw
             })
 
     @staticmethod
@@ -378,8 +360,6 @@ class IESOClient(BaseClient):
         loads = list([])
         day = doc_body.DeliveryDate
         hour = doc_body.DeliveryHour - 1
-        # TODO Ask maintainers, do we parse total demand or total load (i.e. demand + losses)?
-        # Currently, using ONTARIO DEMAND aligns with the "Forcast Demand, Total Requirement" from the Adequacy Report.
         for interval_energy in doc_body.Energies.IntervalEnergy:
             minute = (interval_energy.Interval - 1) * 5
             ts_local = day + ' ' + str(hour).zfill(2) + ':' + (str(minute).zfill(2))
@@ -417,34 +397,6 @@ class IESOClient(BaseClient):
                                           market=self.MARKET_CHOICES.hourly)
 
         return fuel_mix
-
-    def _parse_trade_from_adequacy_report(self, xml_content):
-        """
-        Parse import/export data from forecast data contained in the Adequacy Report.
-        :param xml_content: The XML content of the Adequacy Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, net_exp_MW]``.
-        """
-        document = objectify.fromstring(xml_content)
-        doc_body = document.DocBody
-
-        trades = list([])
-        day = doc_body.DeliveryDate
-        imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
-        for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
-            ts_local = day + ' ' + str(import_schedule.DeliveryHour - 1).zfill(2) + ':00'
-            imports_exports[ts_local] = {'import': import_schedule.EnergyMW.pyval}
-        for export_schedule in doc_body.ForecastDemand.ZonalExports.TotalExports.Schedules.Schedule:
-            ts_local = day + ' ' + str(export_schedule.DeliveryHour - 1).zfill(2) + ':00'
-            hr_entry = imports_exports.get(ts_local)
-            hr_entry.update({'export': export_schedule.EnergyMW.pyval})
-            imports_exports[ts_local] = hr_entry
-
-        for ts_local, imp_exp in imports_exports.iteritems():
-            # Handle export passed as positive/negative value
-            net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
-            self._append_trade(trades=trades, ts_local=ts_local, net_exp_mw=net_exp_mw,
-                               frequency=self.FREQUENCY_CHOICES.hourly, market=self.MARKET_CHOICES.dam)
-        return trades
 
     def _is_in_generation_mix_time_range(self, dt):
         """
@@ -506,8 +458,6 @@ class IESOClient(BaseClient):
             return self._parse_fuel_mix_from_adequacy_report(response.content)
         elif self.options['data'] == 'load':
             return self._parse_load_from_adequacy_report(response.content)
-        elif self.options['data'] == 'trade':
-            return self._parse_trade_from_adequacy_report(response.content)
         else:
             LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
 
@@ -675,7 +625,7 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_IntertieScheduleFlow.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone('EST'))
+            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
             filename = est_datetime.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
         return self.BASE_URL + 'IntertieScheduleFlow/' + filename
 
@@ -684,8 +634,8 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
         return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
-        # Latest available forecase
-        return self.ieso_client.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
+        # Latest five-minute date is the current time. Hourly forecast data should be pulled from the Adequacy Report.
+        return self.ieso_client.local_now()
 
     def report_interval(self):
         return self.REPORT_INTERVALS.daily
@@ -710,17 +660,82 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
                 # The report fills "Actual" elements in the future with 0, so treat 0 as missing data.
                 if (min_datetime <= row_datetime <= self.ieso_client.local_now()) and net_exp_mw > 0:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
-
-            # Schedules child elements used for times > now.
-            for schedule in doc_body.Totals.Schedules.Schedule:
-                hour_local = str(schedule.Hour - 1).zfill(2)
-                ts_local = doc_date_local + ' ' + hour_local + ':00'
-                net_exp_mw = schedule.Export - schedule.Import
-                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
-                if self.ieso_client.local_now() < row_datetime <= max_datetime:
-                    self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
             raise NotImplementedError('Intertie Schedule Flow Report should only be parsed into the trade format.')
+
+
+class AdequacyReportHandler(BaseIesoReportHandler):
+    def report_interval(self):
+        return self.REPORT_INTERVALS.daily
+
+    def report_url(self, report_datetime=None):
+        filename = 'PUB_Adequacy2.xml'
+        if report_datetime is not None:
+            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+            filename = est_datetime.strftime('PUB_Adequacy2_%Y%m%d.xml')
+        return self.BASE_URL + 'Adequacy2/' + filename
+
+    def earliest_available_datetime(self):
+        # Earliest historical data available is three months in the past.
+        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+
+    def latest_available_datetime(self):
+        # Although reports exist ~1 month into the future, only the current and next days contain the "Schedules"
+        # element, which is used during parsing. The IESO states that the schedules for the next day are posted by
+        # approximately 11:15am (see http://reports.ieso.ca/docrefs/helpfile/Adequacy2_h2.pdf). Anecdotally, I've seen
+        # "approximate" mean a little after 11:20am. The algorithm below uses 11:30am to be conservative.
+        local_now = self.ieso_client.local_now()
+        next_day_availability = copy(local_now).replace(hour=11, minute=30, second=0, microsecond=0)
+        end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_now >= next_day_availability:
+            return end_of_day + timedelta(days=1)
+        else:
+            return end_of_day
+
+    def market(self):
+        return BaseClient.MARKET_CHOICES.dam
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+        day = doc_body.DeliveryDate
+        if parser_format == IESOClient.PARSER_FORMATS.generation:
+            # InternalResources is misleading. Each fuel is an internal resource, and we iterate hours of each fuel.
+            for internal_resource in doc_body.ForecastSupply.InternalResources.InternalResource:
+                fuel = str.upper(internal_resource.FuelType.text)
+                if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
+                    for schedule in internal_resource.Schedules.Schedule:
+                        ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
+                        fuel_gen_mw = schedule.EnergyMW.pyval
+                        self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+        elif parser_format == IESOClient.PARSER_FORMATS.load:
+            # Adequacy Report gives "demand" forecast. Realtime/Predispatch Constrained Totals Reports give "load"
+            # values (i.e. demand + losses) so using these values in combination with values from other reports
+            # (e.g. long start_at and end_at timeframes) is a mismatch of values.
+            # TODO Ask pyiso, is it demand or total load? If load, this parser is invalid.
+            for demand in doc_body.ForecastDemand.OntarioDemand.ForecastOntDemand.Demand:
+                ts_local = day + ' ' + str(demand.DeliveryHour - 1).zfill(2) + ':00'
+                load_mw = demand.EnergyMW.pyval
+                self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
+        elif parser_format == IESOClient.PARSER_FORMATS.trade:
+            imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
+            for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
+                ts_local = day + ' ' + str(import_schedule.DeliveryHour - 1).zfill(2) + ':00'
+                imports_exports[ts_local] = {'import': import_schedule.EnergyMW.pyval}
+            for export_schedule in doc_body.ForecastDemand.ZonalExports.TotalExports.Schedules.Schedule:
+                ts_local = day + ' ' + str(export_schedule.DeliveryHour - 1).zfill(2) + ':00'
+                hr_entry = imports_exports.get(ts_local)
+                hr_entry.update({'export': export_schedule.EnergyMW.pyval})
+                imports_exports[ts_local] = hr_entry
+            for ts_local, imp_exp in imports_exports.iteritems():
+                # Handle export passed as positive/negative value.
+                net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
+                self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
+        else:
+            raise NotImplementedError('Adequacy Report should only be parsed into generation, load, or trade formats.')
+
+    def frequency(self):
+        return BaseClient.FREQUENCY_CHOICES.hourly
 
 
 def main():
