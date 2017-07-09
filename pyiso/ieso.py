@@ -78,9 +78,8 @@ class IESOClient(BaseClient):
         # TODO Latest should result in only one value.
         if self.options.get('start_at', None) and self.options.get('end_at', None):
             rt_const_totals_handler = RealTimeConstrainedTotalsReportHandler(ieso_client=self)
-            adequacy_handler = AdequacyReportHandler(ieso_client=self)
+            predisp_const_totals_handler = PredispatchConstrainedTotalsReportHandler(ieso_client=self)
             if self.options.get('historical', False) or self.options.get('current_day', False):
-                # TODO 5-minute forecasts for the remainder of current day can use Predispatch Constrained Totals.
                 range_start = max(self.options['start_at'], rt_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], rt_const_totals_handler.latest_available_datetime())
                 self._get_data_range(result_ts=load_ts, report_handler=rt_const_totals_handler,
@@ -88,9 +87,9 @@ class IESOClient(BaseClient):
                                      range_end=range_end)
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.latest_available_datetime(),
-                                  adequacy_handler.earliest_available_datetime())
-                range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
-                self._get_data_range(result_ts=load_ts, report_handler=adequacy_handler,
+                                  predisp_const_totals_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], predisp_const_totals_handler.latest_available_datetime())
+                self._get_data_range(result_ts=load_ts, report_handler=predisp_const_totals_handler,
                                      parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
                                      range_end=range_end)
         else:
@@ -618,16 +617,6 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                         fuel_gen_mw = schedule.EnergyMW.pyval
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
-        elif parser_format == IESOClient.PARSER_FORMATS.load:
-            # Adequacy Report gives "demand" forecast. Realtime/Predispatch Constrained Totals Reports give "load"
-            # values (i.e. demand + losses) so using these values in combination with values from other reports
-            # (e.g. long start_at and end_at timeframes) is a mismatch of values.
-            # TODO Ask pyiso, is it demand or total load? If load, this parser is invalid.
-            for demand in doc_body.ForecastDemand.OntarioDemand.ForecastOntDemand.Demand:
-                ts_local = day + ' ' + str(demand.DeliveryHour - 1).zfill(2) + ':00'
-                load_mw = demand.EnergyMW.pyval
-                if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                    self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         elif parser_format == IESOClient.PARSER_FORMATS.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
             for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
@@ -644,7 +633,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                 if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
-            raise NotImplementedError('Adequacy Report should only be parsed into generation, load, or trade formats.')
+            raise NotImplementedError('Adequacy Report should only be parsed into generation or trade formats.')
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -678,7 +667,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         else:
-            raise NotImplementedError('Realtime Constrained Totals Report should only be parsed into the load format.')
+            raise NotImplementedError('Realtime Constrained Totals Report can only be parsed into the load format.')
 
     def latest_available_datetime(self):
         return self.ieso_client.local_now()
@@ -690,6 +679,53 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
             delivery_hour = est_datetime.hour + 1
             filename = est_datetime.strftime('PUB_RealtimeConstTotals_%Y%m%d' + str(delivery_hour).zfill(2) + '.xml')
         return self.BASE_URL + 'RealtimeConstTotals/' + filename
+
+
+class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
+    def report_interval(self):
+        return self.REPORT_INTERVALS.daily
+
+    def market(self):
+        return BaseClient.MARKET_CHOICES.hourly
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+        day = doc_body.DeliveryDate
+        if parser_format == IESOClient.PARSER_FORMATS.load:
+            for hrly_const_energy in doc_body.Energies.HourlyConstrainedEnergy:
+                ts_local = day + ' ' + str(hrly_const_energy.DeliveryHour - 1).zfill(2) + ':00'
+                for mq in hrly_const_energy.MQ:
+                    if mq.MarketQuantity == 'Total Load':
+                        load_mw = mq.EnergyMW.pyval
+                        if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
+                            self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
+        else:
+            raise NotImplementedError('Predispatch Constrained Totals Report can only be parsed into the load format.')
+
+    def report_url(self, report_datetime=None):
+        filename = 'PUB_PredispConstTotals.xml'
+        if report_datetime is not None:
+            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+            filename = est_datetime.strftime('PUB_PredispConstTotals_%Y%m%d.xml')
+        return self.BASE_URL + 'PredispConstTotals/' + filename
+
+    def latest_available_datetime(self):
+        # Predispatch data for the next day is posted at approximately 15:15. Anecdotally, I've seen as late as 15:18.
+        # The algorithm below uses 15:30 to be conservative.
+        local_now = self.ieso_client.local_now()
+        next_day_availability = copy(local_now).replace(hour=15, minute=30, second=0, microsecond=0)
+        end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
+        if local_now >= next_day_availability:
+            return end_of_day + timedelta(days=1)
+        else:
+            return end_of_day
+
+    def earliest_available_datetime(self):
+        return self.ieso_client.local_now().replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=31)
+
+    def frequency(self):
+        return BaseClient.FREQUENCY_CHOICES.hourly
 
 
 def main():

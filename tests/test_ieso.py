@@ -80,7 +80,7 @@ class TestIESO(TestCase):
                 self.assertEquals(val['gen_MW'], 4749)
 
 
-class TestIntertieScheduleFlowReport(TestCase):
+class TestIntertieScheduleFlowReportHandler(TestCase):
     def setUp(self):
         self.report_handler = ieso.IntertieScheduleFlowReportHandler(ieso_client=client_factory('IESO'))
 
@@ -103,7 +103,7 @@ class TestIntertieScheduleFlowReport(TestCase):
         self.assertEquals(trades[287]['net_exp_MW'], 2242)
 
 
-class TestAdequacyReport(TestCase):
+class TestAdequacyReportHandler(TestCase):
     def setUp(self):
         self.report_handler = ieso.AdequacyReportHandler(ieso_client=client_factory('IESO'))
 
@@ -147,25 +147,8 @@ class TestAdequacyReport(TestCase):
             elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
                 self.assertEquals(val['gen_MW'], 3570)
 
-    def test_parse_report_for_load(self):
-        start_at = datetime(year=2017, month=6, day=18, hour=0, minute=0, second=0,
-                            tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
-                          tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        xml = open('./fixtures/ieso_full_Adequacy2_20170618.xml')
-        loads = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=loads,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.load,
-                                         min_datetime=start_at, max_datetime=end_at)
-
-        self.assertEquals(len(loads), 24)  # 24 hours
-        # Spot check loads using known values
-        self.assertEquals(loads[0]['load_MW'], 13266)
-        self.assertEquals(loads[23]['load_MW'], 14280)
-
-
-class TestRealtimeConstrainedTotalsReport(TestCase):
+class TestRealtimeConstrainedTotalsReportHandler(TestCase):
     def setUp(self):
         self.report_handler = ieso.RealTimeConstrainedTotalsReportHandler(ieso_client=client_factory('IESO'))
 
@@ -197,3 +180,25 @@ class TestRealtimeConstrainedTotalsReport(TestCase):
         self.assertEquals(loads[9]['load_MW'], 13083.5)
         self.assertEquals(loads[10]['load_MW'], 12985.5)
         self.assertEquals(loads[11]['load_MW'], 12971.7)
+
+
+class TestPredispatchConstrainedTotalsReportHandler(TestCase):
+    def setUp(self):
+        self.report_handler = ieso.PredispatchConstrainedTotalsReportHandler(ieso_client=client_factory('IESO'))
+
+    def test_parse_report(self):
+        start_at = datetime(year=2017, month=7, day=8, hour=0, minute=0, second=0,
+                            tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        end_at = datetime(year=2017, month=7, day=8, hour=23, minute=59, second=59,
+                          tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        xml = open('./fixtures/ieso_full_PredispConstTotals_20170708.xml')
+        loads = list([])
+
+        self.report_handler.parse_report(xml_content=xml.read(), result_ts=loads,
+                                         parser_format=ieso.IESOClient.PARSER_FORMATS.load,
+                                         min_datetime=start_at, max_datetime=end_at)
+
+        self.assertEquals(len(loads), 24)  # 24 hours
+        # Spot check loads using known values
+        self.assertEquals(loads[0]['load_MW'], 15361.1)
+        self.assertEquals(loads[23]['load_MW'], 15440.1)
