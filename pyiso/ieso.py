@@ -74,11 +74,13 @@ class IESOClient(BaseClient):
     def get_load(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         load_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+        rt_const_totals_handler = RealTimeConstrainedTotalsReportHandler(ieso_client=self)
+        predisp_const_totals_handler = PredispatchConstrainedTotalsReportHandler(ieso_client=self)
 
-        # TODO Latest should result in only one value.
-        if self.options.get('start_at', None) and self.options.get('end_at', None):
-            rt_const_totals_handler = RealTimeConstrainedTotalsReportHandler(ieso_client=self)
-            predisp_const_totals_handler = PredispatchConstrainedTotalsReportHandler(ieso_client=self)
+        if self.options.get('latest', None):
+            self._get_latest_data(result_ts=load_ts, report_handler=rt_const_totals_handler,
+                                  parser_format=IESOClient.PARSER_FORMATS.load)
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False) or self.options.get('current_day', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], rt_const_totals_handler.latest_available_datetime())
@@ -99,11 +101,13 @@ class IESOClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         trade_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
+        inter_sched_flow_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
+        adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
-        # TODO Latest should result in only one value.
-        if self.options.get('start_at', None) and self.options.get('end_at', None):
-            inter_sched_flow_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
-            adequacy_handler = AdequacyReportHandler(ieso_client=self)
+        if self.options.get('latest', None):
+            self._get_latest_data(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
+                                  parser_format=IESOClient.PARSER_FORMATS.trade)
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False) or self.options.get('current_day', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], inter_sched_flow_handler.latest_available_datetime())
@@ -140,6 +144,20 @@ class IESOClient(BaseClient):
             report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                         min_datetime=range_start, max_datetime=range_end)
             report_datetime += report_handler.interval_timedelta()
+
+    def _get_latest_data(self, result_ts, report_handler, parser_format):
+        """
+        :param list result_ts: The timeseries which results which data will be appended to. Results will be trimmed
+        :param BaseIesoReportHandler report_handler:
+        :param str parser_format: One of IESOBaseClient.PARSER_FORMATS
+        """
+        report_url = report_handler.report_url()
+        response = self.request(url=report_url)
+        report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
+                                    min_datetime=report_handler.earliest_available_datetime(),
+                                    max_datetime=report_handler.latest_available_datetime())
+        last_idx = len(result_ts) -1
+        del result_ts[0:last_idx]
 
     @staticmethod
     def _adequacy_filename(local_date=None):
@@ -462,7 +480,7 @@ class BaseIesoReportHandler(object):
         :param str xml_content: The XML response body of the report.
         :param list result_ts: The timeseries (a list of dicts) which results should be appended to. Timestamps are in
             UTC.
-        :param tuple parser_format: The parser format used to append results.
+        :param str parser_format: The parser format used to append results.
         :param datetime min_datetime: The minimum datetime that can be appended to the results.
         :param datetime max_datetime: The maximum datetime that can be appended to the results.
         """
@@ -733,7 +751,8 @@ def main():
     local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
     start_at = local_now - timedelta(hours=2)
     end_at = local_now + timedelta(days=2)
-    client.get_load(start_at=start_at, end_at=end_at)
+    # client.get_load(start_at=start_at, end_at=end_at)
+    client.get_trade(latest=True)
 
 if __name__ == '__main__':
     main()
