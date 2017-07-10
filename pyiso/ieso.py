@@ -12,7 +12,7 @@ from pyiso.base import BaseClient
 
 
 ParserFormat = namedtuple('ParserFormat', ['generation', 'load', 'trade', 'lmp'])
-ReportInterval = namedtuple('ReportInterval', ['hourly', 'daily'])
+ReportInterval = namedtuple('ReportInterval', ['hourly', 'daily', 'yearly'])
 
 
 class IESOClient(BaseClient):
@@ -37,36 +37,52 @@ class IESOClient(BaseClient):
         # regular handle options
         super(IESOClient, self).handle_options(**kwargs)
 
-        local_now_dt = self.local_now()  # timezone aware
-        local_current_day_start_dt = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        local_now = self.local_now()  # timezone aware
+        local_start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        local_end_of_day = local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         if self.options.get('latest', None):
-            self.options['end_at'] = local_now_dt
-            self.options['start_at'] = local_now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             self.options['current_day'] = True
             self.options['historical'] = False
             self.options['forecast'] = False
-        elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options['start_at'] < local_current_day_start_dt:
-                self.options['historical'] = True
-            if self.options['end_at'] >= local_current_day_start_dt:
-                self.options['current_day'] = True
+        if local_start_of_day <= self.options.get('start_at', None) <= local_end_of_day:
+            self.options['current_day'] = True
+        if self.options['start_at'] < local_start_of_day:
+            self.options['historical'] = True
 
     def get_generation(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         fuel_mix = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
-        self.options['data'] = 'gen'
+
+        gen_out_cap_handler = GeneratorOutputCapabilityReportHandler(ieso_client=self)
+        gen_out_by_fuel_handler = GeneratorOutputByFuelHourlyReportHandler(ieso_client=self)
+        adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
         if self.options.get('latest', None):
-            # TODO Latest should result in only one value.
-            fuel_mix = self._day_generation_mix(dt=self.options['start_at'])
+            self._get_latest_report_trimmed(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+                                            parser_format=IESOClient.PARSER_FORMATS.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('historical', False):
-                self._generation_historical(fuel_mix=fuel_mix)
-            if self.options.get('current_day', False):
-                fuel_mix += self._day_generation_mix(dt=self.local_now())
+            if self.options.get('current_day', False) and not self.options.get('historical', False):
+                range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
+                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       range_end=range_end)
+            elif self.options.get('historical', False):
+                # For long time ranges at least one day in the past, it is more efficient to request the  Generator
+                # Output by Fuel Type Hourly Report rather than the detailed Generator Output and Capability Report.
+                range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], gen_out_by_fuel_handler.latest_available_datetime())
+                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_by_fuel_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       range_end=range_end)
+
             if self.options.get('forecast', False):
-                self._generation_forecast(ts_data=fuel_mix)
+                range_start = max(self.options['start_at'], self.local_now())
+                range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
+                self._get_report_range(result_ts=fuel_mix, report_handler=adequacy_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
         return fuel_mix
@@ -78,22 +94,22 @@ class IESOClient(BaseClient):
         predisp_const_totals_handler = PredispatchConstrainedTotalsReportHandler(ieso_client=self)
 
         if self.options.get('latest', None):
-            self._get_latest_data(result_ts=load_ts, report_handler=rt_const_totals_handler,
-                                  parser_format=IESOClient.PARSER_FORMATS.load)
+            self._get_latest_report_trimmed(result_ts=load_ts, report_handler=rt_const_totals_handler,
+                                            parser_format=IESOClient.PARSER_FORMATS.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False) or self.options.get('current_day', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], rt_const_totals_handler.latest_available_datetime())
-                self._get_data_range(result_ts=load_ts, report_handler=rt_const_totals_handler,
-                                     parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
-                                     range_end=range_end)
+                self._get_report_range(result_ts=load_ts, report_handler=rt_const_totals_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
+                                       range_end=range_end)
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.latest_available_datetime(),
                                   predisp_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], predisp_const_totals_handler.latest_available_datetime())
-                self._get_data_range(result_ts=load_ts, report_handler=predisp_const_totals_handler,
-                                     parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
-                                     range_end=range_end)
+                self._get_report_range(result_ts=load_ts, report_handler=predisp_const_totals_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
+                                       range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
         return load_ts
@@ -105,22 +121,22 @@ class IESOClient(BaseClient):
         adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
         if self.options.get('latest', None):
-            self._get_latest_data(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
-                                  parser_format=IESOClient.PARSER_FORMATS.trade)
+            self._get_latest_report_trimmed(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
+                                            parser_format=IESOClient.PARSER_FORMATS.trade)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False) or self.options.get('current_day', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], inter_sched_flow_handler.latest_available_datetime())
-                self._get_data_range(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
-                                     parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
-                                     range_end=range_end)
+                self._get_report_range(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
+                                       range_end=range_end)
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.latest_available_datetime(),
                                   adequacy_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
-                self._get_data_range(result_ts=trade_ts, report_handler=adequacy_handler,
-                                     parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
-                                     range_end=range_end)
+                self._get_report_range(result_ts=trade_ts, report_handler=adequacy_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
+                                       range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
         return trade_ts
@@ -129,7 +145,7 @@ class IESOClient(BaseClient):
         raise NotImplementedError('The IESO does not use locational marginal pricing. See '
                                   'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
 
-    def _get_data_range(self, result_ts, report_handler, parser_format, range_start, range_end):
+    def _get_report_range(self, result_ts, report_handler, parser_format, range_start, range_end):
         report_interval = report_handler.report_interval()
         report_datetime = range_start.astimezone(pytz.timezone(self.TZ_NAME))
 
@@ -137,15 +153,20 @@ class IESOClient(BaseClient):
             report_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
         elif report_interval == report_handler.REPORT_INTERVALS.hourly:
             report_datetime.replace(minute=0, second=0, microsecond=0)
+        elif report_interval == report_handler.REPORT_INTERVALS.yearly:
+            report_datetime.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
         while report_datetime <= min(range_end, report_handler.latest_available_datetime()):
             report_url = report_handler.report_url(report_datetime=report_datetime)
             response = self.request(url=report_url)
             report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                         min_datetime=range_start, max_datetime=range_end)
-            report_datetime += report_handler.interval_timedelta()
+            if report_interval == report_handler.REPORT_INTERVALS.yearly:
+                report_datetime.replace(year=report_datetime.year + 1)
+            else:
+                report_datetime += report_handler.interval_timedelta()
 
-    def _get_latest_data(self, result_ts, report_handler, parser_format):
+    def _get_latest_report_trimmed(self, result_ts, report_handler, parser_format):
         """
         :param list result_ts: The timeseries which results which data will be appended to. Results will be trimmed
         :param BaseIesoReportHandler report_handler:
@@ -159,256 +180,13 @@ class IESOClient(BaseClient):
         last_idx = len(result_ts) -1
         del result_ts[0:last_idx]
 
-    @staticmethod
-    def _adequacy_filename(local_date=None):
-        """
-        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
-            If not, the latest report filename will be built.
-        :return: Adequacy Report filename.
-        :rtype: str
-        """
-        if local_date is not None:
-            return local_date.strftime('PUB_Adequacy2_%Y%m%d.xml')
-        else:
-            return 'PUB_Adequacy2.xml'
-
-    def _append_fuel_mix(self, fuel_mix, ts_local, gen_mw, fuel, market):
-        """
-        Conditionally appends a generation mix value to a list if it falls within the 'start_at' and 'end_at' datetime
-        options.
-
-        :param list fuel_mix: The generation fuel mix list to have a value appended.
-        :param str ts_local: A local (EST) timestamp in 'yyyy-MM-dd hh:mm' format.
-        :param float gen_mw: Electricity generation in megawatts (MW)
-        :param str fuel: IESO fuel name (will be converted to WattTime name).
-        """
-        report_dt_utc = self.utcify(local_ts_str=ts_local)
-        if (report_dt_utc >= self.options['start_at']) & (report_dt_utc <= self.options['end_at']):
-            fuel_mix.append({
-                'ba_name': self.NAME,
-                'timestamp': report_dt_utc,
-                'freq': self.FREQUENCY_CHOICES.hourly,
-                'market': market,
-                'fuel_name': self.fuels[fuel],
-                'gen_MW': gen_mw
-            })
-
-    def _generation_forecast(self, ts_data):
-        """
-        Iterate over calls to generator forecast reports for hours prior to the end_at date or until no more forecast
-        information is available.
-
-        :param list ts_data: The timeseries list of dicts to append results to.
-        """
-        local_last_forecast_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999) \
-            + timedelta(days=1)  # Last possible forecast is the end of the next day.
-        iter_dt = copy(self.local_now())
-        while iter_dt <= self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)) \
-                and iter_dt <= local_last_forecast_dt:
-            ts_data += self._forecast_generation_mix(dt=iter_dt)
-            iter_dt = iter_dt + timedelta(days=1)
-
-    def _generation_historical(self, fuel_mix):
-        """
-        Iterate over calls to historical generator output reports for hours in the range start_at to end_at.
-
-        :param list fuel_mix: The list of dicts to append results to.
-        """
-        iter_dt = copy(self.options['start_at'])
-        while iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year <= \
-                self.options['end_at'].astimezone(pytz.timezone(self.TZ_NAME)).year:
-            if self._is_in_generation_mix_time_range(iter_dt):
-                fuel_mix += self._year_generation_mix(local_year=iter_dt.astimezone(pytz.timezone(self.TZ_NAME)).year)
-            iter_dt = iter_dt.replace(year=iter_dt.year + 1)
-
-    @staticmethod
-    def _output_capability_filename(local_date=None):
-        """
-        :param datetime local_date: An optional local date object. If provided the filename for that date will be built.
-            If not, the latest report filename will be built.
-        :return: Generator Output and Capability Report filename.
-        :rtype: str
-        """
-        if local_date is not None:
-            return local_date.strftime('PUB_GenOutputCapability_%Y%m%d.xml')
-        else:
-            return 'PUB_GenOutputCapability.xml'
-
-    @staticmethod
-    def _output_by_fuel_filename(local_year=None):
-        """
-        :param int local_year: An optional local year value. If provided the filename for that date will be built.
-            If not, the latest report filename will be built.
-        :return: Generator Output by Fuel Type Hourly Report filename.
-        :rtype: str
-        """
-        if local_year is not None:
-            return 'PUB_GenOutputbyFuelHourly_' + str(local_year) + '.xml'
-        else:
-            return 'PUB_GenOutputbyFuelHourly.xml'
-
-    def _parse_fuel_mix_from_adequacy_report(self, xml_content):
-        """
-        Parse generation and fuel type information from forecast data contained in the Adequacy Report.
-
-        :param str xml_content: The XML content of the Adequacy Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``. Timestamps are in UTC.
-        :rtype: list
-        """
-        document = objectify.fromstring(xml_content)
-        doc_body = document.DocBody
-
-        fuel_mix = list([])
-        day = doc_body.DeliveryDate
-        # InternalResources is misleading. Each fuel is an internal resource, and we iterate hours of each fuel.
-        for internal_resource in doc_body.ForecastSupply.InternalResources.InternalResource:
-            fuel = str.upper(internal_resource.FuelType.text)
-            if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
-                for schedule in internal_resource.Schedules.Schedule:
-                    ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
-                    fuel_gen_mw = schedule.EnergyMW.pyval
-                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
-                                          market=self.MARKET_CHOICES.dam)
-        return fuel_mix
-
-    def _parse_output_capability_report(self, xml_content):
-        """
-        Parse the Generator Output and Capability Report, aggregating output hourly by fuel type.
-
-        :param str xml_content: The XML content of the Generator Output and Capability Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC.
-        :rtype: list
-        """
-        imo_document = objectify.fromstring(xml_content)
-        imo_doc_body = imo_document.IMODocBody
-        report_date = imo_doc_body.Date
-        fuels_hourly = {key: list([]) for key in self.fuels.keys()}
-
-        # Iterate over each hourly value for each generator, creating a dictionary keyed by fuel and values are lists
-        # containing generation by hour-of-day.
-        for generator in imo_doc_body.Generators.Generator:
-            fuel_type = generator.FuelType
-            for output in generator.Outputs.Output:
-                hour_of_day = output.Hour - 1  # Hour 1 is output from 00:00:00 to 00:59:59
-                try:
-                    gen_mw = output.EnergyMW
-                except AttributeError:  # Inexplicably, some 'Output' elements are missing 'EnergyMW' child element.
-                    gen_mw = 0
-                fuel_hours = fuels_hourly[fuel_type]
-                try:
-                    fuel_hours[hour_of_day] += gen_mw
-                except IndexError:
-                    # Assumes that hours are processed in order
-                    fuel_hours.append(gen_mw)
-
-        # Iterate over aggregated results to create generation fuel mix format
-        fuel_mix = list([])
-        for fuel in fuels_hourly.keys():
-            fuel_hourly = fuels_hourly[fuel]
-            if self.options.get('latest'):
-                idx = len(fuel_hourly) - 1
-                latest_fuel_gen_mw = fuel_hourly[idx]
-                report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=latest_fuel_gen_mw,
-                                      market=self.MARKET_CHOICES.hourly)
-            else:
-                for idx, fuel_gen_mw in enumerate(fuels_hourly[fuel]):
-                    report_ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=report_ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
-                                          market=self.MARKET_CHOICES.hourly)
-        return fuel_mix
-
-    def _parse_output_by_fuel_report(self, xml_content):
-        """
-        Parse the Generator Output by Fuel Type Hourly Report.
-
-        :param str xml_content: The XML content of the Generator Output by Fuel Type Hourly Report.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC.
-        :rtype: list
-        """
-        document = objectify.fromstring(xml_content)
-        doc_body = document.DocBody
-
-        fuel_mix = list([])
-        for daily_data in doc_body.DailyData:
-            day = daily_data.Day
-            for hourly_data in daily_data.HourlyData:
-                ts_local = day + ' ' + str(hourly_data.Hour - 1).zfill(2) + ':00'
-                for fuel_total in hourly_data.FuelTotal:
-                    fuel = fuel_total.Fuel
-                    try:
-                        fuel_gen_mw = fuel_total.EnergyValue.Output
-                    except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
-                        fuel_gen_mw = 0
-                    self._append_fuel_mix(fuel_mix=fuel_mix, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw,
-                                          market=self.MARKET_CHOICES.hourly)
-
-        return fuel_mix
-
-    def _is_in_generation_mix_time_range(self, dt):
-        """
-        :param datetime dt: A timezone-aware datetime value.
-        :return: Whether a datetime falls within the reporting time range for generation fuel mix, the current year or
-            previous year.
-        :rtype: bool
-        """
-        return dt.astimezone(pytz.timezone(self.TZ_NAME)).year >= self.local_now().year - 1
-
-    def _day_generation_mix(self, dt):
-        """
-        Request the generation fuel mix for a single day. Assumes local options variable has been updated.
-
-        :param datetime dt: A timezone-aware datetime value.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
-        :rtype: list
-        """
-        base_output_capability_url = self.base_url + 'GenOutputCapability/'
-        filename = self._output_capability_filename(local_date=dt.astimezone(pytz.timezone(self.TZ_NAME)))
-        response = self.request(url=base_output_capability_url + filename)
-        return self._parse_output_capability_report(response.content)
-
-    def _forecast_generation_mix(self, dt):
-        """
-        For generation mix times in the future, the Adequacy Report must be parsed for forecast values.
-
-        :param datetime dt: The datetime (local) of the Adequacy Report to parse.
-        :return: List of dicts, trimmed to fall between start_at and end_at options. The keys in dict elements vary
-            depending on request type.
-        :rtype: list
-        """
-        base_adequacy_url = self.base_url + 'Adequacy2/'
-        filename = self._adequacy_filename(local_date=dt.astimezone(pytz.timezone(self.TZ_NAME)))
-        response = self.request(url=base_adequacy_url + filename)
-        if self.options['data'] == 'gen':
-            return self._parse_fuel_mix_from_adequacy_report(response.content)
-        else:
-            LOGGER.warn('Return data type is unknown, skipping Adequacy Report parsing')
-
-    def _year_generation_mix(self, local_year):
-        """
-        For long generation mix time ranges at least one day in the past, it is most efficient to request the Generator
-        Output by Fuel Type Hourly Report summary rather than the detailed Generator Output and Capability Report.
-
-        :param local_year: The year (local) of the Generator Output and Capability Report to parse.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``.
-            Timestamps are in UTC. Trimmed to fall between start_at and end_at options.
-        :rtype: list
-        """
-        base_output_by_fuel_url = self.base_url + 'GenOutputbyFuelHourly/'
-        filename = self._output_by_fuel_filename(local_year=local_year)
-        response = self.request(url=base_output_by_fuel_url + filename)
-        return self._parse_output_by_fuel_report(response.content)
-
 
 class BaseIesoReportHandler(object):
     """
     Base class to standardize how IESO market reports are parsed and to define date-related attributes.
     """
     BASE_URL = 'http://reports.ieso.ca/public/'
-    REPORT_INTERVALS = ReportInterval(hourly='hourly', daily='daily')
+    REPORT_INTERVALS = ReportInterval(hourly='hourly', daily='daily', yearly='yearly')
 
     def __init__(self, ieso_client):
         """
@@ -469,8 +247,10 @@ class BaseIesoReportHandler(object):
         """
         if self.report_interval() == self.REPORT_INTERVALS.hourly:
             return timedelta(hours=1)
-        else:
+        elif self.report_interval() == self.REPORT_INTERVALS.daily:
             return timedelta(days=1)
+        else:
+            raise NotImplementedError('The timedelta is only appropriate for hourly or daily report intervals.')
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         """
@@ -587,7 +367,7 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
                 if (min_datetime <= row_datetime <= max_datetime) and net_exp_mw > 0:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
-            raise NotImplementedError('Intertie Schedule Flow Report should only be parsed into the trade format.')
+            raise NotImplementedError('Intertie Schedule Flow Report can only be parsed using trade format.')
 
 
 class AdequacyReportHandler(BaseIesoReportHandler):
@@ -651,7 +431,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                 if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
-            raise NotImplementedError('Adequacy Report should only be parsed into generation or trade formats.')
+            raise NotImplementedError('Adequacy Report should only be parsed using generation or trade formats.')
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -685,7 +465,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         else:
-            raise NotImplementedError('Realtime Constrained Totals Report can only be parsed into the load format.')
+            raise NotImplementedError('Realtime Constrained Totals Report can only be parsed using load format.')
 
     def latest_available_datetime(self):
         return self.ieso_client.local_now()
@@ -719,7 +499,7 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         else:
-            raise NotImplementedError('Predispatch Constrained Totals Report can only be parsed into the load format.')
+            raise NotImplementedError('Predispatch Constrained Totals Report can only be parsed using load format.')
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_PredispConstTotals.xml'
@@ -746,11 +526,108 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
         return BaseClient.FREQUENCY_CHOICES.hourly
 
 
+class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
+    def market(self):
+        return BaseClient.MARKET_CHOICES.hourly
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        if parser_format == IESOClient.PARSER_FORMATS.generation:
+            imo_document = objectify.fromstring(xml_content)
+            imo_doc_body = imo_document.IMODocBody
+            report_date = imo_doc_body.Date
+            fuels_hourly = {key: list([]) for key in IESOClient.fuels.keys()}
+
+            # Iterate over each hourly value for each generator, creating a dictionary keyed by fuel and values are
+            # lists containing generation by hour-of-day.
+            for generator in imo_doc_body.Generators.Generator:
+                fuel_type = generator.FuelType
+                for output in generator.Outputs.Output:
+                    hour_of_day = output.Hour - 1  # Hour 1 is output from 00:00:00
+                    try:
+                        gen_mw = output.EnergyMW
+                    except AttributeError:  # Inexplicably, some 'Output' elements are missing 'EnergyMW' child element.
+                        gen_mw = 0
+                    fuel_hours = fuels_hourly[fuel_type]
+                    try:
+                        fuel_hours[hour_of_day] += gen_mw
+                    except IndexError:
+                        # Assumes that hours are processed in order
+                        fuel_hours.append(gen_mw)
+
+            # Iterate over aggregated results to create generation fuel mix format
+            for fuel, fuel_hours in fuels_hourly.iteritems():
+                for idx, fuel_gen_mw in enumerate(fuel_hours):
+                    ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
+                    if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
+                        self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+        else:
+            raise NotImplementedError('Generator Output Capability Report can only be parsed using generation format.')
+
+    def report_url(self, report_datetime=None):
+        filename = 'PUB_GenOutputCapability.xml'
+        if report_datetime is not None:
+            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+            filename = est_datetime.strftime('PUB_GenOutputCapability_%Y%m%d.xml')
+        return self.BASE_URL + 'GenOutputCapability/' + filename
+
+    def report_interval(self):
+        return self.REPORT_INTERVALS.daily
+
+    def earliest_available_datetime(self):
+        # Earliest historical data available is three months in the past.
+        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+
+    def latest_available_datetime(self):
+        return self.ieso_client.local_now()
+
+    def frequency(self):
+        return BaseClient.FREQUENCY_CHOICES.hourly
+
+
+class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
+    def market(self):
+        return BaseClient.MARKET_CHOICES.hourly
+
+    def frequency(self):
+        return BaseClient.FREQUENCY_CHOICES.hourly
+
+    def report_interval(self):
+        return self.REPORT_INTERVALS.yearly
+
+    def report_url(self, report_datetime=None):
+        filename = 'PUB_GenOutputbyFuelHourly.xml'
+        if report_datetime is not None:
+            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+            filename = est_datetime.strftime('PUB_GenOutputbyFuelHourly_%Y.xml')
+        return self.BASE_URL + 'GenOutputbyFuelHourly/' + filename
+
+    def earliest_available_datetime(self):
+        return self.ieso_client.local_now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    def latest_available_datetime(self):
+        return self.ieso_client.local_now()
+
+    def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
+        document = objectify.fromstring(xml_content)
+        doc_body = document.DocBody
+        for daily_data in doc_body.DailyData:
+            day = daily_data.Day
+            for hourly_data in daily_data.HourlyData:
+                ts_local = day + ' ' + str(hourly_data.Hour - 1).zfill(2) + ':00'
+                for fuel_total in hourly_data.FuelTotal:
+                    fuel = fuel_total.Fuel
+                    try:
+                        fuel_gen_mw = fuel_total.EnergyValue.Output
+                    except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
+                        fuel_gen_mw = 0
+                    self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+
+
 def main():
     client = IESOClient()
-    local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
-    start_at = local_now - timedelta(hours=2)
-    end_at = local_now + timedelta(days=2)
+    # local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
+    # start_at = local_now - timedelta(hours=2)
+    # end_at = local_now + timedelta(days=2)
     # client.get_load(start_at=start_at, end_at=end_at)
     client.get_trade(latest=True)
 
