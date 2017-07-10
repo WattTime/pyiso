@@ -81,6 +81,7 @@ class IESOClient(BaseClient):
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
             elif self.options.get('historical', False):
+                self.timeout_seconds = 60  # These reports can get rather large ~7MB for a full year.
                 # For long time ranges at least one day in the past, it is more efficient to request the  Generator
                 # Output by Fuel Type Hourly Report rather than the detailed Generator Output and Capability Report.
                 range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
