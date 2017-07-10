@@ -58,7 +58,7 @@ class IESOClient(BaseClient):
         gen_out_by_fuel_handler = GeneratorOutputByFuelHourlyReportHandler(ieso_client=self)
         adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
-        if self.options.get('latest', None):
+        if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -68,7 +68,7 @@ class IESOClient(BaseClient):
                 self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
-            elif self.options.get('yesterday', None):
+            elif self.options.get('yesterday', False):
                 range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
                 self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
@@ -99,7 +99,7 @@ class IESOClient(BaseClient):
         rt_const_totals_handler = RealTimeConstrainedTotalsReportHandler(ieso_client=self)
         predisp_const_totals_handler = PredispatchConstrainedTotalsReportHandler(ieso_client=self)
 
-        if self.options.get('latest', None):
+        if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=load_ts, report_handler=rt_const_totals_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
@@ -126,7 +126,7 @@ class IESOClient(BaseClient):
         inter_sched_flow_handler = IntertieScheduleFlowReportHandler(ieso_client=self)
         adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
-        if self.options.get('latest', None):
+        if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.trade)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
