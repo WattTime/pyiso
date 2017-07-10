@@ -197,8 +197,12 @@ class IESOClient(BaseClient):
         report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                     min_datetime=report_handler.earliest_available_datetime(),
                                     max_datetime=report_handler.latest_available_datetime())
-        last_idx = len(result_ts) - 1
-        del result_ts[0:last_idx]
+        last_timestamp = result_ts[-1].get('timestamp', None)
+        i = len(result_ts) - 1
+        while i >= 0:
+            if result_ts[i].get('timestamp', None) != last_timestamp:
+                del result_ts[i]
+            i -= 1
 
 
 class BaseIesoReportHandler(object):
