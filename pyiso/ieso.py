@@ -56,7 +56,7 @@ class IESOClient(BaseClient):
             self.options['historical'] = True
 
     def get_generation(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
-        fuel_mix = list([])
+        generation_ts = list([])
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
 
         gen_out_cap_handler = GeneratorOutputCapabilityReportHandler(ieso_client=self)
@@ -64,19 +64,19 @@ class IESOClient(BaseClient):
         adequacy_handler = AdequacyReportHandler(ieso_client=self)
 
         if self.options.get('latest', False):
-            self._get_latest_report_trimmed(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+            self._get_latest_report_trimmed(result_ts=generation_ts, report_handler=gen_out_cap_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('current_day', False) and not self.options.get('historical', False):
                 range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
-                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
             elif self.options.get('yesterday', False):
                 range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
-                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
             elif self.options.get('historical', False):
@@ -84,19 +84,19 @@ class IESOClient(BaseClient):
                 # Output by Fuel Type Hourly Report rather than the detailed Generator Output and Capability Report.
                 range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_by_fuel_handler.latest_available_datetime())
-                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_by_fuel_handler,
+                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_by_fuel_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
 
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], self.local_now())
                 range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
-                self._get_report_range(result_ts=fuel_mix, report_handler=adequacy_handler,
+                self._get_report_range(result_ts=generation_ts, report_handler=adequacy_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
-        return fuel_mix
+        return generation_ts
 
     def get_load(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         load_ts = list([])
@@ -157,6 +157,13 @@ class IESOClient(BaseClient):
                                   'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
 
     def _get_report_range(self, result_ts, report_handler, parser_format, range_start, range_end):
+        """
+        :param list result_ts: The timeseries which results which data will be appended to.
+        :param BaseIesoReportHandler report_handler: The report handler to be used for the time range.
+        :param str parser_format: The WattTime client format the data should be parsed into.
+        :param datetime range_start: The start of the time range that report data should be requested for.
+        :param datetime range_end: The end of the time range that report data should be requested for.
+        """
         report_interval = report_handler.report_interval()
         report_datetime = range_start.astimezone(pytz.timezone(self.TZ_NAME))
 
@@ -179,7 +186,8 @@ class IESOClient(BaseClient):
 
     def _get_latest_report_trimmed(self, result_ts, report_handler, parser_format):
         """
-        :param list result_ts: The timeseries which results which data will be appended to. Results will be trimmed
+        :param list result_ts: The timeseries which results which data will be appended to. Results will be trimmed to
+            the latest record.
         :param BaseIesoReportHandler report_handler:
         :param str parser_format: One of IESOBaseClient.PARSER_FORMATS
         """
@@ -277,7 +285,7 @@ class BaseIesoReportHandler(object):
         """
         raise NotImplementedError('Derived classes must implement the parse_report method.')
 
-    def append_fuel_mix(self, result_ts, ts_local, gen_mw, fuel):
+    def append_generation(self, result_ts, ts_local, gen_mw, fuel):
         """
         Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, fuel_name, gen_MW].
         Timestamps are in UTC.
@@ -425,7 +433,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                         ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
                         fuel_gen_mw = schedule.EnergyMW.pyval
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                            self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                            self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
         elif parser_format == IESOClient.PARSER_FORMATS.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
             for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
@@ -570,7 +578,7 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
                 for idx, fuel_gen_mw in enumerate(fuel_hours):
                     ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
                     if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                        self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                        self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
         else:
             raise NotImplementedError('Generator Output Capability Report can only be parsed using generation format.')
 
@@ -631,7 +639,7 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
                         fuel_gen_mw = fuel_total.EnergyValue.Output
                     except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
                         fuel_gen_mw = 0
-                    self.append_fuel_mix(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                    self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
 
 
 def main():
