@@ -68,6 +68,12 @@ class IESOClient(BaseClient):
                 self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
+            elif self.options.get('yesterday', None):
+                range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
+                self._get_report_range(result_ts=fuel_mix, report_handler=gen_out_cap_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       range_end=range_end)
             elif self.options.get('historical', False):
                 # For long time ranges at least one day in the past, it is more efficient to request the  Generator
                 # Output by Fuel Type Hourly Report rather than the detailed Generator Output and Capability Report.
