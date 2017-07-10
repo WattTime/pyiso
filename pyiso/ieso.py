@@ -451,7 +451,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                 hr_entry = imports_exports.get(ts_local)
                 hr_entry.update({'export': export_schedule.EnergyMW.pyval})
                 imports_exports[ts_local] = hr_entry
-            for ts_local, imp_exp in imports_exports.iteritems():
+            for ts_local, imp_exp in imports_exports.items():
                 # Handle export passed as positive/negative value.
                 net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
                 if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
@@ -581,7 +581,7 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
                         fuel_hours.append(gen_mw)
 
             # Iterate over aggregated results to create generation fuel mix format
-            for fuel, fuel_hours in fuels_hourly.iteritems():
+            for fuel, fuel_hours in fuels_hourly.items():
                 for idx, fuel_gen_mw in enumerate(fuel_hours):
                     ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
                     if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:

@@ -71,10 +71,10 @@ class TestIntertieScheduleFlowReportHandler(TestCase):
         end_at = datetime(year=2017, month=6, day=30, hour=23, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         # Offline copy of June 30, 2017 report requested as if it were July 1st.
-        xml = open('./fixtures/ieso_full_IntertieScheduleFlow_20170630.xml')
+        xml_content = open('./fixtures/ieso_full_IntertieScheduleFlow_20170630.xml').read().encode('utf8')
         trades = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=trades,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=trades,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.trade,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -104,10 +104,10 @@ class TestAdequacyReportHandler(TestCase):
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        xml = open('./fixtures/ieso_full_Adequacy2_20170618.xml')
+        xml_content = open('./fixtures/ieso_full_Adequacy2_20170618.xml').read().encode('utf8')
         trades = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=trades,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=trades,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.trade,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -121,10 +121,10 @@ class TestAdequacyReportHandler(TestCase):
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
                               tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        xml = open('./fixtures/ieso_full_Adequacy2_20170618.xml')
+        xml_content = open('./fixtures/ieso_full_Adequacy2_20170618.xml').read().encode('utf8')
         generation_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=generation_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -161,10 +161,10 @@ class TestRealtimeConstrainedTotalsReportHandler(TestCase):
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Offline copy of July 1, 2017 report for delivery hour #1.
-        xml = open('./fixtures/ieso_full_RealtimeConstTotals_2017070101.xml')
+        xml_content = open('./fixtures/ieso_full_RealtimeConstTotals_2017070101.xml').read().encode('utf8')
         load_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=load_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.load,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -204,10 +204,10 @@ class TestPredispatchConstrainedTotalsReportHandler(TestCase):
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         end_at = datetime(year=2017, month=7, day=8, hour=23, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        xml = open('./fixtures/ieso_full_PredispConstTotals_20170708.xml')
+        xml_content = open('./fixtures/ieso_full_PredispConstTotals_20170708.xml').read().encode('utf8')
         load_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=load_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.load,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -237,10 +237,10 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         end_at = datetime(year=2016, month=4, day=29, hour=23, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        xml = open('./fixtures/ieso_reduced_GenOutputCapability_20160429.xml')
+        xml_content = open('./fixtures/ieso_reduced_GenOutputCapability_20160429.xml').read().encode('utf8')
         generation_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=generation_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -266,10 +266,10 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Reduced, offline copy of partial May 1, 2016 report
-        xml = open('./fixtures/ieso_reduced_GenOutputCapability_20160501.xml')
+        xml_content = open('./fixtures/ieso_reduced_GenOutputCapability_20160501.xml').read().encode('utf8')
         generation_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=generation_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
@@ -311,10 +311,10 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Offline copy of 2016 report, as if it were requested on January 8th.
-        xml = open('./fixtures/ieso_reduced_GenOutputbyFuelHourly_2016.xml')
+        xml_content = open('./fixtures/ieso_reduced_GenOutputbyFuelHourly_2016.xml').read().encode('utf8')
         generation_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml.read(), result_ts=generation_ts,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
                                          parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
