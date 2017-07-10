@@ -640,15 +640,3 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
                     except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
                         fuel_gen_mw = 0
                     self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
-
-
-def main():
-    client = IESOClient()
-    # local_now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('EST'))
-    # start_at = local_now - timedelta(hours=2)
-    # end_at = local_now + timedelta(days=2)
-    # client.get_load(start_at=start_at, end_at=end_at)
-    client.get_trade(latest=True)
-
-if __name__ == '__main__':
-    main()
