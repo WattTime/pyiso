@@ -197,7 +197,7 @@ class IESOClient(BaseClient):
         report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                     min_datetime=report_handler.earliest_available_datetime(),
                                     max_datetime=report_handler.latest_available_datetime())
-        last_idx = len(result_ts) -1
+        last_idx = len(result_ts) - 1
         del result_ts[0:last_idx]
 
 
@@ -434,7 +434,8 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                         ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
                         fuel_gen_mw = schedule.EnergyMW.pyval
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                            self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                            self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel,
+                                                   gen_mw=fuel_gen_mw)
         elif parser_format == IESOClient.PARSER_FORMATS.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
             for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
