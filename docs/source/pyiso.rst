@@ -41,6 +41,10 @@ Submodules
     :members:
     :undoc-members:
 
+.. automodule:: pyiso.ieso
+    :members:
+    :undoc-members:
+
 .. automodule:: pyiso.isone
     :members:
     :undoc-members:
