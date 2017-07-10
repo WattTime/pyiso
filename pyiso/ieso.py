@@ -47,6 +47,11 @@ class IESOClient(BaseClient):
             self.options['forecast'] = False
         if local_start_of_day <= self.options.get('start_at', None) <= local_end_of_day:
             self.options['current_day'] = True
+        if local_start_of_day <= self.options.get('end_at', None) <= local_end_of_day:
+            self.options['current_day'] = True
+        if self.options.get('start_at', None) < local_start_of_day and \
+           self.options.get('end_at', None) > local_end_of_day:
+            self.options['current_day'] = True
         if self.options['start_at'] < local_start_of_day:
             self.options['historical'] = True
 

@@ -1,5 +1,6 @@
 from pyiso import ieso
 from datetime import datetime
+from datetime import timedelta
 from unittest import TestCase
 
 from pytz import timezone
@@ -9,7 +10,51 @@ from pyiso import client_factory
 
 class TestIESO(TestCase):
     def setUp(self):
-        self.c = client_factory('IESO')
+        self.ieso_client = client_factory('IESO')
+
+    def test_handle_options_sets_historical_current_and_forecast(self):
+        local_now = self.ieso_client.local_now()
+        start_at = local_now - timedelta(days=1)
+        end_at = local_now + timedelta(days=1)
+
+        self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
+
+        self.assertTrue(self.ieso_client.options.get('historical', False))
+        self.assertTrue(self.ieso_client.options.get('current_day', False))
+        self.assertTrue(self.ieso_client.options.get('forecast', False))
+
+    def test_handle_options_sets_historical_only(self):
+        local_now = self.ieso_client.local_now()
+        start_at = local_now - timedelta(days=2)
+        end_at = local_now - timedelta(days=1)
+
+        self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
+
+        self.assertTrue(self.ieso_client.options.get('historical', False))
+        self.assertFalse(self.ieso_client.options.get('current_day', False))
+        self.assertFalse(self.ieso_client.options.get('forecast', False))
+
+    def test_handle_options_sets_historical_and_current_day(self):
+        local_now = self.ieso_client.local_now()
+        start_at = local_now - timedelta(days=1)
+        end_at = local_now
+
+        self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
+
+        self.assertTrue(self.ieso_client.options.get('historical', False))
+        self.assertTrue(self.ieso_client.options.get('current_day', False))
+        self.assertFalse(self.ieso_client.options.get('forecast', False))
+
+    def test_handle_options_sets_current_day_and_forecast(self):
+        local_now = self.ieso_client.local_now()
+        start_at = local_now
+        end_at = local_now + timedelta(days=1)
+
+        self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
+
+        self.assertFalse(self.ieso_client.options.get('historical', False))
+        self.assertTrue(self.ieso_client.options.get('current_day', False))
+        self.assertTrue(self.ieso_client.options.get('forecast', False))
 
 
 class TestIntertieScheduleFlowReportHandler(TestCase):
