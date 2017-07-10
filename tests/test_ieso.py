@@ -79,6 +79,17 @@ class TestIntertieScheduleFlowReportHandler(TestCase):
         self.assertEquals(trades[0]['net_exp_MW'], 2269.4)
         self.assertEquals(trades[287]['net_exp_MW'], 2242)
 
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/IntertieScheduleFlow/PUB_IntertieScheduleFlow.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/IntertieScheduleFlow/PUB_IntertieScheduleFlow_20161231.xml')
+
 
 class TestAdequacyReportHandler(TestCase):
     def setUp(self):
@@ -124,6 +135,16 @@ class TestAdequacyReportHandler(TestCase):
             elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
                 self.assertEquals(val['gen_MW'], 3570)
 
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/Adequacy2/PUB_Adequacy2.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url, 'http://reports.ieso.ca/public/Adequacy2/PUB_Adequacy2_20161231.xml')
+
 
 class TestRealtimeConstrainedTotalsReportHandler(TestCase):
     def setUp(self):
@@ -158,6 +179,17 @@ class TestRealtimeConstrainedTotalsReportHandler(TestCase):
         self.assertEquals(load_ts[10]['load_MW'], 12985.5)
         self.assertEquals(load_ts[11]['load_MW'], 12971.7)
 
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123124.xml')
+
 
 class TestPredispatchConstrainedTotalsReportHandler(TestCase):
     def setUp(self):
@@ -179,6 +211,17 @@ class TestPredispatchConstrainedTotalsReportHandler(TestCase):
         # Spot check loads using known values
         self.assertEquals(load_ts[0]['load_MW'], 15361.1)
         self.assertEquals(load_ts[23]['load_MW'], 15440.1)
+
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/PredispConstTotals/PUB_PredispConstTotals.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/PredispConstTotals/PUB_PredispConstTotals_20161231.xml')
 
 
 class TestGeneratorOutputCapabilityReportHandler(TestCase):
@@ -241,6 +284,17 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
             elif (val['fuel_name'] == 'hydro') & (val['timestamp'].hour == 8):
                 self.assertEquals(val['gen_MW'], 165)
 
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/GenOutputCapability/PUB_GenOutputCapability.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/GenOutputCapability/PUB_GenOutputCapability_20161231.xml')
+
 
 class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
     def setUp(self):
@@ -270,3 +324,14 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
                 self.assertEquals(val['gen_MW'], 809)
             elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 8) & (val['timestamp'].hour == 4):
                 self.assertEquals(val['gen_MW'], 4749)
+
+    def test_report_url_for_default(self):
+        url = self.report_handler.report_url()
+        self.assertEquals(url, 'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly.xml')
+
+    def test_report_url_for_date(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly_2016.xml')
