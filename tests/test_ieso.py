@@ -56,6 +56,10 @@ class TestIESO(TestCase):
         self.assertTrue(self.ieso_client.options.get('current_day', False))
         self.assertTrue(self.ieso_client.options.get('forecast', False))
 
+    def test_handle_options_latest(self):
+        self.ieso_client.handle_options(latest=True)
+        self.assertTrue(self.ieso_client.options.get('latest', False))
+
 
 class TestIntertieScheduleFlowReportHandler(TestCase):
     def setUp(self):

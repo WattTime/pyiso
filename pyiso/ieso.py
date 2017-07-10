@@ -45,15 +45,16 @@ class IESOClient(BaseClient):
             self.options['current_day'] = True
             self.options['historical'] = False
             self.options['forecast'] = False
-        if local_start_of_day <= self.options.get('start_at', None) <= local_end_of_day:
-            self.options['current_day'] = True
-        if local_start_of_day <= self.options.get('end_at', None) <= local_end_of_day:
-            self.options['current_day'] = True
-        if self.options.get('start_at', None) < local_start_of_day and \
-           self.options.get('end_at', None) > local_end_of_day:
-            self.options['current_day'] = True
-        if self.options['start_at'] < local_start_of_day:
-            self.options['historical'] = True
+        else:
+            if local_start_of_day <= self.options.get('start_at', None) <= local_end_of_day:
+                self.options['current_day'] = True
+            if local_start_of_day <= self.options.get('end_at', None) <= local_end_of_day:
+                self.options['current_day'] = True
+            if self.options.get('start_at', None) < local_start_of_day and \
+               self.options.get('end_at', None) > local_end_of_day:
+                self.options['current_day'] = True
+            if self.options['start_at'] < local_start_of_day:
+                self.options['historical'] = True
 
     def get_generation(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         generation_ts = list([])
