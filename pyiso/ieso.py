@@ -33,28 +33,21 @@ class IESOClient(BaseClient):
 
     PARSER_FORMATS = ParserFormat(generation='generation', load='load', trade='trade', lmp='lmp')
 
+    def __init__(self):
+        super(IESOClient, self).__init__()
+        self.local_now = self.local_now()  # timezone aware
+        self.local_start_of_day = self.local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.local_end_of_day = self.local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
     def handle_options(self, **kwargs):
         # regular handle options
         super(IESOClient, self).handle_options(**kwargs)
 
-        local_now = self.local_now()  # timezone aware
-        local_start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        local_end_of_day = local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
-
         if self.options.get('latest', None):
-            self.options['current_day'] = True
             self.options['historical'] = False
             self.options['forecast'] = False
-        else:
-            if local_start_of_day <= self.options.get('start_at', None) <= local_end_of_day:
-                self.options['current_day'] = True
-            if local_start_of_day <= self.options.get('end_at', None) <= local_end_of_day:
-                self.options['current_day'] = True
-            if self.options.get('start_at', None) < local_start_of_day and \
-               self.options.get('end_at', None) > local_end_of_day:
-                self.options['current_day'] = True
-            if self.options['start_at'] < local_start_of_day:
-                self.options['historical'] = True
+        elif self.options['start_at'] < self.local_now:
+            self.options['historical'] = True
 
     def get_generation(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
         generation_ts = list([])
@@ -68,30 +61,25 @@ class IESOClient(BaseClient):
             self._get_latest_report_trimmed(result_ts=generation_ts, report_handler=gen_out_cap_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('current_day', False) and not self.options.get('historical', False):
-                range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
-                range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
-                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
-                                       range_end=range_end)
-            elif self.options.get('yesterday', False):
-                range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
-                range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
-                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
-                                       range_end=range_end)
-            elif self.options.get('historical', False):
+            # For long time ranges more than seven days in the past, it is more efficient to request the Generator
+            # Output by Fuel Type Hourly Report rather than repeated calls to the Generator Output and Capability
+            # Report.
+            if self.options['start_at'] < self.local_start_of_day - timedelta(days=7):
                 self.timeout_seconds = 60  # These reports can get rather large ~7MB for a full year.
-                # For long time ranges at least one day in the past, it is more efficient to request the  Generator
-                # Output by Fuel Type Hourly Report rather than the detailed Generator Output and Capability Report.
                 range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_by_fuel_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=gen_out_by_fuel_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
                                        range_end=range_end)
+            elif self.options.get('historical', False):
+                range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
+                range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
+                self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
+                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       range_end=range_end)
 
             if self.options.get('forecast', False):
-                range_start = max(self.options['start_at'], self.local_now())
+                range_start = max(self.options['start_at'], self.local_now)
                 range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=adequacy_handler,
                                        parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
@@ -110,7 +98,7 @@ class IESOClient(BaseClient):
             self._get_latest_report_trimmed(result_ts=load_ts, report_handler=rt_const_totals_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('historical', False) or self.options.get('current_day', False):
+            if self.options.get('historical', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], rt_const_totals_handler.latest_available_datetime())
                 self._get_report_range(result_ts=load_ts, report_handler=rt_const_totals_handler,
@@ -137,7 +125,7 @@ class IESOClient(BaseClient):
             self._get_latest_report_trimmed(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
                                             parser_format=IESOClient.PARSER_FORMATS.trade)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            if self.options.get('historical', False) or self.options.get('current_day', False):
+            if self.options.get('historical', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], inter_sched_flow_handler.latest_available_datetime())
                 self._get_report_range(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
@@ -362,12 +350,12 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
 
     def earliest_available_datetime(self):
         # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # A brief look at versioned reports indicate that they're typically posted with ~30 minute lag. Returning
         # 45 minutes in the past to be conservative.
-        return self.ieso_client.local_now() - timedelta(minutes=45)
+        return self.ieso_client.local_now - timedelta(minutes=45)
 
     def report_interval(self):
         return self.REPORT_INTERVALS.daily
@@ -409,14 +397,14 @@ class AdequacyReportHandler(BaseIesoReportHandler):
 
     def earliest_available_datetime(self):
         # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # Although reports exist ~1 month into the future, only the current and next days contain the "Schedules"
         # element, which is used during parsing. The IESO states that the schedules for the next day are posted by
         # approximately 11:15am (see http://reports.ieso.ca/docrefs/helpfile/Adequacy2_h2.pdf). Anecdotally, I've seen
         # "approximate" mean a little after 11:20am. The algorithm below uses 11:30am to be conservative.
-        local_now = self.ieso_client.local_now()
+        local_now = self.ieso_client.local_now
         next_day_availability = copy(local_now).replace(hour=11, minute=30, second=0, microsecond=0)
         end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
         if local_now >= next_day_availability:
@@ -475,7 +463,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
         return BaseClient.MARKET_CHOICES.fivemin
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=31)
+        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=31)
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         document = objectify.fromstring(xml_content)
@@ -495,7 +483,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
             raise NotImplementedError('Realtime Constrained Totals Report can only be parsed using load format.')
 
     def latest_available_datetime(self):
-        return self.ieso_client.local_now()
+        return self.ieso_client.local_now
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_RealtimeConstTotals.xml'
@@ -538,7 +526,7 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
     def latest_available_datetime(self):
         # Predispatch data for the next day is posted at approximately 15:15. Anecdotally, I've seen as late as 15:18.
         # The algorithm below uses 15:30 to be conservative.
-        local_now = self.ieso_client.local_now()
+        local_now = self.ieso_client.local_now
         next_day_availability = copy(local_now).replace(hour=15, minute=30, second=0, microsecond=0)
         end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
         if local_now >= next_day_availability:
@@ -547,7 +535,7 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
             return end_of_day
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now().replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=31)
+        return self.ieso_client.local_now.replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=31)
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -602,12 +590,12 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
 
     def earliest_available_datetime(self):
         # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # A brief look at versioned reports indicate that they're typically posted with ~15 minute lag. Returning
         # 30 minutes in the past to be conservative.
-        return self.ieso_client.local_now() - timedelta(minutes=30)
+        return self.ieso_client.local_now - timedelta(minutes=30)
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -631,10 +619,10 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
         return self.BASE_URL + 'GenOutputbyFuelHourly/' + filename
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        return self.ieso_client.local_now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
     def latest_available_datetime(self):
-        return self.ieso_client.local_now()
+        return self.ieso_client.local_now
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         document = objectify.fromstring(xml_content)

@@ -12,48 +12,31 @@ class TestIESO(TestCase):
     def setUp(self):
         self.ieso_client = client_factory('IESO')
 
-    def test_handle_options_sets_historical_current_and_forecast(self):
-        local_now = self.ieso_client.local_now()
-        start_at = local_now - timedelta(days=1)
-        end_at = local_now + timedelta(days=1)
+    def test_handle_options_sets_historical_and_forecast(self):
+        start_at = self.ieso_client.local_now - timedelta(days=1)
+        end_at = self.ieso_client.local_now + timedelta(days=1)
 
         self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
 
         self.assertTrue(self.ieso_client.options.get('historical', False))
-        self.assertTrue(self.ieso_client.options.get('current_day', False))
         self.assertTrue(self.ieso_client.options.get('forecast', False))
 
     def test_handle_options_sets_historical_only(self):
-        local_now = self.ieso_client.local_now()
-        start_at = local_now - timedelta(days=2)
-        end_at = local_now - timedelta(days=1)
+        start_at = self.ieso_client.local_now - timedelta(days=2)
+        end_at = self.ieso_client.local_now - timedelta(days=1)
 
         self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
 
         self.assertTrue(self.ieso_client.options.get('historical', False))
-        self.assertFalse(self.ieso_client.options.get('current_day', False))
         self.assertFalse(self.ieso_client.options.get('forecast', False))
 
-    def test_handle_options_sets_historical_and_current_day(self):
-        local_now = self.ieso_client.local_now()
-        start_at = local_now - timedelta(days=1)
-        end_at = local_now
-
-        self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
-
-        self.assertTrue(self.ieso_client.options.get('historical', False))
-        self.assertTrue(self.ieso_client.options.get('current_day', False))
-        self.assertFalse(self.ieso_client.options.get('forecast', False))
-
-    def test_handle_options_sets_current_day_and_forecast(self):
-        local_now = self.ieso_client.local_now()
-        start_at = local_now
-        end_at = local_now + timedelta(days=1)
+    def test_handle_options_sets_forecast_only(self):
+        start_at = self.ieso_client.local_now
+        end_at = self.ieso_client.local_now + timedelta(days=1)
 
         self.ieso_client.handle_options(start_at=start_at, end_at=end_at)
 
         self.assertFalse(self.ieso_client.options.get('historical', False))
-        self.assertTrue(self.ieso_client.options.get('current_day', False))
         self.assertTrue(self.ieso_client.options.get('forecast', False))
 
     def test_handle_options_latest(self):
