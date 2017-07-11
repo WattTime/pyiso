@@ -365,8 +365,9 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
         return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
-        # Latest five-minute date is the current time. Hourly forecast data should be pulled from the Adequacy Report.
-        return self.ieso_client.local_now()
+        # A brief look at versioned reports indicate that they're typically posted with ~30 minute lag. Returning
+        # 45 minutes in the past to be conservative.
+        return self.ieso_client.local_now() - timedelta(minutes=45)
 
     def report_interval(self):
         return self.REPORT_INTERVALS.daily
@@ -604,7 +605,9 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
         return self.ieso_client.local_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
-        return self.ieso_client.local_now()
+        # A brief look at versioned reports indicate that they're typically posted with ~15 minute lag. Returning
+        # 30 minutes in the past to be conservative.
+        return self.ieso_client.local_now() - timedelta(minutes=30)
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
