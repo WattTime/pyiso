@@ -1,8 +1,8 @@
-import sys
 import imp
-import os.path
-from os import environ
 import logging
+import os.path
+import sys
+from os import environ
 
 __version__ = '0.3.19'
 
@@ -18,6 +18,7 @@ LOGGER.addHandler(handler)
 LOGGER.setLevel(LOG_LEVEL)
 
 BALANCING_AUTHORITIES = {
+    'AESO': {'class': 'AESOClient', 'module': 'aeso'},
     'AZPS': {'class': 'SVERIClient', 'module': 'sveri'},
     'BPA': {'class': 'BPAClient', 'module': 'bpa'},
     'CAISO': {'class': 'CAISOClient', 'module': 'caiso'},
