@@ -63,7 +63,7 @@ class AESOClient(BaseClient):
             # ``[ba_name, timestamp, freq, market, fuel_name, gen_MW]``
             generation_df.append({
                 'ba_name': self.NAME,
-                'timestamp': local_dt.astimezone(tz=pytz.UTC),
+                'timestamp': self.utcify(local_dt),
                 'freq': self.FREQUENCY_CHOICES.fivemin,  # Actually it's every two minutes, but whatever :)
                 'market': self.MARKET_CHOICES.fivemin,
                 'fuel_name': row.label,
@@ -72,7 +72,8 @@ class AESOClient(BaseClient):
 
         return generation_df
 
-    def _parse_local_time_from_latest_report(self, latest_df):
+    @staticmethod
+    def _parse_local_time_from_latest_report(latest_df):
         """
         :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
         :return: The local datetime that the latest electricity market report was published.
@@ -84,5 +85,4 @@ class AESOClient(BaseClient):
                 local_date_str = lbl.lstrip(last_update_prefix)
                 break
         local_dt = datetime.strptime(local_date_str, '%b %d, %Y %H:%M')
-        local_dt = local_dt.replace(tzinfo=pytz.timezone(self.TZ_NAME))
         return local_dt
