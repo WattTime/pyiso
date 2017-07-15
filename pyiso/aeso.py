@@ -1,9 +1,9 @@
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from datetime import datetime
-
 import pytz
-import mock
-
 from pyiso.base import BaseClient
 from pandas import read_csv
 from pandas import DataFrame
@@ -28,7 +28,7 @@ class AESOClient(BaseClient):
         if latest:
             return self._get_latest_report(request_type='generation')
         else:
-            warnings.warn(message="The AESO client only supports latest=True for retrieving generation fuel mix data.",
+            warnings.warn(message='The AESO client only supports latest=True for retrieving generation fuel mix data.',
                           category=UserWarning)
             return None
 
@@ -78,11 +78,11 @@ class AESOClient(BaseClient):
         :return: The local datetime that the latest electricity market report was published.
         :rtype datetime
         """
-        last_update_prefix = "Last Update : "
+        last_update_prefix = 'Last Update : '
         for lbl in latest_df.label:
             if lbl.startswith(last_update_prefix):
                 local_date_str = lbl.lstrip(last_update_prefix)
                 break
-        local_dt = datetime.strptime(local_date_str, "%b %d, %Y %H:%M")
+        local_dt = datetime.strptime(local_date_str, '%b %d, %Y %H:%M')
         local_dt = local_dt.replace(tzinfo=pytz.timezone(self.TZ_NAME))
         return local_dt
