@@ -1,6 +1,8 @@
 import os
-import requests_mock
 from unittest import TestCase
+
+import requests_mock
+
 from pyiso import client_factory
 from pyiso.base import BaseClient
 
@@ -15,8 +17,8 @@ class TestAESOClient(TestCase):
         self.assertIsInstance(self.aeso_client, BaseClient)
 
     @requests_mock.Mocker()
-    def test_parse_latest_report_for_generation_request(self, req_expectation):
-        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('utf8')
+    def test_nominal_get_generation(self, req_expectation):
+        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
 
         req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
 
@@ -38,3 +40,14 @@ class TestAESOClient(TestCase):
                 self.assertTrue(row.get('gen_MW', None), 542)
             else:
                 self.fail('Unexpected fuel name found in generation timeseries')
+
+    @requests_mock.Mocker()
+    def test_nominal_get_trade(self, req_expectation):
+        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
+
+        req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
+
+        trade_ts = self.aeso_client.get_trade(latest=True)
+
+        self.assertEqual(len(trade_ts), 1)
+        self.assertEqual(trade_ts[0].get('net_exp_MW', None), -216)
