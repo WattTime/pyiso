@@ -89,19 +89,15 @@ class AESOClient(BaseClient):
         :rtype: list
         """
         local_dt = self._parse_local_time_from_latest_report(latest_df=latest_df)
-        net_export_df = latest_df.loc[latest_df['label'].isin(['British Columbia', 'Montana', 'Saskatchewan'])]
-        net_export_df.rename(columns={'col1': 'actual_flow'}, inplace=True)
-
-        total_net_export = 0
-        for idx, row in net_export_df.iterrows():
-            total_net_export += float(row.actual_flow)
+        interchange_df = latest_df.loc[latest_df['label'] == 'Net Actual Interchange']
+        net_actual_interchange = float(interchange_df.iloc[0, 1])
 
         load_df = [{
             'ba_name': self.NAME,
             'timestamp': self.utcify(local_dt),
             'freq': self.FREQUENCY_CHOICES.fivemin,  # Actually it's every two minutes, but whatever :)
             'market': self.MARKET_CHOICES.fivemin,
-            'net_exp_MW': total_net_export
+            'net_exp_MW': net_actual_interchange
         }]
         return load_df
 
