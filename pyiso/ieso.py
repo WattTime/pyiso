@@ -1,15 +1,14 @@
-from copy import copy
 from collections import OrderedDict
 from collections import namedtuple
-
-import pytz
+from copy import copy
 from datetime import datetime
 from datetime import timedelta
+
+import pytz
 from lxml import objectify
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
-
 
 ParserFormat = namedtuple('ParserFormat', ['generation', 'load', 'trade', 'lmp'])
 ReportInterval = namedtuple('ReportInterval', ['hourly', 'daily', 'yearly'])
@@ -143,8 +142,8 @@ class IESOClient(BaseClient):
         return trade_ts
 
     def get_lmp(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
-        raise NotImplementedError('The IESO does not use locational marginal pricing. See '
-                                  'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
+        raise RuntimeError('The IESO does not use locational marginal pricing. See '
+                           'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
 
     def _get_report_range(self, result_ts, report_handler, parser_format, range_start, range_end):
         """
@@ -263,7 +262,7 @@ class BaseIesoReportHandler(object):
         elif self.report_interval() == self.REPORT_INTERVALS.daily:
             return timedelta(days=1)
         else:
-            raise NotImplementedError('The timedelta is only appropriate for hourly or daily report intervals.')
+            raise RuntimeError('The timedelta is only appropriate for hourly or daily report intervals.')
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         """
@@ -381,7 +380,7 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
                 if (min_datetime <= row_datetime <= max_datetime) and net_exp_mw > 0:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
-            raise NotImplementedError('Intertie Schedule Flow Report can only be parsed using trade format.')
+            raise RuntimeError('Intertie Schedule Flow Report can only be parsed using trade format.')
 
 
 class AdequacyReportHandler(BaseIesoReportHandler):
@@ -446,7 +445,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                 if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                     self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
         else:
-            raise NotImplementedError('Adequacy Report should only be parsed using generation or trade formats.')
+            raise RuntimeError('Adequacy Report should only be parsed using generation or trade formats.')
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -480,7 +479,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         else:
-            raise NotImplementedError('Realtime Constrained Totals Report can only be parsed using load format.')
+            raise RuntimeError('Realtime Constrained Totals Report can only be parsed using load format.')
 
     def latest_available_datetime(self):
         return self.ieso_client.local_now
@@ -514,7 +513,7 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
         else:
-            raise NotImplementedError('Predispatch Constrained Totals Report can only be parsed using load format.')
+            raise RuntimeError('Predispatch Constrained Totals Report can only be parsed using load format.')
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_PredispConstTotals.xml'
@@ -576,7 +575,7 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
                     if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                         self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
         else:
-            raise NotImplementedError('Generator Output Capability Report can only be parsed using generation format.')
+            raise RuntimeError('Generator Output Capability Report can only be parsed using generation format.')
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_GenOutputCapability.xml'
