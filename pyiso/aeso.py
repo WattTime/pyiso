@@ -39,7 +39,12 @@ class AESOClient(BaseClient):
             return None
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
+        if latest:
+            return self._get_latest_report(request_type='load')
+        else:
+            warnings.warn(message='The AESO client only supports latest=True for retrieving load data.',
+                          category=UserWarning)
+            return None
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
@@ -52,6 +57,8 @@ class AESOClient(BaseClient):
             return self._parse_generation(latest_df=response_df)
         elif request_type == 'trade':
             return self._parse_trade(latest_df=response_df)
+        elif request_type == 'load':
+            return self._parse_load(latest_df=response_df)
         else:
             raise RuntimeError('Unknown request type: ' + request_type)
 
@@ -72,7 +79,7 @@ class AESOClient(BaseClient):
             generation_df.append({
                 'ba_name': self.NAME,
                 'timestamp': self.utcify(local_dt),
-                'freq': self.FREQUENCY_CHOICES.fivemin,  # Actually it's every two minutes, but whatever :)
+                'freq': self.FREQUENCY_CHOICES.fivemin,
                 'market': self.MARKET_CHOICES.fivemin,
                 'fuel_name': row.label,
                 'gen_MW': float(row.tng)
@@ -95,9 +102,30 @@ class AESOClient(BaseClient):
         load_df = [{
             'ba_name': self.NAME,
             'timestamp': self.utcify(local_dt),
-            'freq': self.FREQUENCY_CHOICES.fivemin,  # Actually it's every two minutes, but whatever :)
+            'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': net_actual_interchange
+        }]
+        return load_df
+
+    def _parse_load(self, latest_df):
+        """
+        Parse load data from the latest AESO electricity market report.
+        :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
+           Timestamps are in UTC.
+        :rtype: list
+        """
+        local_dt = self._parse_local_time_from_latest_report(latest_df=latest_df)
+        ail_df = latest_df.loc[latest_df['label'] == 'Alberta Internal Load (AIL)']
+        alberta_internal_load = float(ail_df.iloc[0, 1])
+
+        load_df = [{
+            'ba_name': self.NAME,
+            'timestamp': self.utcify(local_dt),
+            'freq': self.FREQUENCY_CHOICES.fivemin,
+            'market': self.MARKET_CHOICES.fivemin,
+            'load_MW': alberta_internal_load
         }]
         return load_df
 

@@ -51,3 +51,14 @@ class TestAESOClient(TestCase):
 
         self.assertEqual(len(trade_ts), 1)
         self.assertEqual(trade_ts[0].get('net_exp_MW', None), -216)
+
+    @requests_mock.Mocker()
+    def test_nominal_get_load(self, req_expectation):
+        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
+
+        req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
+
+        load_ts = self.aeso_client.get_load(latest=True)
+
+        self.assertEqual(len(load_ts), 1)
+        self.assertEqual(load_ts[0].get('load_MW', None), 10270)
