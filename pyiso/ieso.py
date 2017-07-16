@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from collections import namedtuple
 from copy import copy
 from datetime import datetime
 from datetime import timedelta
@@ -9,9 +8,6 @@ from lxml import objectify
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
-
-ParserFormat = namedtuple('ParserFormat', ['generation', 'load', 'trade', 'lmp'])
-ReportInterval = namedtuple('ReportInterval', ['hourly', 'daily', 'yearly'])
 
 
 class IESOClient(BaseClient):
@@ -30,8 +26,6 @@ class IESOClient(BaseClient):
         'OTHER': 'other'
     }
 
-    PARSER_FORMATS = ParserFormat(generation='generation', load='load', trade='trade', lmp='lmp')
-
     def __init__(self):
         super(IESOClient, self).__init__()
         self.local_now = self.local_now()  # timezone aware
@@ -39,7 +33,6 @@ class IESOClient(BaseClient):
         self.local_end_of_day = self.local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     def handle_options(self, **kwargs):
-        # regular handle options
         super(IESOClient, self).handle_options(**kwargs)
 
         if self.options.get('latest', None):
@@ -58,7 +51,7 @@ class IESOClient(BaseClient):
 
         if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=generation_ts, report_handler=gen_out_cap_handler,
-                                            parser_format=IESOClient.PARSER_FORMATS.generation)
+                                            parser_format=ParserFormat.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             # For long time ranges more than seven days in the past, it is more efficient to request the Generator
             # Output by Fuel Type Hourly Report rather than repeated calls to the Generator Output and Capability
@@ -68,20 +61,20 @@ class IESOClient(BaseClient):
                 range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_by_fuel_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=gen_out_by_fuel_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       parser_format=ParserFormat.generation, range_start=range_start,
                                        range_end=range_end)
             elif self.options.get('historical', False):
                 range_start = max(self.options['start_at'], gen_out_cap_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_cap_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=gen_out_cap_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       parser_format=ParserFormat.generation, range_start=range_start,
                                        range_end=range_end)
 
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], self.local_now)
                 range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=adequacy_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.generation, range_start=range_start,
+                                       parser_format=ParserFormat.generation, range_start=range_start,
                                        range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
@@ -95,21 +88,19 @@ class IESOClient(BaseClient):
 
         if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=load_ts, report_handler=rt_const_totals_handler,
-                                            parser_format=IESOClient.PARSER_FORMATS.load)
+                                            parser_format=ParserFormat.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], rt_const_totals_handler.latest_available_datetime())
                 self._get_report_range(result_ts=load_ts, report_handler=rt_const_totals_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
-                                       range_end=range_end)
+                                       parser_format=ParserFormat.load, range_start=range_start, range_end=range_end)
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], rt_const_totals_handler.latest_available_datetime(),
                                   predisp_const_totals_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], predisp_const_totals_handler.latest_available_datetime())
                 self._get_report_range(result_ts=load_ts, report_handler=predisp_const_totals_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.load, range_start=range_start,
-                                       range_end=range_end)
+                                       parser_format=ParserFormat.load, range_start=range_start, range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
         return load_ts
@@ -122,21 +113,19 @@ class IESOClient(BaseClient):
 
         if self.options.get('latest', False):
             self._get_latest_report_trimmed(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
-                                            parser_format=IESOClient.PARSER_FORMATS.trade)
+                                            parser_format=ParserFormat.trade)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             if self.options.get('historical', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], inter_sched_flow_handler.latest_available_datetime())
                 self._get_report_range(result_ts=trade_ts, report_handler=inter_sched_flow_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
-                                       range_end=range_end)
+                                       parser_format=ParserFormat.trade, range_start=range_start, range_end=range_end)
             if self.options.get('forecast', False):
                 range_start = max(self.options['start_at'], inter_sched_flow_handler.latest_available_datetime(),
                                   adequacy_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], adequacy_handler.latest_available_datetime())
                 self._get_report_range(result_ts=trade_ts, report_handler=adequacy_handler,
-                                       parser_format=IESOClient.PARSER_FORMATS.trade, range_start=range_start,
-                                       range_end=range_end)
+                                       parser_format=ParserFormat.trade, range_start=range_start, range_end=range_end)
         else:
             LOGGER.warn('No valid options were supplied.')
         return trade_ts
@@ -156,11 +145,11 @@ class IESOClient(BaseClient):
         report_interval = report_handler.report_interval()
         report_datetime = range_start.astimezone(pytz.timezone(self.TZ_NAME))
 
-        if report_interval == report_handler.REPORT_INTERVALS.daily:
+        if report_interval == ReportFileInterval.daily:
             report_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif report_interval == report_handler.REPORT_INTERVALS.hourly:
+        elif report_interval == ReportFileInterval.hourly:
             report_datetime.replace(minute=0, second=0, microsecond=0)
-        elif report_interval == report_handler.REPORT_INTERVALS.yearly:
+        elif report_interval == ReportFileInterval.yearly:
             report_datetime.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
         while report_datetime <= min(range_end, report_handler.latest_available_datetime()):
@@ -168,7 +157,7 @@ class IESOClient(BaseClient):
             response = self.request(url=report_url)
             report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                         min_datetime=range_start, max_datetime=range_end)
-            if report_interval == report_handler.REPORT_INTERVALS.yearly:
+            if report_interval == ReportFileInterval.yearly:
                 report_datetime.replace(year=report_datetime.year + 1)
             else:
                 report_datetime += report_handler.interval_timedelta()
@@ -178,7 +167,7 @@ class IESOClient(BaseClient):
         :param list result_ts: The timeseries which results which data will be appended to. Results will be trimmed to
             the latest record.
         :param BaseIesoReportHandler report_handler:
-        :param str parser_format: One of IESOBaseClient.PARSER_FORMATS
+        :param str parser_format: One of the ParserFormat enum strings.
         """
         report_url = report_handler.report_url()
         response = self.request(url=report_url)
@@ -198,7 +187,6 @@ class BaseIesoReportHandler(object):
     Base class to standardize how IESO market reports are parsed and to define date-related attributes.
     """
     BASE_URL = 'http://reports.ieso.ca/public/'
-    REPORT_INTERVALS = ReportInterval(hourly='hourly', daily='daily', yearly='yearly')
 
     def __init__(self, ieso_client):
         """
@@ -248,7 +236,7 @@ class BaseIesoReportHandler(object):
     def report_interval(self):
         """
         The amount of time time between reports.
-        :return: One of BaseIesoReportHandler.REPORT_INTERVALS
+        :return: One of the ReportFileInterval enum strings.
         """
         raise NotImplementedError('Derived classes must implement the report_interval method.')
 
@@ -257,9 +245,9 @@ class BaseIesoReportHandler(object):
         :return: The timedelta used to stop through a series of report requests.
         :rtype: timedelta
         """
-        if self.report_interval() == self.REPORT_INTERVALS.hourly:
+        if self.report_interval() == ReportFileInterval.hourly:
             return timedelta(hours=1)
-        elif self.report_interval() == self.REPORT_INTERVALS.daily:
+        elif self.report_interval() == ReportFileInterval.daily:
             return timedelta(days=1)
         else:
             raise RuntimeError('The timedelta is only appropriate for hourly or daily report intervals.')
@@ -357,10 +345,10 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
         return self.ieso_client.local_now - timedelta(minutes=45)
 
     def report_interval(self):
-        return self.REPORT_INTERVALS.daily
+        return ReportFileInterval.daily
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
-        if parser_format == IESOClient.PARSER_FORMATS.trade:
+        if parser_format == ParserFormat.trade:
             document = objectify.fromstring(xml_content)
             doc_body = document.IMODocBody
             doc_date_local = doc_body.Date  # %Y%m%d
@@ -385,7 +373,7 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
 
 class AdequacyReportHandler(BaseIesoReportHandler):
     def report_interval(self):
-        return self.REPORT_INTERVALS.daily
+        return ReportFileInterval.daily
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_Adequacy2.xml'
@@ -418,7 +406,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
         day = doc_body.DeliveryDate
-        if parser_format == IESOClient.PARSER_FORMATS.generation:
+        if parser_format == ParserFormat.generation:
             # InternalResources is misleading. Each fuel is an internal resource, and we iterate hours of each fuel.
             for internal_resource in doc_body.ForecastSupply.InternalResources.InternalResource:
                 fuel = str.upper(internal_resource.FuelType.text)
@@ -429,7 +417,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                         if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
                             self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel,
                                                    gen_mw=fuel_gen_mw)
-        elif parser_format == IESOClient.PARSER_FORMATS.trade:
+        elif parser_format == ParserFormat.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
             for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
                 ts_local = day + ' ' + str(import_schedule.DeliveryHour - 1).zfill(2) + ':00'
@@ -453,7 +441,7 @@ class AdequacyReportHandler(BaseIesoReportHandler):
 
 class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
     def report_interval(self):
-        return self.REPORT_INTERVALS.hourly
+        return ReportFileInterval.hourly
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.fivemin
@@ -468,7 +456,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
         day = doc_body.DeliveryDate
-        if parser_format == IESOClient.PARSER_FORMATS.load:
+        if parser_format == ParserFormat.load:
             hour = doc_body.DeliveryHour - 1
             for interval_energy in doc_body.Energies.IntervalEnergy:
                 minute = (interval_energy.Interval - 1) * 5
@@ -495,7 +483,7 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
 
 class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
     def report_interval(self):
-        return self.REPORT_INTERVALS.daily
+        return ReportFileInterval.daily
 
     def market(self):
         return BaseClient.MARKET_CHOICES.hourly
@@ -504,7 +492,7 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
         day = doc_body.DeliveryDate
-        if parser_format == IESOClient.PARSER_FORMATS.load:
+        if parser_format == ParserFormat.load:
             for hrly_const_energy in doc_body.Energies.HourlyConstrainedEnergy:
                 ts_local = day + ' ' + str(hrly_const_energy.DeliveryHour - 1).zfill(2) + ':00'
                 for mq in hrly_const_energy.MQ:
@@ -545,7 +533,7 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
         return BaseClient.MARKET_CHOICES.hourly
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
-        if parser_format == IESOClient.PARSER_FORMATS.generation:
+        if parser_format == ParserFormat.generation:
             imo_document = objectify.fromstring(xml_content)
             imo_doc_body = imo_document.IMODocBody
             report_date = imo_doc_body.Date
@@ -585,7 +573,7 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
         return self.BASE_URL + 'GenOutputCapability/' + filename
 
     def report_interval(self):
-        return self.REPORT_INTERVALS.daily
+        return ReportFileInterval.daily
 
     def earliest_available_datetime(self):
         # Earliest historical data available is three months in the past.
@@ -608,7 +596,7 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
         return BaseClient.FREQUENCY_CHOICES.hourly
 
     def report_interval(self):
-        return self.REPORT_INTERVALS.yearly
+        return ReportFileInterval.yearly
 
     def report_url(self, report_datetime=None):
         filename = 'PUB_GenOutputbyFuelHourly.xml'
@@ -637,3 +625,16 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
                     except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
                         fuel_gen_mw = 0
                     self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+
+
+class ParserFormat:
+    generation = 'generation'
+    load = 'load'
+    trade = 'trade'
+    lmp = 'lmp'
+
+
+class ReportFileInterval:
+    hourly = 'hourly'
+    daily = 'daily'
+    yearly = 'yearly'

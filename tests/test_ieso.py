@@ -1,5 +1,4 @@
 import os
-from pyiso import ieso
 from datetime import datetime
 from datetime import timedelta
 from unittest import TestCase
@@ -7,7 +6,8 @@ from unittest import TestCase
 from pytz import timezone
 
 from pyiso import client_factory
-
+from pyiso import ieso
+from pyiso.ieso import ParserFormat
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
 
@@ -62,7 +62,7 @@ class TestIntertieScheduleFlowReportHandler(TestCase):
         trades = list([])
 
         self.report_handler.parse_report(xml_content=xml_content, result_ts=trades,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.trade,
+                                         parser_format=ParserFormat.trade,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(trades), 288)  # 12 five-minute intervals * 24 hours.
@@ -94,8 +94,7 @@ class TestAdequacyReportHandler(TestCase):
         xml_content = open(FIXTURES_DIR + '/ieso_full_Adequacy2_20170618.xml').read().encode('utf8')
         trades = list([])
 
-        self.report_handler.parse_report(xml_content=xml_content, result_ts=trades,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.trade,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=trades, parser_format=ParserFormat.trade,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(trades), 24)  # 24 hours
@@ -107,12 +106,12 @@ class TestAdequacyReportHandler(TestCase):
         start_at = datetime(year=2017, month=6, day=18, hour=0, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
-                              tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+                          tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         xml_content = open(FIXTURES_DIR + '/ieso_full_Adequacy2_20170618.xml').read().encode('utf8')
         generation_ts = list([])
 
         self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
+                                         parser_format=ParserFormat.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(generation_ts), 168)  # 7 fuels * 24 hours
@@ -151,8 +150,7 @@ class TestRealtimeConstrainedTotalsReportHandler(TestCase):
         xml_content = open(FIXTURES_DIR + '/ieso_full_RealtimeConstTotals_2017070101.xml').read().encode('utf8')
         load_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.load,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts, parser_format=ParserFormat.load,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(load_ts), 12)  # 12 five-minute intervals in 1 hour.
@@ -194,8 +192,7 @@ class TestPredispatchConstrainedTotalsReportHandler(TestCase):
         xml_content = open(FIXTURES_DIR + '/ieso_full_PredispConstTotals_20170708.xml').read().encode('utf8')
         load_ts = list([])
 
-        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.load,
+        self.report_handler.parse_report(xml_content=xml_content, result_ts=load_ts, parser_format=ParserFormat.load,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(load_ts), 24)  # 24 hours
@@ -228,7 +225,7 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
         generation_ts = list([])
 
         self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
+                                         parser_format=ParserFormat.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(generation_ts), 72)  # 24 hours of three fuels
@@ -257,7 +254,7 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
         generation_ts = list([])
 
         self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
+                                         parser_format=ParserFormat.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(generation_ts), 12)  # 4 hours of three fuels
@@ -302,7 +299,7 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
         generation_ts = list([])
 
         self.report_handler.parse_report(xml_content=xml_content, result_ts=generation_ts,
-                                         parser_format=ieso.IESOClient.PARSER_FORMATS.generation,
+                                         parser_format=ParserFormat.generation,
                                          min_datetime=start_at, max_datetime=end_at)
 
         self.assertEquals(len(generation_ts), 1008)  # 6 fuels * 24 hours * 7 days
