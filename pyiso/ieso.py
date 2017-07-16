@@ -11,6 +11,11 @@ from pyiso.base import BaseClient
 
 
 class IESOClient(BaseClient):
+    """
+    The Independent Electricity System Operator (IESO) of Ontario publishes a variety of public XML reports at
+    http://reports.ieso.ca/public/ which can be stitched together to implement WattTime's pyiso API.
+    """
+
     NAME = 'IESO'
     TZ_NAME = 'EST'  # IESO is always in standard time.
 
@@ -628,6 +633,10 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
 
 
 class ParserFormat:
+    """
+    Since report handlers can parse the XML reports into a variety of formats, this enum facilitates passing which
+    pyiso output format should be used between IESOClient and the BaseIesoReportHandler implementations.
+    """
     generation = 'generation'
     load = 'load'
     trade = 'trade'
@@ -635,6 +644,10 @@ class ParserFormat:
 
 
 class ReportFileInterval:
+    """
+    The report files are published with filenames containing date/time information. Some reports are broken up
+    hourly, some daily, and ony yearly.
+    """
     hourly = 'hourly'
     daily = 'daily'
     yearly = 'yearly'
