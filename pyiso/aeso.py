@@ -9,6 +9,9 @@ from pyiso.base import BaseClient
 
 
 class AESOClient(BaseClient):
+    """
+    The Alberta Electricity System Operator (AESO) operates a single control area for Alberta, Canada.
+    """
     NAME = 'AESO'
     REPORT_URL = 'http://ets.aeso.ca/ets_web/ip/Market/Reports/CSDReportServlet?contentType=csv'
 
@@ -24,7 +27,7 @@ class AESOClient(BaseClient):
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
-            return self._get_latest_report(request_type='generation')
+            return self._get_latest_report(request_type=ParserFormat.generation)
         else:
             warnings.warn(message='The AESO client only supports latest=True for retrieving generation fuel mix data.',
                           category=UserWarning)
@@ -32,7 +35,7 @@ class AESOClient(BaseClient):
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
-            return self._get_latest_report(request_type='trade')
+            return self._get_latest_report(request_type=ParserFormat.trade)
         else:
             warnings.warn(message='The AESO client only supports latest=True for retrieving net export data.',
                           category=UserWarning)
@@ -40,7 +43,7 @@ class AESOClient(BaseClient):
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
-            return self._get_latest_report(request_type='load')
+            return self._get_latest_report(request_type=ParserFormat.load)
         else:
             warnings.warn(message='The AESO client only supports latest=True for retrieving load data.',
                           category=UserWarning)
@@ -53,11 +56,11 @@ class AESOClient(BaseClient):
         response = self.request(url=self.REPORT_URL)
         response_body = BytesIO(response.content)
         response_df = read_csv(response_body, names=['label', 'col1', 'col2', 'col3'], skiprows=1)
-        if request_type == 'generation':
+        if request_type == ParserFormat.generation:
             return self._parse_generation(latest_df=response_df)
-        elif request_type == 'trade':
+        elif request_type == ParserFormat.trade:
             return self._parse_trade(latest_df=response_df)
-        elif request_type == 'load':
+        elif request_type == ParserFormat.load:
             return self._parse_load(latest_df=response_df)
         else:
             raise RuntimeError('Unknown request type: ' + request_type)
@@ -143,3 +146,10 @@ class AESOClient(BaseClient):
                 break
         local_dt = datetime.strptime(local_date_str, '%b %d, %Y %H:%M')
         return local_dt
+
+
+class ParserFormat:
+    generation = 'generation'
+    load = 'load'
+    trade = 'trade'
+    lmp = 'lmp'
