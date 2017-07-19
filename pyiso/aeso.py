@@ -13,7 +13,7 @@ class AESOClient(BaseClient):
     The Alberta Electricity System Operator (AESO) operates a single control area for Alberta, Canada.
     """
     NAME = 'AESO'
-    REPORT_URL = 'http://ets.aeso.ca/ets_web/ip/Market/Reports/CSDReportServlet?contentType=csv'
+    LATEST_REPORT_URL = 'http://ets.aeso.ca/ets_web/ip/Market/Reports/CSDReportServlet?contentType=csv'
 
     fuels = {
         'COAL': 'coal',
@@ -53,7 +53,7 @@ class AESOClient(BaseClient):
         pass
 
     def _get_latest_report(self, request_type):
-        response = self.request(url=self.REPORT_URL)
+        response = self.request(url=self.LATEST_REPORT_URL)
         response_body = BytesIO(response.content)
         response_df = read_csv(response_body, names=['label', 'col1', 'col2', 'col3'], skiprows=1)
         if request_type == ParserFormat.generation:

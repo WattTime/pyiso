@@ -20,7 +20,7 @@ class TestAESOClient(TestCase):
     def test_nominal_get_generation(self, req_expectation):
         csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
 
-        req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
+        req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
         generation_ts = self.aeso_client.get_generation(latest=True)
 
@@ -45,7 +45,7 @@ class TestAESOClient(TestCase):
     def test_nominal_get_trade(self, req_expectation):
         csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
 
-        req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
+        req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
         trade_ts = self.aeso_client.get_trade(latest=True)
 
@@ -56,7 +56,7 @@ class TestAESOClient(TestCase):
     def test_nominal_get_load(self, req_expectation):
         csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
 
-        req_expectation.get(self.aeso_client.REPORT_URL, content=csv_content)
+        req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
         load_ts = self.aeso_client.get_load(latest=True)
 
