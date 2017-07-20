@@ -271,55 +271,52 @@ class BaseIesoReportHandler(object):
         """
         raise NotImplementedError('Derived classes must implement the parse_report method.')
 
-    def append_generation(self, result_ts, ts_local, gen_mw, fuel):
+    def append_generation(self, result_ts, tz_aware_dt, gen_mw, fuel):
         """
         Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, fuel_name, gen_MW].
         Timestamps are in UTC.
         :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
-        :param str ts_local: The local datetime of the data.
+        :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
         :param float gen_mw: Electricity generation in megawatts (MW)
         :param str fuel: IESO fuel name (will be converted to WattTime name).
         """
-        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': report_dt_utc,
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
             'freq': self.frequency(),
             'market': self.market(),
             'fuel_name': IESOClient.fuels[fuel],
             'gen_MW': gen_mw
         })
 
-    def append_load(self, result_ts, ts_local, load_mw):
+    def append_load(self, result_ts, tz_aware_dt, load_mw):
         """
         Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW]. Timestamps are
         in UTC.
         :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
-        :param str ts_local: The local datetime of the data.
+        :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
         :param float load_mw: Electricity load in megawatts (MW).
         """
-        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': report_dt_utc,
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
             'freq': self.frequency(),
             'market': self.market(),
             'load_MW': load_mw
         })
 
-    def append_trade(self, result_ts, ts_local, net_exp_mw):
+    def append_trade(self, result_ts, tz_aware_dt, net_exp_mw):
         """
         Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, net_exp_MW]. Timestamps
         are in UTC.
         :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
-        :param str ts_local: The local datetime of the data.
+        :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
         :param float net_exp_mw: The net exported megawatts (MW) (i.e. export - import). Negative values indicate that
             more electricity was imported than exported.
         """
-        report_dt_utc = self.ieso_client.utcify(local_ts_str=ts_local)
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': report_dt_utc,
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
             'freq': self.frequency(),
             'market': self.market(),
             'net_exp_MW': net_exp_mw
@@ -371,7 +368,7 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
                 # datetime and the availability of observations for that datetime can be as long as ~1.5 hours.
                 # The report fills "Actual" elements in the future with 0, so treat 0 as missing data.
                 if (min_datetime <= row_datetime <= max_datetime) and net_exp_mw > 0:
-                    self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
+                    self.append_trade(result_ts=result_ts, tz_aware_dt=row_datetime, net_exp_mw=net_exp_mw)
         else:
             raise RuntimeError('Intertie Schedule Flow Report can only be parsed using trade format.')
 
@@ -419,8 +416,9 @@ class AdequacyReportHandler(BaseIesoReportHandler):
                     for schedule in internal_resource.Schedules.Schedule:
                         ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
                         fuel_gen_mw = schedule.EnergyMW.pyval
-                        if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                            self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel,
+                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        if min_datetime <= row_datetime <= max_datetime:
+                            self.append_generation(result_ts=result_ts, tz_aware_dt=row_datetime, fuel=fuel,
                                                    gen_mw=fuel_gen_mw)
         elif parser_format == ParserFormat.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
@@ -435,8 +433,9 @@ class AdequacyReportHandler(BaseIesoReportHandler):
             for ts_local, imp_exp in imports_exports.items():
                 # Handle export passed as positive/negative value.
                 net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
-                if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                    self.append_trade(result_ts=result_ts, ts_local=ts_local, net_exp_mw=net_exp_mw)
+                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                if min_datetime <= row_datetime <= max_datetime:
+                    self.append_trade(result_ts=result_ts, tz_aware_dt=row_datetime, net_exp_mw=net_exp_mw)
         else:
             raise RuntimeError('Adequacy Report should only be parsed using generation or trade formats.')
 
@@ -469,8 +468,9 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
                 for mq in interval_energy.MQ:
                     if mq.MarketQuantity == 'ONTARIO DEMAND':
                         load_mw = mq.EnergyMW.pyval
-                        if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                            self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
+                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        if min_datetime <= row_datetime <= max_datetime:
+                            self.append_load(result_ts=result_ts, tz_aware_dt=row_datetime, load_mw=load_mw)
         else:
             raise RuntimeError('Realtime Constrained Totals Report can only be parsed using load format.')
 
@@ -503,8 +503,9 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
                 for mq in hrly_const_energy.MQ:
                     if mq.MarketQuantity == 'Total Load':
                         load_mw = mq.EnergyMW.pyval
-                        if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                            self.append_load(result_ts=result_ts, ts_local=ts_local, load_mw=load_mw)
+                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        if min_datetime <= row_datetime <= max_datetime:
+                            self.append_load(result_ts=result_ts, tz_aware_dt=row_datetime, load_mw=load_mw)
         else:
             raise RuntimeError('Predispatch Constrained Totals Report can only be parsed using load format.')
 
@@ -565,8 +566,10 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
             for fuel, fuel_hours in fuels_hourly.items():
                 for idx, fuel_gen_mw in enumerate(fuel_hours):
                     ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                    if min_datetime <= self.ieso_client.utcify(local_ts_str=ts_local) <= max_datetime:
-                        self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                    row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                    if min_datetime <= row_datetime <= max_datetime:
+                        self.append_generation(result_ts=result_ts, tz_aware_dt=row_datetime, fuel=fuel,
+                                               gen_mw=fuel_gen_mw)
         else:
             raise RuntimeError('Generator Output Capability Report can only be parsed using generation format.')
 
@@ -623,13 +626,16 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
             day = daily_data.Day
             for hourly_data in daily_data.HourlyData:
                 ts_local = day + ' ' + str(hourly_data.Hour - 1).zfill(2) + ':00'
-                for fuel_total in hourly_data.FuelTotal:
-                    fuel = fuel_total.Fuel
-                    try:
-                        fuel_gen_mw = fuel_total.EnergyValue.Output
-                    except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
-                        fuel_gen_mw = 0
-                    self.append_generation(result_ts=result_ts, ts_local=ts_local, fuel=fuel, gen_mw=fuel_gen_mw)
+                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                if min_datetime <= row_datetime <= max_datetime:
+                    for fuel_total in hourly_data.FuelTotal:
+                        fuel = fuel_total.Fuel
+                        try:
+                            fuel_gen_mw = fuel_total.EnergyValue.Output
+                        except AttributeError:  # When 'OutputQuality' value is -1, there is not 'Output' element.
+                            fuel_gen_mw = 0
+                        self.append_generation(result_ts=result_ts, tz_aware_dt=row_datetime, fuel=fuel,
+                                               gen_mw=fuel_gen_mw)
 
 
 class ParserFormat:
