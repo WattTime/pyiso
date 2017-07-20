@@ -1,10 +1,12 @@
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 
+import pytz
 from pandas import DataFrame
 from pandas import read_csv
 
+from pyiso import LOGGER
 from pyiso.base import BaseClient
 
 
@@ -13,7 +15,8 @@ class AESOClient(BaseClient):
     The Alberta Electricity System Operator (AESO) operates a single control area for Alberta, Canada.
     """
     NAME = 'AESO'
-    LATEST_REPORT_URL = 'http://ets.aeso.ca/ets_web/ip/Market/Reports/CSDReportServlet?contentType=csv'
+    REPORT_URL_BASE = 'http://ets.aeso.ca/ets_web/ip/Market/Reports'
+    LATEST_REPORT_URL = REPORT_URL_BASE + '/CSDReportServlet?contentType=csv'
 
     fuels = {
         'COAL': 'coal',
@@ -24,6 +27,9 @@ class AESOClient(BaseClient):
     }
 
     TZ_NAME = 'Canada/Mountain'
+
+    def __init__(self):
+        super(AESOClient, self).__init__()
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
@@ -42,15 +48,39 @@ class AESOClient(BaseClient):
             return None
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+        super(AESOClient, self).handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at,
+                                               **kwargs)
+
         if latest:
             return self._get_latest_report(request_type=ParserFormat.load)
+        elif self.options.get('start_at', None) and self.options.get('end_at', None):
+            earliest_load_dt = datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0,
+                                        tzinfo=pytz.timezone(self.TZ_NAME))
+            latest_load_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
+            start_at = max(self.options['start_at'], earliest_load_dt)
+            end_at = min(self.options['end_at'], latest_load_dt)
+            return self._get_load_for_date_range(start_at=start_at, end_at=end_at)
         else:
-            warnings.warn(message='The AESO client only supports latest=True for retrieving load data.',
-                          category=UserWarning)
-            return None
+            LOGGER.warn('No valid options were supplied.')
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
+
+    def _append_load(self, result_ts, local_dt, load_mw):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW]. Timestamps are
+        in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param datetime local_dt: The local datetime of the data.
+        :param float load_mw: Electricity load in megawatts (MW).
+        """
+        result_ts.append({
+            'ba_name': self.NAME,
+            'timestamp': self.utcify(local_dt),
+            'freq': self.FREQUENCY_CHOICES.fivemin,
+            'market': self.MARKET_CHOICES.fivemin,
+            'load_MW': load_mw
+        })
 
     def _get_latest_report(self, request_type):
         response = self.request(url=self.LATEST_REPORT_URL)
@@ -64,6 +94,36 @@ class AESOClient(BaseClient):
             return self._parse_load(latest_df=response_df)
         else:
             raise RuntimeError('Unknown request type: ' + request_type)
+
+    def _get_load_for_date_range(self, start_at, end_at):
+        load_ts = list([])
+        af_base_url = self.REPORT_URL_BASE + '/ActualForecastWMRQHReportServlet?contentType=csv'
+        begin_param_fmt = '&beginDate=%m%d%Y'
+        end_param_fmt = '&endDate=%m%d%Y'
+
+        # Report lower bound must be at least one day in the past to request current day.
+        iter_dt = min(start_at, self.local_now() - timedelta(days=1))
+        while iter_dt <= end_at + timedelta(days=1):  # Report request upper bound is not inclusive; add one day.
+            iter_end = min(end_at + timedelta(days=1), iter_dt + timedelta(days=31))
+            af_url = af_base_url + iter_dt.strftime(begin_param_fmt) + iter_end.strftime(end_param_fmt)
+            response = self.request(url=af_url)
+            response_body = BytesIO(response.content)
+            response_df = read_csv(response_body, skiprows=4)
+            for idx, row in response_df.iterrows():
+                hour_ending = int(row['Date'][-2:])
+                hour_str = str(hour_ending - 1).zfill(2)
+                day_str = row['Date'][:-3]
+                row_local_dt = datetime.strptime(day_str + ' ' + hour_str, '%m/%d/%Y %H')
+                load_mw = None
+                if row['Actual AIL'] != '-':
+                    load_mw = float(row['Actual AIL'].replace(',', ''))
+                elif row['Day-Ahead Forecasted AIL'] != '-':
+                    load_mw = float(row['Day-Ahead Forecasted AIL'].replace(',', ''))
+
+                if load_mw and start_at <= self.utcify(row_local_dt) <= end_at:
+                    self._append_load(result_ts=load_ts, local_dt=row_local_dt, load_mw=load_mw)
+            iter_dt = iter_end + timedelta(days=1)
+        return load_ts
 
     def _parse_generation(self, latest_df):
         """
@@ -123,13 +183,8 @@ class AESOClient(BaseClient):
         ail_df = latest_df.loc[latest_df['label'] == 'Alberta Internal Load (AIL)']
         alberta_internal_load = float(ail_df.iloc[0, 1])
 
-        load_df = [{
-            'ba_name': self.NAME,
-            'timestamp': self.utcify(local_dt),
-            'freq': self.FREQUENCY_CHOICES.fivemin,
-            'market': self.MARKET_CHOICES.fivemin,
-            'load_MW': alberta_internal_load
-        }]
+        load_df = list([])
+        self._append_load(result_ts=load_df, local_dt=local_dt, load_mw=alberta_internal_load)
         return load_df
 
     @staticmethod
