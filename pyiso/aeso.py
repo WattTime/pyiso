@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 
 import pytz
-from pandas import DataFrame
-from pandas import read_csv
+from pandas import DataFrame, read_csv
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
