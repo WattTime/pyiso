@@ -30,6 +30,7 @@ class AESOClient(BaseClient):
 
     def __init__(self):
         super(AESOClient, self).__init__()
+        self.mtn_tz = pytz.timezone(self.TZ_NAME)
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         if latest:
@@ -54,11 +55,12 @@ class AESOClient(BaseClient):
         if latest:
             return self._get_latest_report(request_type=ParserFormat.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            earliest_load_dt = datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0,
-                                        tzinfo=pytz.timezone(self.TZ_NAME))
+            derp = pytz.timezone(self.TZ_NAME)
+            earliest_load_dt = self.mtn_tz.localize(datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0))
+
             latest_load_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
-            start_at = max(self.options['start_at'], earliest_load_dt)
-            end_at = min(self.options['end_at'], latest_load_dt)
+            start_at = max(self.options['start_at'], earliest_load_dt).astimezone(self.mtn_tz)
+            end_at = min(self.options['end_at'], latest_load_dt).astimezone(self.mtn_tz)
             return self._get_load_for_date_range(start_at=start_at, end_at=end_at)
         else:
             LOGGER.warn('No valid options were supplied.')
@@ -66,17 +68,17 @@ class AESOClient(BaseClient):
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def _append_load(self, result_ts, local_dt, load_mw):
+    def _append_load(self, result_ts, tz_aware_dt, load_mw):
         """
         Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW]. Timestamps are
         in UTC.
         :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
-        :param datetime local_dt: The local datetime of the data.
+        :param datetime tz_aware_dt: A timezone-aware datetime for the data being appended.
         :param float load_mw: Electricity load in megawatts (MW).
         """
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': self.utcify(local_dt),
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'load_MW': load_mw
@@ -101,11 +103,13 @@ class AESOClient(BaseClient):
         begin_param_fmt = '&beginDate=%m%d%Y'
         end_param_fmt = '&endDate=%m%d%Y'
 
-        # Report lower bound must be at least one day in the past to request current day.
-        iter_dt = min(start_at, self.local_now() - timedelta(days=1))
-        while iter_dt <= end_at + timedelta(days=1):  # Report request upper bound is not inclusive; add one day.
-            iter_end = min(end_at + timedelta(days=1), iter_dt + timedelta(days=31))
-            af_url = af_base_url + iter_dt.strftime(begin_param_fmt) + iter_end.strftime(end_param_fmt)
+        iter_date = start_at.date()
+        while iter_date <= end_at.date():
+            # Report lower bound must be at least one day in the past to request current day.
+            lower_bound = iter_date if iter_date != self.local_now().date() else iter_date - timedelta(days=1)
+            # Report request upper bound is not inclusive; add one day. Max report time range is 31 days. Pick one.
+            upper_bound = min(end_at.date() + timedelta(days=1), lower_bound + timedelta(days=31))
+            af_url = af_base_url + lower_bound.strftime(begin_param_fmt) + upper_bound.strftime(end_param_fmt)
             response = self.request(url=af_url)
             response_body = BytesIO(response.content)
             response_df = read_csv(response_body, skiprows=4)
@@ -113,16 +117,16 @@ class AESOClient(BaseClient):
                 hour_ending = int(row['Date'][-2:])
                 hour_str = str(hour_ending - 1).zfill(2)
                 day_str = row['Date'][:-3]
-                row_local_dt = datetime.strptime(day_str + ' ' + hour_str, '%m/%d/%Y %H')
+                row_local_dt = self.mtn_tz.localize(datetime.strptime(day_str + ' ' + hour_str, '%m/%d/%Y %H'))
                 load_mw = None
                 if row['Actual AIL'] != '-':
                     load_mw = float(row['Actual AIL'].replace(',', ''))
                 elif row['Day-Ahead Forecasted AIL'] != '-':
                     load_mw = float(row['Day-Ahead Forecasted AIL'].replace(',', ''))
 
-                if load_mw and start_at <= self.utcify(row_local_dt) <= end_at:
-                    self._append_load(result_ts=load_ts, local_dt=row_local_dt, load_mw=load_mw)
-            iter_dt = iter_end + timedelta(days=1)
+                if load_mw and start_at <= row_local_dt <= end_at and row_local_dt.date() >= iter_date:
+                    self._append_load(result_ts=load_ts, tz_aware_dt=row_local_dt, load_mw=load_mw)
+            iter_date = upper_bound
         return load_ts
 
     def _parse_generation(self, latest_df):
@@ -184,14 +188,13 @@ class AESOClient(BaseClient):
         alberta_internal_load = float(ail_df.iloc[0, 1])
 
         load_df = list([])
-        self._append_load(result_ts=load_df, local_dt=local_dt, load_mw=alberta_internal_load)
+        self._append_load(result_ts=load_df, tz_aware_dt=local_dt, load_mw=alberta_internal_load)
         return load_df
 
-    @staticmethod
-    def _parse_local_time_from_latest_report(latest_df):
+    def _parse_local_time_from_latest_report(self, latest_df):
         """
         :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
-        :return: The local datetime that the latest electricity market report was published.
+        :return: The timezone-aware local datetime that the latest electricity market report was published.
         :rtype datetime
         """
         last_update_prefix = 'Last Update : '
@@ -199,7 +202,7 @@ class AESOClient(BaseClient):
             if lbl.startswith(last_update_prefix):
                 local_date_str = lbl.lstrip(last_update_prefix)
                 break
-        local_dt = datetime.strptime(local_date_str, '%b %d, %Y %H:%M')
+        local_dt = self.mtn_tz.localize(datetime.strptime(local_date_str, '%b %d, %Y %H:%M'))
         return local_dt
 
 
