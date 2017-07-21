@@ -107,17 +107,20 @@ class AESOClient(BaseClient):
         while iter_date <= end_at.date():
             # Report lower bound must be at least one day in the past to request current day.
             lower_bound = iter_date if iter_date != self.local_now().date() else iter_date - timedelta(days=1)
-            # Report request upper bound is not inclusive; add one day. Max report time range is 31 days. Pick one.
+            # Report request upper bound is not inclusive; add one day. Max report time range is 31 days.
             upper_bound = min(end_at.date() + timedelta(days=1), lower_bound + timedelta(days=31))
             af_url = af_base_url + lower_bound.strftime(begin_param_fmt) + upper_bound.strftime(end_param_fmt)
             response = self.request(url=af_url)
             response_body = BytesIO(response.content)
             response_df = read_csv(response_body, skiprows=4)
             for idx, row in response_df.iterrows():
+                # Parse the 'Date' column, of the form "12/31/2016 01", which indicates date and hour ending.
                 hour_ending = int(row['Date'][-2:])
                 hour_str = str(hour_ending - 1).zfill(2)
                 day_str = row['Date'][:-3]
                 row_local_dt = self.mtn_tz.localize(datetime.strptime(day_str + ' ' + hour_str, '%m/%d/%Y %H'))
+
+                # Rows exist when no load or forecast is available (denoted by '-').
                 load_mw = None
                 if row['Actual AIL'] != '-':
                     load_mw = float(row['Actual AIL'].replace(',', ''))
