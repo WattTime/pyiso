@@ -66,6 +66,13 @@ class AESOClient(BaseClient):
         pass
 
     def _get_latest_report(self, request_type):
+        """
+        Requests the latest AESO Market Report and parses it into one of several pyiso timeseries formats.
+        :param str request_type: Indicates the data which should be parsed from the latest report. Valid types are:
+           'generation', 'trade', and 'load'. See ParserFormat class.
+        :return: A list of dicts, with keys according to the pyiso format for the request type.
+        :rtype: list
+        """
         response = self.request(url=self.LATEST_REPORT_URL)
         response_body = BytesIO(response.content)
         response_df = read_csv(response_body, names=['label', 'col1', 'col2', 'col3'], skiprows=1)
@@ -79,6 +86,14 @@ class AESOClient(BaseClient):
             raise RuntimeError('Unknown request type: ' + request_type)
 
     def _get_load_for_date_range(self, start_at, end_at):
+        """
+        Request historical/forecast reports for Alberta Internal Load from the "Actual Forecast" Report.
+        :param datetime start_at: Timezone-aware local datetime indicating the lower-bound (inclusive) of data returned.
+        :param datetime end_at: Timezone-aware local datetime indicating the upper-bound (inclusive) of data returned.
+        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, load_MW]``.
+           Timestamps are in UTC.
+        :rtype: list
+        """
         load_ts = list([])
         af_base_url = self.REPORT_URL_BASE + '/ActualForecastWMRQHReportServlet?contentType=csv'
         begin_param_fmt = '&beginDate=%m%d%Y'
