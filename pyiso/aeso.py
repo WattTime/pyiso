@@ -68,22 +68,6 @@ class AESOClient(BaseClient):
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def _append_load(self, result_ts, tz_aware_dt, load_mw):
-        """
-        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW]. Timestamps are
-        in UTC.
-        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
-        :param datetime tz_aware_dt: A timezone-aware datetime for the data being appended.
-        :param float load_mw: Electricity load in megawatts (MW).
-        """
-        result_ts.append({
-            'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
-            'freq': self.FREQUENCY_CHOICES.fivemin,
-            'market': self.MARKET_CHOICES.fivemin,
-            'load_MW': load_mw
-        })
-
     def _get_latest_report(self, request_type):
         response = self.request(url=self.LATEST_REPORT_URL)
         response_body = BytesIO(response.content)
@@ -122,13 +106,22 @@ class AESOClient(BaseClient):
 
                 # Rows exist when no load or forecast is available (denoted by '-').
                 load_mw = None
+                market = None
                 if row['Actual AIL'] != '-':
                     load_mw = float(row['Actual AIL'].replace(',', ''))
+                    market = self.MARKET_CHOICES.hourly
                 elif row['Day-Ahead Forecasted AIL'] != '-':
                     load_mw = float(row['Day-Ahead Forecasted AIL'].replace(',', ''))
+                    market = self.MARKET_CHOICES.dam
 
                 if load_mw and start_at <= row_local_dt <= end_at and row_local_dt.date() >= iter_date:
-                    self._append_load(result_ts=load_ts, tz_aware_dt=row_local_dt, load_mw=load_mw)
+                    load_ts.append({
+                        'ba_name': self.NAME,
+                        'timestamp': row_local_dt.astimezone(pytz.utc),
+                        'freq': self.FREQUENCY_CHOICES.hourly,
+                        'market': market,
+                        'load_MW': load_mw
+                    })
             iter_date = upper_bound
         return load_ts
 
@@ -148,7 +141,7 @@ class AESOClient(BaseClient):
         for idx, row in fuels_df.iterrows():
             generation_df.append({
                 'ba_name': self.NAME,
-                'timestamp': self.utcify(local_dt),
+                'timestamp': local_dt.astimezone(pytz.utc),
                 'freq': self.FREQUENCY_CHOICES.fivemin,
                 'market': self.MARKET_CHOICES.fivemin,
                 'fuel_name': row.label,
@@ -171,7 +164,7 @@ class AESOClient(BaseClient):
 
         load_df = [{
             'ba_name': self.NAME,
-            'timestamp': self.utcify(local_dt),
+            'timestamp': local_dt.astimezone(pytz.utc),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': net_actual_interchange
@@ -190,8 +183,13 @@ class AESOClient(BaseClient):
         ail_df = latest_df.loc[latest_df['label'] == 'Alberta Internal Load (AIL)']
         alberta_internal_load = float(ail_df.iloc[0, 1])
 
-        load_df = list([])
-        self._append_load(result_ts=load_df, tz_aware_dt=local_dt, load_mw=alberta_internal_load)
+        load_df = [{
+            'ba_name': self.NAME,
+            'timestamp': local_dt.astimezone(pytz.utc),
+            'freq': self.FREQUENCY_CHOICES.fivemin,
+            'market': self.MARKET_CHOICES.fivemin,
+            'load_MW': alberta_internal_load
+        }]
         return load_df
 
     def _parse_local_time_from_latest_report(self, latest_df):
