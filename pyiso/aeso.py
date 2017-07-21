@@ -56,7 +56,6 @@ class AESOClient(BaseClient):
             return self._get_latest_report(request_type=ParserFormat.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
             earliest_load_dt = self.mtn_tz.localize(datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0))
-
             latest_load_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
             start_at = max(self.options['start_at'], earliest_load_dt).astimezone(self.mtn_tz)
             end_at = min(self.options['end_at'], latest_load_dt).astimezone(self.mtn_tz)
@@ -72,11 +71,11 @@ class AESOClient(BaseClient):
         response_body = BytesIO(response.content)
         response_df = read_csv(response_body, names=['label', 'col1', 'col2', 'col3'], skiprows=1)
         if request_type == ParserFormat.generation:
-            return self._parse_generation(latest_df=response_df)
+            return self._parse_latest_generation(latest_df=response_df)
         elif request_type == ParserFormat.trade:
-            return self._parse_trade(latest_df=response_df)
+            return self._parse_latest_trade(latest_df=response_df)
         elif request_type == ParserFormat.load:
-            return self._parse_load(latest_df=response_df)
+            return self._parse_latest_load(latest_df=response_df)
         else:
             raise RuntimeError('Unknown request type: ' + request_type)
 
@@ -124,7 +123,7 @@ class AESOClient(BaseClient):
             iter_date = upper_bound
         return load_ts
 
-    def _parse_generation(self, latest_df):
+    def _parse_latest_generation(self, latest_df):
         """
         Parse fuel mix of electricity generation data from the latest AESO electricity market report.
         :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
@@ -149,7 +148,7 @@ class AESOClient(BaseClient):
 
         return generation_df
 
-    def _parse_trade(self, latest_df):
+    def _parse_latest_trade(self, latest_df):
         """
         Parse net export data from the latest AESO electricity market report.
         :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
@@ -170,7 +169,7 @@ class AESOClient(BaseClient):
         }]
         return load_df
 
-    def _parse_load(self, latest_df):
+    def _parse_latest_load(self, latest_df):
         """
         Parse load data from the latest AESO electricity market report.
         :param DataFrame latest_df: The latest electricity market report, parsed as a dataframe.
