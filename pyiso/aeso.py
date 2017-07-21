@@ -134,9 +134,9 @@ class AESOClient(BaseClient):
         fuels_df = latest_df.loc[latest_df['label'].isin(self.fuels.keys())]
         fuels_df.rename(columns={'col1': 'mc', 'col2': 'tng', 'col3': 'dcr'}, inplace=True)
 
-        generation_df = list([])
+        generation_ts = list([])
         for idx, row in fuels_df.iterrows():
-            generation_df.append({
+            generation_ts.append({
                 'ba_name': self.NAME,
                 'timestamp': local_dt.astimezone(pytz.utc),
                 'freq': self.FREQUENCY_CHOICES.fivemin,
@@ -145,7 +145,7 @@ class AESOClient(BaseClient):
                 'gen_MW': float(row.tng)
             })
 
-        return generation_df
+        return generation_ts
 
     def _parse_latest_trade(self, latest_df):
         """
@@ -159,14 +159,14 @@ class AESOClient(BaseClient):
         interchange_df = latest_df.loc[latest_df['label'] == 'Net Actual Interchange']
         net_actual_interchange = float(interchange_df.iloc[0, 1])
 
-        load_df = [{
+        trade_ts = [{
             'ba_name': self.NAME,
             'timestamp': local_dt.astimezone(pytz.utc),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': net_actual_interchange
         }]
-        return load_df
+        return trade_ts
 
     def _parse_latest_load(self, latest_df):
         """
@@ -180,14 +180,14 @@ class AESOClient(BaseClient):
         ail_df = latest_df.loc[latest_df['label'] == 'Alberta Internal Load (AIL)']
         alberta_internal_load = float(ail_df.iloc[0, 1])
 
-        load_df = [{
+        load_ts = [{
             'ba_name': self.NAME,
             'timestamp': local_dt.astimezone(pytz.utc),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'load_MW': alberta_internal_load
         }]
-        return load_df
+        return load_ts
 
     def _parse_local_time_from_latest_report(self, latest_df):
         """
