@@ -355,7 +355,6 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
             doc_body = document.IMODocBody
             doc_date_local = doc_body.Date  # %Y%m%d
 
-            # Actuals child elements used for historical and times <= now.
             for actual in doc_body.Totals.Actuals.Actual:
                 hour_local = str(actual.Hour - 1).zfill(2)
                 minute_local = str((actual.Interval - 1) * 5).zfill(2)  # Interval 1 is minute 00
@@ -363,11 +362,17 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
                 net_exp_mw = actual.Flow
                 row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
 
-                # Batches of 5-minute observations are posted hourly, at the end of the hour. Time between the end of
-                # an hour and the report's availability online is typically 30 minutes. The lag between a row's
-                # datetime and the availability of observations for that datetime can be as long as ~1.5 hours.
-                # The report fills "Actual" elements in the future with 0, so treat 0 as missing data.
-                if (min_datetime <= row_datetime <= max_datetime) and net_exp_mw > 0:
+                # For the current day the report fills  "Actual" elements in the future with the value 0. Batches of
+                # 5-minute observations are posted hourly, at the end of the hour. Furthermore, the time between the
+                # end of an hour and the report's availability online is typically 30 minutes. The end-of-hour
+                # reporting schedule combined with time lag before the report is available online means that
+                # ~1.5 hours of "recent" observations could be filled with 0 values. Although a bit hacky, it's
+                # unlikely that net exports are exactly 0MW for an interval, so skip recording data in these cases.
+                skip = False
+                if net_exp_mw == 0 and row_datetime > (self.ieso_client.local_now - timedelta(hours=2)):
+                    skip = True
+
+                if min_datetime <= row_datetime <= max_datetime and not skip:
                     self.append_trade(result_ts=result_ts, tz_aware_dt=row_datetime, net_exp_mw=net_exp_mw)
         else:
             raise RuntimeError('Intertie Schedule Flow Report can only be parsed using trade format.')
