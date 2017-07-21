@@ -55,7 +55,6 @@ class AESOClient(BaseClient):
         if latest:
             return self._get_latest_report(request_type=ParserFormat.load)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            derp = pytz.timezone(self.TZ_NAME)
             earliest_load_dt = self.mtn_tz.localize(datetime(year=2000, month=1, day=1, hour=0, minute=0, second=0))
 
             latest_load_dt = self.local_now().replace(hour=23, minute=59, second=59, microsecond=999999)
