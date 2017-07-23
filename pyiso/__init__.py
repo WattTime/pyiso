@@ -35,6 +35,7 @@ BALANCING_AUTHORITIES = {
     'NYISO': {'class': 'NYISOClient', 'module': 'nyiso'},
     'PJM': {'class': 'PJMClient', 'module': 'pjm'},
     'PNM': {'class': 'SVERIClient', 'module': 'sveri'},
+    'SASK': {'class': 'SaskPowerClient', 'module': 'sask'},
     'SPP': {'class': 'SPPClient', 'module': 'spp'},
     'SPPC': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
     'SRP': {'class': 'SVERIClient', 'module': 'sveri'},
