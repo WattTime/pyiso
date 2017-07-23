@@ -49,6 +49,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       NYISO                     New York ISO                             NYISO
       PJM                       Mid-Atlantic                             PJM
       PNM                       Public Service Co New Mexico             SVERI
+      SASK                      Saskatchewan Power                       SaskPower
       SPPC                      Sierra Pacific Power (NV)                NVEnergy
       SRP                       Salt River Project (AZ)                  SVERI
       TEPC                      Tuscon Electric Power Co                 SVERI

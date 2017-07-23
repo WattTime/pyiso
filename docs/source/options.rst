@@ -36,6 +36,10 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``PJM.get_load``          yes         yes                                no            yes
 ``PJM.get_trade``         yes         no                                 no            no
 ``PJM.get_lmp``           yes         yes                                no            no
+``SASK.get_generation``   no          no                                 no            no
+``SASK.get_load``         yes         no                                 no            no
+``SASK.get_trade``        no          no                                 no            no
+``SASK.get_lmp``          no          no                                 no            no
 ``SVERI.get_generation``  yes         yes                                no            no
 ``SVERI.get_load``        yes         yes                                no            no
 ======================== ========== =================================== ============== ============
