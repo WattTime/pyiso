@@ -1,38 +1,19 @@
-from pyiso import client_factory
-from unittest import TestCase
-import pytz
+import os
 from datetime import datetime
 from io import StringIO
+from unittest import TestCase
+
 import pandas as pd
+import pytz
+
+from pyiso import client_factory
+
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
 class TestBPABase(TestCase):
     def setUp(self):
-        self.wind_tsv = StringIO(u"BPA Balancing Authority Load & Total Wind Generation\n\
-at 5-minute intervals, last 7 days\n\
-Dates: 09Apr2014 - 16Apr2014 (last updated 15Apr2014 11:07:06) Pacific Time\n\
-Based on 5-min MW readings from the BPA SCADA system for points 45583, 79687, 79682, 79685\n\
-BPA/Technical Operations (TOT-OpInfo@bpa.gov)\n\
-\n\
-Date/Time       \tLoad\tWind\tHydro\tThermal\n\
-04/15/2014 10:10\t6553\t3732\t11225\t1599\n\
-04/15/2014 10:15\t6580\t3686\t11230\t1603\n\
-04/15/2014 10:20\t6560\t3700\t11254\t1602\n\
-04/15/2014 10:25\t6537\t3684\t11281\t1601\n\
-04/15/2014 10:30\t6562\t3680\t11260\t1607\n\
-04/15/2014 10:35\t6525\t3675\t11212\t1608\n\
-04/15/2014 10:40\t6496\t3706\t11240\t1605\n\
-04/15/2014 10:45\t6514\t3700\t11261\t1607\n\
-04/15/2014 10:50\t6501\t3727\t11172\t1607\n\
-04/15/2014 10:55\t6451\t3700\t11066\t1596\n\
-04/15/2014 11:00\t6449\t3696\t10816\t1601\n\
-04/15/2014 11:05\t6464\t3688\t10662\t1601\n\
-04/15/2014 11:10\t\t\t\t\n\
-04/15/2014 11:15\t\t\t\t\n\
-04/15/2014 11:20\t\t\t\t\n\
-04/15/2014 11:25\t\t\t\t\n\
-04/15/2014 11:30\t\n\
-")
+        self.wind_tsv = open(FIXTURES_DIR + '/bpa/wind_tsv.csv').read().encode('utf8')
 
         self.wind_xls = StringIO(u"TOTAL LOAD & WIND GENERATION IN THE BPA CONTROL AREA (Balancing Authority Area)                      \n\
 Beginning 1/1/2014, at 5-min increments, updated daily                      \n\
