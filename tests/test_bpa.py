@@ -75,7 +75,9 @@ class TestBPABase(TestCase):
 
         data = c.serialize(pivoted, header=['timestamp', 'fuel_name', 'gen_MW'])
         self.assertEqual(len(data), len(pivoted))
-        self.assertEqual(data[0], {'timestamp': datetime(2014, 4, 15, 17, 10, tzinfo=pytz.utc), 'gen_MW': 3732.0, 'fuel_name': 'wind'})
+        self.assertEqual(data[0], {'timestamp': datetime(2014, 4, 15, 17, 10, tzinfo=pytz.utc),
+                                   'gen_MW': 3732.0,
+                                   'fuel_name': 'wind'})
 
     def test_serialize_load(self):
         c = client_factory('BPA')
