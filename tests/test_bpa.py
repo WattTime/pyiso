@@ -91,7 +91,7 @@ class TestBPABase(TestCase):
 
     def test_parse_xls(self):
         c = client_factory('BPA')
-        xd = pd.ExcelFile('fixtures/bpa/WindGenTotalLoadYTD_2014_short.xls')
+        xd = pd.ExcelFile(FIXTURES_DIR + '/bpa/WindGenTotalLoadYTD_2014_short.xls')
 
         # parse xls
         df = c.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names, skiprows=18,
