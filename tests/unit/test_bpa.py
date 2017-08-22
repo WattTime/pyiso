@@ -7,17 +7,12 @@ import pytz
 
 from pyiso import client_factory
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures')
 
 
 class TestBPABase(TestCase):
     def setUp(self):
         self.wind_tsv = open(FIXTURES_DIR + '/bpa/wind_tsv.csv').read().encode('utf8')
-
-    def test_request_latest(self):
-        c = client_factory('BPA')
-        response = c.request('http://transmission.bpa.gov/business/operations/wind/baltwg.txt')
-        self.assertIn('BPA Balancing Authority Load & Total Wind Generation', response.text)
 
     def test_parse_to_df(self):
         c = client_factory('BPA')
