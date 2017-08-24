@@ -6,7 +6,7 @@ import requests_mock
 from pyiso import client_factory
 from pyiso.base import BaseClient
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/aeso')
 
 
 class TestAESOClient(TestCase):
@@ -18,7 +18,7 @@ class TestAESOClient(TestCase):
 
     @requests_mock.Mocker()
     def test_nominal_get_generation(self, req_expectation):
-        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
+        csv_content = open(FIXTURES_DIR + '/latest_electricity_market_report.csv').read().encode('ascii')
 
         req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
@@ -43,7 +43,7 @@ class TestAESOClient(TestCase):
 
     @requests_mock.Mocker()
     def test_nominal_get_trade(self, req_expectation):
-        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
+        csv_content = open(FIXTURES_DIR + '/latest_electricity_market_report.csv').read().encode('ascii')
 
         req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
@@ -54,7 +54,7 @@ class TestAESOClient(TestCase):
 
     @requests_mock.Mocker()
     def test_nominal_get_load(self, req_expectation):
-        csv_content = open(FIXTURES_DIR + '/aeso_latest_electricity_market_report.csv').read().encode('ascii')
+        csv_content = open(FIXTURES_DIR + '/latest_electricity_market_report.csv').read().encode('ascii')
 
         req_expectation.get(self.aeso_client.LATEST_REPORT_URL, content=csv_content)
 
