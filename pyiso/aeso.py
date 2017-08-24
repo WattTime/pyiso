@@ -99,7 +99,7 @@ class AESOClient(BaseClient):
         begin_param_fmt = '&beginDate=%m%d%Y'
         end_param_fmt = '&endDate=%m%d%Y'
 
-        iter_date = start_at.date()
+        iter_date = start_at.date() - timedelta(days=1) if self.is_prev_hr_ending_24_reqd(start_at) else start_at.date()
         while iter_date <= end_at.date():
             # Report lower bound must be at least one day in the past to request current day.
             lower_bound = iter_date if iter_date != self.local_now().date() else iter_date - timedelta(days=1)
@@ -110,11 +110,14 @@ class AESOClient(BaseClient):
             response_body = BytesIO(response.content)
             response_df = read_csv(response_body, skiprows=4)
             for idx, row in response_df.iterrows():
-                # Parse the 'Date' column, of the form "12/31/2016 01", which indicates date and hour ending.
-                hour_ending = int(row['Date'][-2:])
-                hour_str = str(hour_ending - 1).zfill(2)
+                # To get a correct datetime from a date + "hour ending" we simply add the hours to the date such that:
+                #     2017-12-31, hour ending 1 is 2017-12-31 01:00:00
+                #     2017-12-31, hour ending 24 is 2018-01-01 00:00:00
+                # TODO: Fix switch back to standard time, when hour ending 02 and 02* appear.
+                #     (e.g. https://www.aeso.ca/market/market-updates/daylight-savings-time-notice-4/
+                hr_ending = int(row['Date'][-2:])
                 day_str = row['Date'][:-3]
-                row_local_dt = self.mtn_tz.localize(datetime.strptime(day_str + ' ' + hour_str, '%m/%d/%Y %H'))
+                row_local_dt = self.mtn_tz.localize(datetime.strptime(day_str, '%m/%d/%Y')) + timedelta(hours=hr_ending)
 
                 # Rows exist when no load or forecast is available (denoted by '-').
                 load_mw = None
@@ -217,6 +220,16 @@ class AESOClient(BaseClient):
                 break
         local_dt = self.mtn_tz.localize(datetime.strptime(local_date_str, '%b %d, %Y %H:%M'))
         return local_dt
+
+    @staticmethod
+    def is_prev_hr_ending_24_reqd(local_dt):
+        """
+        :param datetime local_dt: A timezone-aware local datetime.
+        :return: Whether the "hour ending" 24 is required from the previous day's report to populate data for the
+           provided datetime.
+        :rtype bool
+        """
+        return local_dt.hour == 0
 
 
 class ParserFormat:
