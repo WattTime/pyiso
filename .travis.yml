@@ -23,7 +23,7 @@ install:
   - python setup.py install
   - pip install -r requirements.txt
   - pip install coveralls
-script: nosetests
+script: nosetests ./tests/unit/
 deploy:
   provider: pypi
   user: Anna.Schneider
