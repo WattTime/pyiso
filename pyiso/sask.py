@@ -40,7 +40,7 @@ class SaskPowerClient(BaseClient):
         :rtype: list
         """
         response = self.request(self.SYSLOAD_URL)
-        sysload_json = json.loads(response.content)
+        sysload_json = json.loads(response.content.decode('utf-8'))
         updated_str = sysload_json.get('updatedTS', None)
         last_updated = self.sask_tz.localize(datetime.strptime(updated_str.upper(), '%Y-%m-%d %I:%M %p'))
         current_sysload = float(sysload_json.get('currentSysLoad', None))
