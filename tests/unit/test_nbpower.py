@@ -9,7 +9,7 @@ from freezegun import freeze_time
 from pyiso import client_factory
 from pyiso.base import BaseClient
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures')
 
 
 class TestNBPowerClient(TestCase):
@@ -21,7 +21,7 @@ class TestNBPowerClient(TestCase):
 
     @requests_mock.Mocker()
     def test_get_load_latest(self, exptected_requests):
-        mocked_html = open(FIXTURES_DIR + '/nbpower_SystemInformation_realtime.html').read().encode('utf8')
+        mocked_html = open(FIXTURES_DIR + '/nbpower/SystemInformation_realtime.html').read().encode('utf8')
         exptected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
 
         load_ts = self.nbpower_client.get_load(latest=True)
@@ -34,7 +34,7 @@ class TestNBPowerClient(TestCase):
     @requests_mock.Mocker()
     @freeze_time('2017-07-16 22:58:00-03:00')
     def test_get_load_dange_range_without_forecast(self, expected_requests):
-        mocked_html = open(FIXTURES_DIR + '/nbpower_SystemInformation_realtime.html').read().encode('utf8')
+        mocked_html = open(FIXTURES_DIR + '/nbpower/SystemInformation_realtime.html').read().encode('utf8')
         expected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
 
         start_at = datetime(year=2017, month=7, day=16, hour=0, minute=0, second=0, microsecond=0,tzinfo=pytz.utc)
@@ -52,8 +52,8 @@ class TestNBPowerClient(TestCase):
     def test_get_load_dange_range_with_forecast(self, expected_requests):
         self.nbpower_client = client_factory('NBP')
         exp_forect_url = 'http://tso.nbpower.com/reports%20%26%20assessments/load%20forecast/hourly/2017-07-16%2022.csv'
-        mocked_csv = open(FIXTURES_DIR + '/nbpower_2017-07-16 22.csv').read().encode('utf8')
-        mocked_html = open(FIXTURES_DIR + '/nbpower_SystemInformation_realtime.html').read().encode('utf8')
+        mocked_csv = open(FIXTURES_DIR + '/nbpower/2017-07-16 22.csv').read().encode('utf8')
+        mocked_html = open(FIXTURES_DIR + '/nbpower/SystemInformation_realtime.html').read().encode('utf8')
 
         expected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
         expected_requests.get(exp_forect_url, content=mocked_csv)
@@ -79,7 +79,7 @@ class TestNBPowerClient(TestCase):
 
     @requests_mock.Mocker()
     def test_get_trade_latest(self, expected_requests):
-        mocked_html = open(FIXTURES_DIR + '/nbpower_SystemInformation_realtime.html').read().encode('utf8')
+        mocked_html = open(FIXTURES_DIR + '/nbpower/SystemInformation_realtime.html').read().encode('utf8')
         expected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
 
         trade_ts = self.nbpower_client.get_trade(latest=True)
