@@ -72,5 +72,6 @@ setup(
         'lxml==3.6.1',
         'html5lib',
         'mock',
+        'certifi'
     ],
 )

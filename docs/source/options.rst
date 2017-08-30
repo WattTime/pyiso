@@ -7,6 +7,10 @@ Here's what's available now:
 ======================== ========== =================================== ============== ============
 method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yesterday`` forecast ok
 ======================== ========== =================================== ============== ============
+``AESO.get_generation``   yes         no                                 no            no
+``AESO.get_load``         yes         yes                                yes           yes
+``AESO.get_trade``        yes         no                                 no            no
+``AESO.get_lmp``          no          no                                 no            no
 ``BPA.get_generation``    yes         yes                                no            no
 ``BPA.get_load``          yes         yes                                no            no
 ``CAISO.get_generation``  yes         yes                                yes           yes

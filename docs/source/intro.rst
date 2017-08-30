@@ -33,6 +33,7 @@ Note: Some balancing authorities offer data directly and through the EIA client.
 ============================= ======================================== ============
 balancing authority abbrev.    balancing authority name/region          data source
 ============================= ======================================== ============
+      AESO                      Alberta Electricity System Operator      AESO
       AZPS                      Arizona Public Service                   SVERI
       BPA                       Bonneville Power Administration (Pac NW) BPA
       CAISO                     California ISO                           CAISO
