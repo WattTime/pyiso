@@ -110,14 +110,7 @@ class AESOClient(BaseClient):
             response_body = BytesIO(response.content)
             response_df = read_csv(response_body, skiprows=4)
             for idx, row in response_df.iterrows():
-                # To get a correct datetime from a date + "hour ending" we simply add the hours to the date such that:
-                #     2017-12-31, hour ending 1 is 2017-12-31 01:00:00
-                #     2017-12-31, hour ending 24 is 2018-01-01 00:00:00
-                # TODO: Fix switch back to standard time, when hour ending 02 and 02* appear.
-                #     (e.g. https://www.aeso.ca/market/market-updates/daylight-savings-time-notice-4/
-                hr_ending = int(row['Date'][-2:])
-                day_str = row['Date'][:-3]
-                row_local_dt = self.mtn_tz.localize(datetime.strptime(day_str, '%m/%d/%Y')) + timedelta(hours=hr_ending)
+                row_local_dt = self._datetime_from_actual_forecast_date_column(row['Date'])
 
                 # Rows exist when no load or forecast is available (denoted by '-').
                 load_mw = None
@@ -139,6 +132,33 @@ class AESOClient(BaseClient):
                     })
             iter_date = upper_bound
         return load_ts
+
+    def _datetime_from_actual_forecast_date_column(self, date_col):
+        """
+        Parses the 'Date' column from the ActualForecastWMRQHReportServlet CSV.
+
+        To get a correct datetime from a date + "hour ending" we simply add the hours to the date such that:
+            2017-12-31, hour ending 1 is 2017-12-31 01:00:00
+            2017-12-31, hour ending 24 is 2018-01-01 00:00:00
+
+        Furthermore, change between daylight savings and standard time requires special handling. The change back to
+        standard time in the autumn contains hour ending "02" and "02*". See
+        https://www.aeso.ca/market/market-updates/daylight-savings-time-notice-4/ for details.
+
+        :param str date_col: The 'Date' column value ActualForecastWMRQHReportServlet CSV.
+        :return: A timezone-aware datetime parsed from the 'Date' column.
+        :rtype: datetime
+        """
+        hr_ending_str = date_col[11:]
+        day_str = date_col[:10]
+        if hr_ending_str == "24":  # Hour ending 24 is 00:00:00 the next day.
+            return self.mtn_tz.localize(datetime.strptime(day_str, '%m/%d/%Y')) + timedelta(hours=24)
+        elif hr_ending_str == "02*":  # Change from daylight savings to standard time. Indicates 02:00 standard time.
+            return self.mtn_tz.localize(datetime.strptime(day_str, '%m/%d/%Y')) + timedelta(hours=3)
+        elif hr_ending_str == "02":  # Quirk which still handles 02:00, even the hour in DST before standard time.
+            return self.mtn_tz.localize(datetime.strptime(day_str, '%m/%d/%Y')) + timedelta(hours=2)
+        else:  # All other hours, including change from standard time to daylight savings.
+            return self.mtn_tz.localize(datetime.strptime(day_str + ' ' + hr_ending_str, '%m/%d/%Y %H'))
 
     def _parse_latest_generation(self, latest_df):
         """

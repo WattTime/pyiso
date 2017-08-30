@@ -1,6 +1,9 @@
 import os
+from datetime import timedelta
 from unittest import TestCase
 
+import dateutil.parser
+import pytz
 import requests_mock
 
 from pyiso import client_factory
@@ -12,6 +15,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/aeso')
 class TestAESOClient(TestCase):
     def setUp(self):
         self.aeso_client = client_factory('AESO')
+        self.mtn_tz = pytz.timezone('Canada/Mountain')
 
     def test_aeso_retrievable_from_client_factory(self):
         self.assertIsInstance(self.aeso_client, BaseClient)
@@ -62,3 +66,83 @@ class TestAESOClient(TestCase):
 
         self.assertEqual(len(load_ts), 1)
         self.assertEqual(load_ts[0].get('load_MW', None), 10270)
+
+    def test_datetime_from_actual_forecast_date_column_hour_ending_same_day_standard_time(self):
+        expected_dt = dateutil.parser.parse('2016-11-08T01:00:00.000-07:00')
+        date_col_str = '11/08/2016 01'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_ending_24_prior_day_standard_time(self):
+        expected_dt = dateutil.parser.parse('2016-11-08T00:00:00.000-07:00')
+        date_col_str = '11/07/2016 24'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_ending_same_day_dst(self):
+        expected_dt = dateutil.parser.parse('2016-11-05T01:00:00.000-06:00')
+        date_col_str = '11/05/2016 01'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_ending_24_prior_day_dst(self):
+        expected_dt = dateutil.parser.parse('2016-11-05T00:00:00.000-06:00')
+        date_col_str = '11/04/2016 24'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_before_change_into_standard_time(self):
+        # See example at:
+        # http://ets.aeso.ca/ets_web/ip/Market/Reports/ActualForecastWMRQHReportServlet?contentType=csv&beginDate=11062016&endDate=11072016
+        expected_dt = dateutil.parser.parse('2016-11-06T02:00:00.000-06:00')
+        date_col_str = '11/06/2016 02'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_of_change_into_standard_time(self):
+        # See example at:
+        # http://ets.aeso.ca/ets_web/ip/Market/Reports/ActualForecastWMRQHReportServlet?contentType=csv&beginDate=11062016&endDate=11072016
+        expected_dt = dateutil.parser.parse('2016-11-06T02:00:00.000-07:00')
+        date_col_str = '11/06/2016 02*'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_before_change_into_dst(self):
+        # See example at:
+        # http://ets.aeso.ca/ets_web/ip/Market/Reports/ActualForecastWMRQHReportServlet?contentType=csv&beginDate=03122017&endDate=03132017
+        expected_dt = dateutil.parser.parse('2017-03-12T01:00:00.000-07:00')
+        date_col_str = '03/12/2017 01'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
+
+    def test_datetime_from_actual_forecast_date_column_hour_of_change_into_dst(self):
+        # See example at:
+        # http://ets.aeso.ca/ets_web/ip/Market/Reports/ActualForecastWMRQHReportServlet?contentType=csv&beginDate=03122017&endDate=03132017
+        expected_dt = dateutil.parser.parse('2017-03-12T03:00:00.000-06:00')
+        date_col_str = '03/12/2017 03'
+
+        row_dt = self.aeso_client._datetime_from_actual_forecast_date_column(date_col=date_col_str)
+
+        time_diff = expected_dt - row_dt
+        self.assertEqual(time_diff, timedelta(microseconds=0))
