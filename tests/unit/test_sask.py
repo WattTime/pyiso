@@ -27,5 +27,5 @@ class TestSASK(TestCase):
 
         self.assertEqual(len(load_ts), 1)
         self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=23, hour=2, minute=1,
-                                                                     second=0, microsecond=0, tzinfo=pytz.utc))
+                                                                     second=0, tzinfo=pytz.utc))
         self.assertEqual(load_ts[0].get('load_MW', None), 2712)
