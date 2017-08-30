@@ -46,6 +46,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       IID                       Imperial Irrigation District (CA)        SVERI
       ISONE                     ISO New England                          ISONE
       MISO                      Midcontinent ISO                         MISO
+      NBP                       New Brunswick Power                      NBPower
       NEVP                      Nevada Power                             NVEnergy
       NYISO                     New York ISO                             NYISO
       PJM                       Mid-Atlantic                             PJM
