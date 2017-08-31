@@ -2,7 +2,6 @@ import warnings
 from copy import copy
 from datetime import datetime, timedelta
 from io import BytesIO
-from urllib.parse import quote
 
 import pytz
 from bs4 import BeautifulSoup
@@ -10,6 +9,11 @@ from pandas import read_csv
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
+
+try:
+    from urllib import quote  # Python 2.X
+except ImportError:
+    from urllib.parse import quote  # Python 3+
 
 
 class NBPowerClient(BaseClient):
