@@ -58,11 +58,12 @@ class IESOClient(BaseClient):
             self._get_latest_report_trimmed(result_ts=generation_ts, report_handler=gen_out_cap_handler,
                                             parser_format=ParserFormat.generation)
         elif self.options.get('start_at', None) and self.options.get('end_at', None):
-            # For long time ranges more than seven days in the past, it is more efficient to request the Generator
-            # Output by Fuel Type Hourly Report rather than repeated calls to the Generator Output and Capability
-            # Report.
-            if self.options['start_at'] < self.local_start_of_day - timedelta(days=7):
-                self.timeout_seconds = 60  # These reports can get rather large ~7MB for a full year.
+            # For long time ranges more than hour ending 1, seven days in the past, it is more efficient to request the
+            # Generator Output by Fuel Type Hourly Report rather than repeated calls to the Generator Output and
+            # Capability Report.
+            # TODO Minor optimization, but this actually check if the start/end range is greater than 7 days.
+            if self.options['start_at'] < self.local_start_of_day.replace(hour=1) - timedelta(days=7):
+                self.timeout_seconds = 90  # These reports can get rather large ~7MB for a full year.
                 range_start = max(self.options['start_at'], gen_out_by_fuel_handler.earliest_available_datetime())
                 range_end = min(self.options['end_at'], gen_out_by_fuel_handler.latest_available_datetime())
                 self._get_report_range(result_ts=generation_ts, report_handler=gen_out_by_fuel_handler,
@@ -147,25 +148,13 @@ class IESOClient(BaseClient):
         :param datetime range_start: The start of the time range that report data should be requested for.
         :param datetime range_end: The end of the time range that report data should be requested for.
         """
-        report_interval = report_handler.report_interval()
         report_datetime = range_start.astimezone(pytz.timezone(self.TZ_NAME))
-
-        if report_interval == ReportFileInterval.daily:
-            report_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif report_interval == ReportFileInterval.hourly:
-            report_datetime.replace(minute=0, second=0, microsecond=0)
-        elif report_interval == ReportFileInterval.yearly:
-            report_datetime.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-
         while report_datetime <= min(range_end, report_handler.latest_available_datetime()):
             report_url = report_handler.report_url(report_datetime=report_datetime)
             response = self.request(url=report_url)
             report_handler.parse_report(xml_content=response.content, result_ts=result_ts, parser_format=parser_format,
                                         min_datetime=range_start, max_datetime=range_end)
-            if report_interval == ReportFileInterval.yearly:
-                report_datetime.replace(year=report_datetime.year + 1)
-            else:
-                report_datetime += report_handler.interval_timedelta()
+            report_datetime = report_handler.datetime_for_next_report_request(tz_aware_dt=report_datetime)
 
     def _get_latest_report_trimmed(self, result_ts, report_handler, parser_format):
         """
@@ -245,18 +234,6 @@ class BaseIesoReportHandler(object):
         """
         raise NotImplementedError('Derived classes must implement the report_interval method.')
 
-    def interval_timedelta(self):
-        """
-        :return: The timedelta used to stop through a series of report requests.
-        :rtype: timedelta
-        """
-        if self.report_interval() == ReportFileInterval.hourly:
-            return timedelta(hours=1)
-        elif self.report_interval() == ReportFileInterval.daily:
-            return timedelta(days=1)
-        else:
-            raise RuntimeError('The timedelta is only appropriate for hourly or daily report intervals.')
-
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         """
         Parses the report content and appends them to a timeseries of results, in one of several WattTime client
@@ -322,6 +299,87 @@ class BaseIesoReportHandler(object):
             'net_exp_MW': net_exp_mw
         })
 
+    def datetime_for_report_request(self, tz_aware_dt):
+        """
+        This method converts a timezone-aware datetime to EST and makes necessary "hour ending" considerations.
+
+        The hourly IESO reports follow the convention of "hour ending" for reporting data. This means that hour ending 1
+        corresponds to the time 01:00 and hour ending 23 corresponds to 23:00. The time 00:00 for a given day
+        is represented by hour ending 24 contained in the previous day's report.
+
+        :param datetime tz_aware_dt: A timezone-aware datetime.
+        :return: A date which should be used when requesting the date-formatted URL to retrieve a report containing
+           data for the datetime.
+        :rtype: datetime
+        """
+        est_datetime = tz_aware_dt.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+        if self.report_interval() in [ReportFileInterval.daily, ReportFileInterval.yearly] and est_datetime.hour == 0:
+            return est_datetime - timedelta(hours=1)
+        elif self.report_interval() == ReportFileInterval.hourly and est_datetime.hour == 0 and est_datetime.minute < 5:
+            return est_datetime - timedelta(minutes=1)
+        return est_datetime
+
+    def datetime_for_next_report_request(self, tz_aware_dt):
+        """
+        When requesting reports for a time range, some scenarios (e.g. hour ending 23 and report boundaries) require
+        that the datetime for the next report request not be based off the full report interval. This convenience
+        method helps determine the next datetime that should be used when iterating over report requests
+        chronologically to retrieve data for a time range.
+
+        :param tz_aware_dt: The timezone-aware datetime of the of the report that has already been requested.
+        :return: A timezone-aware datetime that should be used for the next report request when requesting reports for
+            a time range chronologically.
+        """
+        report_interval = self.report_interval()
+        est_datetime = tz_aware_dt.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
+        if report_interval == ReportFileInterval.yearly:
+            if self.is_start_of_year(est_datetime):
+                return tz_aware_dt + timedelta(hours=1)
+            else:
+                return tz_aware_dt.replace(year=tz_aware_dt.year + 1)
+        elif report_interval == ReportFileInterval.daily:
+            if self.is_start_of_day(est_datetime):
+                return tz_aware_dt + timedelta(hours=1)
+            else:
+                return tz_aware_dt + timedelta(days=1)
+        elif report_interval == ReportFileInterval.hourly:
+            if self.is_start_of_hour(est_datetime):
+                return tz_aware_dt + timedelta(minutes=5)
+            else:
+                return tz_aware_dt + timedelta(hours=1)
+        else:
+            raise RuntimeError('Unexpected report interval.')
+
+    @staticmethod
+    def is_start_of_year(dt):
+        """
+        :param datetime dt: Any datetime.
+        :return: True/False indicating if the datetime is exactly 00:00:00.000 on January 1st.
+        :rtype: bool
+        """
+        dt_diff = dt - dt.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        return dt_diff == timedelta(microseconds=0)
+
+    @staticmethod
+    def is_start_of_day(dt):
+        """
+        :param datetime dt: Any datetime.
+        :return: True/False indicating if the time is exactly 00:00:00.000.
+        :rtype: bool
+        """
+        dt_diff = dt - dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        return dt_diff == timedelta(microseconds=0)
+
+    @staticmethod
+    def is_start_of_hour(dt):
+        """
+        :param datetime dt: Any datetime.
+        :return: True/False indicating if the datetime is the start of an hour (i.e. HH:00:00.000).
+        :rtype: bool
+        """
+        dt_diff = dt - dt.replace(minute=0, second=0, microsecond=0)
+        return dt_diff == timedelta(microseconds=0)
+
 
 class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
     def frequency(self):
@@ -333,13 +391,13 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_IntertieScheduleFlow.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            filename = est_datetime.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            filename = request_dt.strftime('PUB_IntertieScheduleFlow_%Y%m%d.xml')
         return self.BASE_URL + 'IntertieScheduleFlow/' + filename
 
     def earliest_available_datetime(self):
-        # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        # Earliest historical data available is hour ending 1, three months in the past.
+        return self.ieso_client.local_now.replace(hour=1, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # A brief look at versioned reports indicate that they're typically posted with ~30 minute lag. Returning
@@ -356,11 +414,11 @@ class IntertieScheduleFlowReportHandler(BaseIesoReportHandler):
             doc_date_local = doc_body.Date  # %Y%m%d
 
             for actual in doc_body.Totals.Actuals.Actual:
-                hour_local = str(actual.Hour - 1).zfill(2)
-                minute_local = str((actual.Interval - 1) * 5).zfill(2)  # Interval 1 is minute 00
-                ts_local = doc_date_local + ' ' + hour_local + ':' + minute_local
                 net_exp_mw = actual.Flow
-                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                hour_local = str(actual.Hour - 1).zfill(2)
+                minutes = actual.Interval * 5  # Interval 1 is minute 05. Interval 12 is minute 60 (ie. 00:00 next hour)
+                hr_start_str = doc_date_local + ' ' + hour_local + ':00'
+                row_datetime = self.ieso_client.utcify(local_ts_str=hr_start_str) + timedelta(minutes=minutes)
 
                 # For the current day the report fills  "Actual" elements in the future with the value 0. Batches of
                 # 5-minute observations are posted hourly, at the end of the hour. Furthermore, the time between the
@@ -385,13 +443,13 @@ class AdequacyReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_Adequacy2.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            filename = est_datetime.strftime('PUB_Adequacy2_%Y%m%d.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            filename = request_dt.strftime('PUB_Adequacy2_%Y%m%d.xml')
         return self.BASE_URL + 'Adequacy2/' + filename
 
     def earliest_available_datetime(self):
-        # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        # Earliest historical data available is hour ending 1, three months in the past.
+        return self.ieso_client.local_now.replace(hour=1, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # Although reports exist ~1 month into the future, only the current and next days contain the "Schedules"
@@ -399,12 +457,12 @@ class AdequacyReportHandler(BaseIesoReportHandler):
         # approximately 11:15am (see http://reports.ieso.ca/docrefs/helpfile/Adequacy2_h2.pdf). Anecdotally, I've seen
         # "approximate" mean a little after 11:20am. The algorithm below uses 11:30am to be conservative.
         local_now = self.ieso_client.local_now
-        next_day_availability = copy(local_now).replace(hour=11, minute=30, second=0, microsecond=0)
-        end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
+        next_day_availability = local_now.replace(hour=11, minute=30, second=0, microsecond=0)
+        start_of_tomorrow = self.ieso_client.local_start_of_day + timedelta(days=1)
         if local_now >= next_day_availability:
-            return end_of_day + timedelta(days=1)
+            return start_of_tomorrow + timedelta(days=1)
         else:
-            return end_of_day
+            return start_of_tomorrow
 
     def market(self):
         return BaseClient.MARKET_CHOICES.dam
@@ -412,33 +470,34 @@ class AdequacyReportHandler(BaseIesoReportHandler):
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
-        day = doc_body.DeliveryDate
+        day_start_str = doc_body.DeliveryDate + ' 00:00:00'
         if parser_format == ParserFormat.generation:
             # InternalResources is misleading. Each fuel is an internal resource, and we iterate hours of each fuel.
             for internal_resource in doc_body.ForecastSupply.InternalResources.InternalResource:
                 fuel = str.upper(internal_resource.FuelType.text)
                 if fuel != 'DISPATCHABLE LOAD':  # TODO What to do about dispatchable load? Skipping for now.
                     for schedule in internal_resource.Schedules.Schedule:
-                        ts_local = day + ' ' + str(schedule.DeliveryHour - 1).zfill(2) + ':00'
                         fuel_gen_mw = schedule.EnergyMW.pyval
-                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        hr_ending = schedule.DeliveryHour.pyval
+                        row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=hr_ending)
                         if min_datetime <= row_datetime <= max_datetime:
                             self.append_generation(result_ts=result_ts, tz_aware_dt=row_datetime, fuel=fuel,
                                                    gen_mw=fuel_gen_mw)
         elif parser_format == ParserFormat.trade:
             imports_exports = OrderedDict()  # {'ts_local':{'import'|'export',val_mw}}
             for import_schedule in doc_body.ForecastSupply.ZonalImports.TotalImports.Schedules.Schedule:
-                ts_local = day + ' ' + str(import_schedule.DeliveryHour - 1).zfill(2) + ':00'
-                imports_exports[ts_local] = {'import': import_schedule.EnergyMW.pyval}
+                hr_ending = import_schedule.DeliveryHour.pyval
+                row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=hr_ending)
+                imports_exports[row_datetime] = {'import': import_schedule.EnergyMW.pyval}
             for export_schedule in doc_body.ForecastDemand.ZonalExports.TotalExports.Schedules.Schedule:
-                ts_local = day + ' ' + str(export_schedule.DeliveryHour - 1).zfill(2) + ':00'
-                hr_entry = imports_exports.get(ts_local)
+                hr_ending = export_schedule.DeliveryHour.pyval
+                row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=hr_ending)
+                hr_entry = imports_exports.get(row_datetime)
                 hr_entry.update({'export': export_schedule.EnergyMW.pyval})
-                imports_exports[ts_local] = hr_entry
-            for ts_local, imp_exp in imports_exports.items():
+                imports_exports[row_datetime] = hr_entry
+            for row_datetime, imp_exp in imports_exports.items():
                 # Handle export passed as positive/negative value.
                 net_exp_mw = abs(imp_exp.get('export', 0)) - abs(imp_exp.get('import', 0))
-                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
                 if min_datetime <= row_datetime <= max_datetime:
                     self.append_trade(result_ts=result_ts, tz_aware_dt=row_datetime, net_exp_mw=net_exp_mw)
         else:
@@ -459,35 +518,38 @@ class RealTimeConstrainedTotalsReportHandler(BaseIesoReportHandler):
         return BaseClient.MARKET_CHOICES.fivemin
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=31)
+        # Hour ending 1, 31 days in the past.
+        return self.ieso_client.local_now.replace(hour=1, minute=0, second=0, microsecond=0) - timedelta(days=31)
+
+    def latest_available_datetime(self):
+        return self.ieso_client.local_now
 
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
         day = doc_body.DeliveryDate
         if parser_format == ParserFormat.load:
-            hour = doc_body.DeliveryHour - 1
+            hour_local = str(doc_body.DeliveryHour - 1).zfill(2)
             for interval_energy in doc_body.Energies.IntervalEnergy:
-                minute = (interval_energy.Interval - 1) * 5
-                ts_local = day + ' ' + str(hour).zfill(2) + ':' + (str(minute).zfill(2))
+                # Interval 1 is minute 05. Interval 12 is minute 60 (ie. 00:00 next hour)
+                minutes = interval_energy.Interval * 5
+                hr_start_str = day + ' ' + hour_local + ':00'
                 for mq in interval_energy.MQ:
                     if mq.MarketQuantity == 'ONTARIO DEMAND':
                         load_mw = mq.EnergyMW.pyval
-                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        row_datetime = self.ieso_client.utcify(local_ts_str=hr_start_str) + timedelta(minutes=minutes)
                         if min_datetime <= row_datetime <= max_datetime:
                             self.append_load(result_ts=result_ts, tz_aware_dt=row_datetime, load_mw=load_mw)
         else:
             raise RuntimeError('Realtime Constrained Totals Report can only be parsed using load format.')
 
-    def latest_available_datetime(self):
-        return self.ieso_client.local_now
-
     def report_url(self, report_datetime=None):
         filename = 'PUB_RealtimeConstTotals.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            delivery_hour = est_datetime.hour + 1
-            filename = est_datetime.strftime('PUB_RealtimeConstTotals_%Y%m%d' + str(delivery_hour).zfill(2) + '.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            hour_ending = request_dt.hour if request_dt.minute < 5 else request_dt.hour + 1
+            url_hour = str(hour_ending).zfill(2)
+            filename = request_dt.strftime('PUB_RealtimeConstTotals_%Y%m%d' + url_hour + '.xml')
         return self.BASE_URL + 'RealtimeConstTotals/' + filename
 
 
@@ -501,14 +563,14 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
     def parse_report(self, xml_content, result_ts, parser_format, min_datetime, max_datetime):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
-        day = doc_body.DeliveryDate
+        day_start_str = doc_body.DeliveryDate + ' 00:00:00'
         if parser_format == ParserFormat.load:
             for hrly_const_energy in doc_body.Energies.HourlyConstrainedEnergy:
-                ts_local = day + ' ' + str(hrly_const_energy.DeliveryHour - 1).zfill(2) + ':00'
+                hr_ending = hrly_const_energy.DeliveryHour.pyval
                 for mq in hrly_const_energy.MQ:
                     if mq.MarketQuantity == 'Total Load':
                         load_mw = mq.EnergyMW.pyval
-                        row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                        row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=hr_ending)
                         if min_datetime <= row_datetime <= max_datetime:
                             self.append_load(result_ts=result_ts, tz_aware_dt=row_datetime, load_mw=load_mw)
         else:
@@ -517,23 +579,24 @@ class PredispatchConstrainedTotalsReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_PredispConstTotals.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            filename = est_datetime.strftime('PUB_PredispConstTotals_%Y%m%d.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            filename = request_dt.strftime('PUB_PredispConstTotals_%Y%m%d.xml')
         return self.BASE_URL + 'PredispConstTotals/' + filename
 
     def latest_available_datetime(self):
         # Predispatch data for the next day is posted at approximately 15:15. Anecdotally, I've seen as late as 15:18.
         # The algorithm below uses 15:30 to be conservative.
         local_now = self.ieso_client.local_now
-        next_day_availability = copy(local_now).replace(hour=15, minute=30, second=0, microsecond=0)
-        end_of_day = copy(local_now).replace(hour=23, minute=59, second=59, microsecond=999999)
+        next_day_availability = local_now.replace(hour=15, minute=30, second=0, microsecond=0)
+        start_of_tomorrow = self.ieso_client.local_start_of_day + timedelta(days=1)
         if local_now >= next_day_availability:
-            return end_of_day + timedelta(days=1)
+            return start_of_tomorrow + timedelta(days=1)
         else:
-            return end_of_day
+            return start_of_tomorrow
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now.replace(hour=23, minute=59, second=59, microsecond=0) - timedelta(days=31)
+        # Hour ending 1, 31 days in the past.
+        return self.ieso_client.local_now.replace(hour=1, minute=0, second=0, microsecond=0) - timedelta(days=31)
 
     def frequency(self):
         return BaseClient.FREQUENCY_CHOICES.hourly
@@ -547,31 +610,29 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
         if parser_format == ParserFormat.generation:
             imo_document = objectify.fromstring(xml_content)
             imo_doc_body = imo_document.IMODocBody
-            report_date = imo_doc_body.Date
-            fuels_hourly = {key: list([]) for key in IESOClient.fuels.keys()}
+            day_start_str = imo_doc_body.Date + ' 00:00:00'
+            fuels_hourly = {}
+            for fuel in IESOClient.fuels.keys():
+                fuels_hourly[fuel] = {}
 
             # Iterate over each hourly value for each generator, creating a dictionary keyed by fuel and values are
             # lists containing generation by hour-of-day.
             for generator in imo_doc_body.Generators.Generator:
                 fuel_type = generator.FuelType
                 for output in generator.Outputs.Output:
-                    hour_of_day = output.Hour - 1  # Hour 1 is output from 00:00:00
+                    hr_ending = output.Hour.pyval
                     try:
                         gen_mw = output.EnergyMW
                     except AttributeError:  # Inexplicably, some 'Output' elements are missing 'EnergyMW' child element.
                         gen_mw = 0
-                    fuel_hours = fuels_hourly[fuel_type]
-                    try:
-                        fuel_hours[hour_of_day] += gen_mw
-                    except IndexError:
-                        # Assumes that hours are processed in order
-                        fuel_hours.append(gen_mw)
+                    fuel_hour_endings = fuels_hourly[fuel_type]
+                    existing_gen_mw = fuel_hour_endings.get(hr_ending, 0)
+                    fuel_hour_endings[hr_ending] = existing_gen_mw + gen_mw
 
             # Iterate over aggregated results to create generation fuel mix format
-            for fuel, fuel_hours in fuels_hourly.items():
-                for idx, fuel_gen_mw in enumerate(fuel_hours):
-                    ts_local = report_date + ' ' + str(idx).zfill(2) + ':00'
-                    row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+            for fuel, fuel_hour_endings in fuels_hourly.items():
+                for fuel_hr_ending, fuel_gen_mw in fuel_hour_endings.items():
+                    row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=fuel_hr_ending)
                     if min_datetime <= row_datetime <= max_datetime:
                         self.append_generation(result_ts=result_ts, tz_aware_dt=row_datetime, fuel=fuel,
                                                gen_mw=fuel_gen_mw)
@@ -581,16 +642,16 @@ class GeneratorOutputCapabilityReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_GenOutputCapability.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            filename = est_datetime.strftime('PUB_GenOutputCapability_%Y%m%d.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            filename = request_dt.strftime('PUB_GenOutputCapability_%Y%m%d.xml')
         return self.BASE_URL + 'GenOutputCapability/' + filename
 
     def report_interval(self):
         return ReportFileInterval.daily
 
     def earliest_available_datetime(self):
-        # Earliest historical data available is three months in the past.
-        return self.ieso_client.local_now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=90)
+        # Earliest historical data available is hour ending 1, three months in the past.
+        return self.ieso_client.local_now.replace(hour=1, minute=0, second=0, microsecond=0) - timedelta(days=90)
 
     def latest_available_datetime(self):
         # A brief look at versioned reports indicate that they're typically posted with ~15 minute lag. Returning
@@ -614,12 +675,15 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
     def report_url(self, report_datetime=None):
         filename = 'PUB_GenOutputbyFuelHourly.xml'
         if report_datetime is not None:
-            est_datetime = report_datetime.astimezone(pytz.timezone(self.ieso_client.TZ_NAME))
-            filename = est_datetime.strftime('PUB_GenOutputbyFuelHourly_%Y.xml')
+            request_dt = self.datetime_for_report_request(report_datetime)
+            filename = request_dt.strftime('PUB_GenOutputbyFuelHourly_%Y.xml')
         return self.BASE_URL + 'GenOutputbyFuelHourly/' + filename
 
     def earliest_available_datetime(self):
-        return self.ieso_client.local_now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Hour ending 1, two years in the past.
+        earliest_year = self.ieso_client.local_now.year - 2
+        return self.ieso_client.local_now.replace(year=earliest_year, month=1, day=1, hour=1, minute=0, second=0,
+                                                  microsecond=0)
 
     def latest_available_datetime(self):
         return self.ieso_client.local_now
@@ -628,10 +692,10 @@ class GeneratorOutputByFuelHourlyReportHandler(BaseIesoReportHandler):
         document = objectify.fromstring(xml_content)
         doc_body = document.DocBody
         for daily_data in doc_body.DailyData:
-            day = daily_data.Day
+            day_start_str = daily_data.Day + ' 00:00:00'
             for hourly_data in daily_data.HourlyData:
-                ts_local = day + ' ' + str(hourly_data.Hour - 1).zfill(2) + ':00'
-                row_datetime = self.ieso_client.utcify(local_ts_str=ts_local)
+                hr_ending = hourly_data.Hour.pyval
+                row_datetime = self.ieso_client.utcify(local_ts_str=day_start_str) + timedelta(hours=hr_ending)
                 if min_datetime <= row_datetime <= max_datetime:
                     for fuel_total in hourly_data.FuelTotal:
                         fuel = fuel_total.Fuel

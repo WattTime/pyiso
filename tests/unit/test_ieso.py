@@ -1,4 +1,5 @@
 import os
+from copy import copy
 from datetime import datetime
 from datetime import timedelta
 from unittest import TestCase
@@ -53,9 +54,9 @@ class TestIntertieScheduleFlowReportHandler(TestCase):
         self.report_handler = ieso.IntertieScheduleFlowReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report(self):
-        start_at = datetime(year=2017, month=6, day=30, hour=0, minute=0, second=0,
+        start_at = datetime(year=2017, month=6, day=30, hour=0, minute=5, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=6, day=30, hour=23, minute=59, second=59,
+        end_at = datetime(year=2017, month=7, day=1, hour=0, minute=0, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         # Offline copy of June 30, 2017 report requested as if it were July 1st.
         xml_content = open(FIXTURES_DIR + '/full_IntertieScheduleFlow_20170630.xml').read().encode('utf8')
@@ -74,12 +75,20 @@ class TestIntertieScheduleFlowReportHandler(TestCase):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/IntertieScheduleFlow/PUB_IntertieScheduleFlow.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_hour_ending_in_same_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
                           'http://reports.ieso.ca/public/IntertieScheduleFlow/PUB_IntertieScheduleFlow_20161231.xml')
+
+    def test_report_url_for_hour_ending_24_in_previous_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        # Hour ending 24 is in previous day's report
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/IntertieScheduleFlow/PUB_IntertieScheduleFlow_20161230.xml')
 
 
 class TestAdequacyReportHandler(TestCase):
@@ -87,9 +96,9 @@ class TestAdequacyReportHandler(TestCase):
         self.report_handler = ieso.AdequacyReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report_for_trade(self):
-        start_at = datetime(year=2017, month=6, day=18, hour=0, minute=0, second=0,
+        start_at = datetime(year=2017, month=6, day=18, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
+        end_at = datetime(year=2017, month=6, day=19, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         xml_content = open(FIXTURES_DIR + '/full_Adequacy2_20170618.xml').read().encode('utf8')
         trades = list([])
@@ -103,9 +112,9 @@ class TestAdequacyReportHandler(TestCase):
         self.assertEquals(trades[23]['net_exp_MW'], 2051)
 
     def test_parse_report_for_fuel(self):
-        start_at = datetime(year=2017, month=6, day=18, hour=0, minute=0, second=0,
+        start_at = datetime(year=2017, month=6, day=18, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=6, day=18, hour=23, minute=59, second=59,
+        end_at = datetime(year=2017, month=6, day=19, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         xml_content = open(FIXTURES_DIR + '/full_Adequacy2_20170618.xml').read().encode('utf8')
         generation_ts = list([])
@@ -116,24 +125,31 @@ class TestAdequacyReportHandler(TestCase):
 
         self.assertEquals(len(generation_ts), 168)  # 7 fuels * 24 hours
         for val in generation_ts:  # Spot check fuel summations using known values
-            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 5):
+            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 11130)
-            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 18) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 744)
-            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 0)
-            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 19) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 3570)
 
     def test_report_url_for_default(self):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/Adequacy2/PUB_Adequacy2.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_hour_ending_in_same_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url, 'http://reports.ieso.ca/public/Adequacy2/PUB_Adequacy2_20161231.xml')
+
+    def test_report_url_for_hour_ending_24_in_previous_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        # Hour ending 24 is in previous day's report
+        self.assertEquals(url, 'http://reports.ieso.ca/public/Adequacy2/PUB_Adequacy2_20161230.xml')
 
 
 class TestRealtimeConstrainedTotalsReportHandler(TestCase):
@@ -141,9 +157,9 @@ class TestRealtimeConstrainedTotalsReportHandler(TestCase):
         self.report_handler = ieso.RealTimeConstrainedTotalsReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report(self):
-        start_at = datetime(year=2017, month=7, day=1, hour=0, minute=0, second=0,
+        start_at = datetime(year=2017, month=7, day=1, hour=0, minute=5, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=7, day=1, hour=0, minute=59, second=59,
+        end_at = datetime(year=2017, month=7, day=1, hour=1, minute=0, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Offline copy of July 1, 2017 report for delivery hour #1.
@@ -172,12 +188,37 @@ class TestRealtimeConstrainedTotalsReportHandler(TestCase):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_interval_12_of_hour_ending_in_same_day(self):
+        """ Hour 1, Interval 12 is 01:00. """
+        report_datetime = datetime(year=2016, month=12, day=31, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
-                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123124.xml')
+                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123101.xml')
+
+    def test_report_url_for_interval_1_of_hour_ending_in_same_day(self):
+        """ Hour 1, Interval 1 is 00:05. """
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=5, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123101.xml')
+
+    def test_report_url_for_interval_12_of_hour_ending_24_in_previous_day(self):
+        """ Hour 24, Interval 12 in prior day's report is 00:00 of requested day. """
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123024.xml')
+
+    def test_report_url_for_interval_1_of_hour_ending_24(self):
+        """ Hour 24, Interval 1 is 23:05 """
+        report_datetime = datetime(year=2016, month=12, day=30, hour=23, minute=5, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/RealtimeConstTotals/PUB_RealtimeConstTotals_2016123024.xml')
 
 
 class TestPredispatchConstrainedTotalsReportHandler(TestCase):
@@ -185,9 +226,9 @@ class TestPredispatchConstrainedTotalsReportHandler(TestCase):
         self.report_handler = ieso.PredispatchConstrainedTotalsReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report(self):
-        start_at = datetime(year=2017, month=7, day=8, hour=0, minute=0, second=0,
+        start_at = datetime(year=2017, month=7, day=8, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2017, month=7, day=8, hour=23, minute=59, second=59,
+        end_at = datetime(year=2017, month=7, day=9, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         xml_content = open(FIXTURES_DIR + '/full_PredispConstTotals_20170708.xml').read().encode('utf8')
         load_ts = list([])
@@ -204,12 +245,19 @@ class TestPredispatchConstrainedTotalsReportHandler(TestCase):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/PredispConstTotals/PUB_PredispConstTotals.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_hour_ending_in_same_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
                           'http://reports.ieso.ca/public/PredispConstTotals/PUB_PredispConstTotals_20161231.xml')
+
+    def test_report_url_for_hour_ending_24_in_previous_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/PredispConstTotals/PUB_PredispConstTotals_20161230.xml')
 
 
 class TestGeneratorOutputCapabilityReportHandler(TestCase):
@@ -217,9 +265,9 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
         self.report_handler = ieso.GeneratorOutputCapabilityReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report_for_complete_day(self):
-        start_at = datetime(year=2016, month=4, day=29, hour=0, minute=0, second=0,
+        start_at = datetime(year=2016, month=4, day=29, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2016, month=4, day=29, hour=23, minute=59, second=59,
+        end_at = datetime(year=2016, month=4, day=30, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         xml_content = open(FIXTURES_DIR + '/reduced_GenOutputCapability_20160429.xml').read().encode('utf8')
         generation_ts = list([])
@@ -230,23 +278,23 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
 
         self.assertEquals(len(generation_ts), 72)  # 24 hours of three fuels
         for val in generation_ts:  # Spot check fuel summations using known values
-            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 5):
+            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 1250)
-            elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 1555)
-            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 59)
-            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 26)
-            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 29) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 0)
-            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 30) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 0)
 
     def test_parse_report_for_partial_day(self):
-        start_at = datetime(year=2016, month=5, day=1, hour=0, minute=0, second=0,
+        start_at = datetime(year=2016, month=5, day=1, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2016, month=5, day=1, hour=23, minute=59, second=59,
+        end_at = datetime(year=2016, month=5, day=2, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Reduced, offline copy of partial May 1, 2016 report
@@ -259,29 +307,36 @@ class TestGeneratorOutputCapabilityReportHandler(TestCase):
 
         self.assertEquals(len(generation_ts), 12)  # 4 hours of three fuels
         for val in generation_ts:  # Spot check fuel summations using known values
-            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 5):
+            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 716)
-            elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 8):
+            elif (val['fuel_name'] == 'nuclear') & (val['timestamp'].hour == 9):
                 self.assertEquals(val['gen_MW'], 678)
-            elif (val['fuel_name'] == 'natgas') & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'natgas') & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 120)
-            elif (val['fuel_name'] == 'natgas') & (val['timestamp'].hour == 8):
+            elif (val['fuel_name'] == 'natgas') & (val['timestamp'].hour == 9):
                 self.assertEquals(val['gen_MW'], 120)
-            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 165)
-            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].hour == 8):
+            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].hour == 9):
                 self.assertEquals(val['gen_MW'], 165)
 
     def test_report_url_for_default(self):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/GenOutputCapability/PUB_GenOutputCapability.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_hour_ending_in_same_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
                           'http://reports.ieso.ca/public/GenOutputCapability/PUB_GenOutputCapability_20161231.xml')
+
+    def test_report_url_for_hour_ending_24_in_previous_day(self):
+        report_datetime = datetime(year=2016, month=12, day=31, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/GenOutputCapability/PUB_GenOutputCapability_20161230.xml')
 
 
 class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
@@ -289,9 +344,9 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
         self.report_handler = ieso.GeneratorOutputByFuelHourlyReportHandler(ieso_client=client_factory('IESO'))
 
     def test_parse_report(self):
-        start_at = datetime(year=2016, month=1, day=1, hour=0, minute=0, second=0,
+        start_at = datetime(year=2016, month=1, day=1, hour=1, minute=0, second=0,
                             tzinfo=timezone(ieso.IESOClient.TZ_NAME))
-        end_at = datetime(year=2016, month=1, day=7, hour=23, minute=59, second=59,
+        end_at = datetime(year=2016, month=1, day=8, hour=0, minute=59, second=59,
                           tzinfo=timezone(ieso.IESOClient.TZ_NAME))
 
         # Offline copy of 2016 report, as if it were requested on January 8th.
@@ -304,22 +359,35 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
 
         self.assertEquals(len(generation_ts), 1008)  # 6 fuels * 24 hours * 7 days
         for val in generation_ts:  # Spot check known values
-            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 1) & (val['timestamp'].hour == 5):
+            if (val['fuel_name'] == 'nuclear') & (val['timestamp'].day == 1) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 11188)
-            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 2) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'biomass') & (val['timestamp'].day == 2) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 2)
-            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 7) & (val['timestamp'].hour == 5):
+            elif (val['fuel_name'] == 'wind') & (val['timestamp'].day == 7) & (val['timestamp'].hour == 6):
                 self.assertEquals(val['gen_MW'], 809)
-            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 8) & (val['timestamp'].hour == 4):
+            elif (val['fuel_name'] == 'hydro') & (val['timestamp'].day == 8) & (val['timestamp'].hour == 5):
                 self.assertEquals(val['gen_MW'], 4749)
 
     def test_report_url_for_default(self):
         url = self.report_handler.report_url()
         self.assertEquals(url, 'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly.xml')
 
-    def test_report_url_for_date(self):
-        report_datetime = datetime(year=2016, month=12, day=31, hour=23, minute=59, second=59,
+    def test_report_url_for_hour_ending_in_same_year(self):
+        report_datetime = datetime(year=2016, month=1, day=1, hour=1, minute=0, second=0,
                                    tzinfo=timezone(ieso.IESOClient.TZ_NAME))
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
                           'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly_2016.xml')
+
+    def test_report_url_for_hour_ending_24_in_previous_year(self):
+        report_datetime = datetime(year=2016, month=1, day=1, hour=0, minute=0, second=0,
+                                   tzinfo=timezone(ieso.IESOClient.TZ_NAME))
+        url = self.report_handler.report_url(report_datetime)
+        self.assertEquals(url,
+                          'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly_2015.xml')
+
+    def test_datetime_replace(self):
+        utc_now = datetime.utcnow()
+        copy_now = copy(utc_now)
+        utc_now.replace(year=2015)
+        self.assertEquals(utc_now.year, copy_now.year)
