@@ -7,6 +7,10 @@ Here's what's available now:
 ======================== ========== =================================== ============== ============
 method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yesterday`` forecast ok
 ======================== ========== =================================== ============== ============
+``AESO.get_generation``   yes         no                                 no            no
+``AESO.get_load``         yes         yes                                yes           yes
+``AESO.get_trade``        yes         no                                 no            no
+``AESO.get_lmp``          no          no                                 no            no
 ``BPA.get_generation``    yes         yes                                no            no
 ``BPA.get_load``          yes         yes                                no            no
 ``CAISO.get_generation``  yes         yes                                yes           yes
@@ -31,6 +35,10 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``MISO.get_load``         yes         yes                                no            yes
 ``MISO.get_trade``        no          yes                                no            yes
 ``MISO.get_lmp``          yes         yes                                no            yes
+``NPB.get_generation``    no          no                                 no            no
+``NPB.get_load``          yes         yes                                no            yes
+``NPB.get_trade``         yes         no                                 no            no
+``NPB.get_lmp``           no          no                                 no            no
 ``NVEnergy.get_load``     yes         yes                                no            yes
 ``NYISO.get_generation``  yes         yes                                no            no
 ``NYISO.get_load``        yes         yes                                no            yes
@@ -40,6 +48,10 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``PJM.get_load``          yes         yes                                no            yes
 ``PJM.get_trade``         yes         no                                 no            no
 ``PJM.get_lmp``           yes         yes                                no            no
+``SASK.get_generation``   no          no                                 no            no
+``SASK.get_load``         yes         no                                 no            no
+``SASK.get_trade``        no          no                                 no            no
+``SASK.get_lmp``          no          no                                 no            no
 ``SVERI.get_generation``  yes         yes                                no            no
 ``SVERI.get_load``        yes         yes                                no            no
 ======================== ========== =================================== ============== ============

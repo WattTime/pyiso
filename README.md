@@ -15,7 +15,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Changelog
 ---------
-* 0.3.20: Added EIA and IESO clients.
+* 0.3.20: Add EIA
 * 0.3.19: Fix bug with `Biomass/Fossil` fuel type for BPA
 * 0.3.18: Fix bug with PJM date parsing
 * 0.3.17: Fix bug with `Black Liquor` fuel type for PJM

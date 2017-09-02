@@ -47,6 +47,7 @@ htmlcov/*
 
 # database files
 *.csv
+!/tests/**/*.csv
 *.dump
 *.sqlite
 

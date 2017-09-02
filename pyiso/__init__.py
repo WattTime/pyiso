@@ -1,7 +1,7 @@
-import sys
 import imp
 import logging
 import os.path
+import sys
 from os import environ
 
 __version__ = '0.3.19'
@@ -18,6 +18,7 @@ LOGGER.addHandler(handler)
 LOGGER.setLevel(LOG_LEVEL)
 
 BALANCING_AUTHORITIES = {
+    'AESO': {'class': 'AESOClient', 'module': 'aeso'},
     'AZPS': {'class': 'SVERIClient', 'module': 'sveri'},
     'BPA': {'class': 'BPAClient', 'module': 'bpa'},
     'CAISO': {'class': 'CAISOClient', 'module': 'caiso'},
@@ -32,10 +33,12 @@ BALANCING_AUTHORITIES = {
     'IID': {'class': 'SVERIClient', 'module': 'sveri'},
     'ISONE': {'class': 'ISONEClient', 'module': 'isone'},
     'MISO': {'class': 'MISOClient', 'module': 'miso'},
+    'NBP': {'class': 'NBPowerClient', 'module': 'nbpower'},
     'NEVP': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
     'NYISO': {'class': 'NYISOClient', 'module': 'nyiso'},
     'PJM': {'class': 'PJMClient', 'module': 'pjm'},
     'PNM': {'class': 'SVERIClient', 'module': 'sveri'},
+    'SASK': {'class': 'SaskPowerClient', 'module': 'sask'},
     'SPP': {'class': 'SPPClient', 'module': 'spp'},
     'SPPC': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
     'SRP': {'class': 'SVERIClient', 'module': 'sveri'},
