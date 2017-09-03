@@ -29,6 +29,7 @@ BALANCING_AUTHORITIES = {
     'EU': {'class': 'EUClient', 'module': 'eu'},
     'GRIF': {'class': 'SVERIClient', 'module': 'sveri'},
     'HGMA': {'class': 'SVERIClient', 'module': 'sveri'},
+    'IESO': {'class': 'IESOClient', 'module': 'ieso'},
     'IID': {'class': 'SVERIClient', 'module': 'sveri'},
     'ISONE': {'class': 'ISONEClient', 'module': 'isone'},
     'MISO': {'class': 'MISOClient', 'module': 'miso'},

@@ -43,6 +43,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       EU                        European Union                           ENTSO
       GRIF                      Griffith Energy (AZ)                     SVERI
       HGMA                      Harquahala Generation Maricopa Arizona   SVERI
+      IESO                      Ontario                                  IESO
       IID                       Imperial Irrigation District (CA)        SVERI
       ISONE                     ISO New England                          ISONE
       MISO                      Midcontinent ISO                         MISO
