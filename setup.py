@@ -69,7 +69,7 @@ setup(
         'requests',
         'celery>=3.1',
         'xlrd',
-        'lxml==3.6.1',
+        'lxml==3.6.4',
         'html5lib',
         'mock',
         'certifi'
