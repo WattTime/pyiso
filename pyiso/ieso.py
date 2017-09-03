@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from copy import copy
 from datetime import datetime
 from datetime import timedelta
 
