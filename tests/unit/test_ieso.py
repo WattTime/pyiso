@@ -1,5 +1,4 @@
 import os
-from copy import copy
 from datetime import datetime
 from datetime import timedelta
 from unittest import TestCase
@@ -385,9 +384,3 @@ class TestGeneratorOutputByFuelHourlyReportHandler(TestCase):
         url = self.report_handler.report_url(report_datetime)
         self.assertEquals(url,
                           'http://reports.ieso.ca/public/GenOutputbyFuelHourly/PUB_GenOutputbyFuelHourly_2015.xml')
-
-    def test_datetime_replace(self):
-        utc_now = datetime.utcnow()
-        copy_now = copy(utc_now)
-        utc_now.replace(year=2015)
-        self.assertEquals(utc_now.year, copy_now.year)
