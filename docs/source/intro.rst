@@ -2,7 +2,7 @@ Introduction
 =============
 
 Pyiso provides Python client libraries for ISO and other power grid data sources.
-It powers the `WattTime Impact API <https://github.com/WattTime/watttime-grid-api>`_,
+It powers the `WattTime Impact API <https://api.watttime.org/>`_,
 among other things.
 
 What's an ISO?
