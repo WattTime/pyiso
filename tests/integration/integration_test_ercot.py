@@ -8,6 +8,7 @@ import pandas as pd
 class IntegrationTestERCOT(TestCase):
     def setUp(self):
         self.c = client_factory('ERCOT')
+        self.node_counts = range(612, 633)  # 632 LMP nodes as of 2017-09-04. TODO Why is this a range?
 
     def test_request_report_gen_hrly(self):
         # get data as list of dicts
@@ -44,9 +45,7 @@ class IntegrationTestERCOT(TestCase):
 
         self.assertEqual(s.min().date(), now.date())
         self.assertEqual(s.max().date(), now.date())
-
-        node_counts = range(612, 630)
-        self.assertIn(len(df), [n * 24 for n in node_counts])  # nodes * 24 hrs/day
+        self.assertIn(len(df), [n * 24 for n in self.node_counts])  # nodes * 24 hrs/day
 
     def test_request_report_rt5m_lmp(self):
         now = datetime.now(pytz.utc) - timedelta(minutes=5)
@@ -56,6 +55,4 @@ class IntegrationTestERCOT(TestCase):
 
         self.assertLess((s.min() - now).total_seconds(), 8 * 60)
         self.assertLess((s.max() - now).total_seconds(), 8 * 60)
-
-        node_counts = range(612, 630)
-        self.assertIn(len(df), node_counts)
+        self.assertIn(len(df), self.node_counts)
