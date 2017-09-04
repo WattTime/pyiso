@@ -17,7 +17,7 @@ When you're ready to get started coding:
 * run the tests: ``python setup.py test`` (or ``python setup.py test -s tests.test_some_file.TestSomeClass.test_some_method`` to run a specific subset of the tests)
 * add tests to the :py:mod:`tests` directory and code to the :py:mod:`pyiso` directory, following the conventions that you see in the existing code
 * add docs to the `docs/source` directory
-* add a note to the changelog in `README.md`
+* add a note to the Upcoming Changes section in `README.md` on a separate line
 * send a pull request
 * sign the CLA at https://www.clahub.com/agreements/WattTime/pyiso (see below)
 
