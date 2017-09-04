@@ -4,8 +4,7 @@ python:
 - '3.4'
 
 install:
-
-     # Install miniconda for python 2.7
+  # Install miniconda for python 2.7
   - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -15,7 +14,6 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-
   # Install
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - conda install -n test-environment pandas>=0.18 requests==2.9.1
@@ -23,7 +21,7 @@ install:
   - python setup.py install
   - pip install -r requirements.txt
   - pip install coveralls
-script: nosetests ./tests/unit/
+script: nosetests --with-coverage --cover-package=pyiso ./tests/unit/
 deploy:
   provider: pypi
   user: Anna.Schneider
