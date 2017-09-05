@@ -1,11 +1,12 @@
 # .coveragerc to control coverage.py
 [run]
 source=
-    .
+    pyiso
 omit=
     */tests/*
     */tests.py
     *__init__.py
+    */venv/*
     *.virtualenvs*
     *script.py
 
