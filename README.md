@@ -2,7 +2,7 @@ pyiso
 ============
 
 [![Build Status](https://travis-ci.org/WattTime/pyiso.svg?branch=master)](https://travis-ci.org/WattTime/pyiso)
-[![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.png?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
+[![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.svg?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyiso.svg)](https://badge.fury.io/py/pyiso)
 
 pyiso provides Python client libraries for [ISO](https://www.epsa.org/industry/primer/?fa=rto) and other power grid data sources.
