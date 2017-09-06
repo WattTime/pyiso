@@ -69,12 +69,12 @@ class TestNVEnergy(TestCase):
 
             # test index and columns
             self.assertEqual(list(df.index),
-                             [u'Actual Native Load', u'Actual System Load',
-                              u'Forecast Native Load', u'Forecast System Load',
-                              u'Tie Line', u'Tie Line', u'Tie Line', u'Tie Line',
-                              u'Tie Line', u'Tie Line', u'Tie Line'])
+                             ['Actual Native Load', 'Actual System Load',
+                              'Forecast Native Load', 'Forecast System Load',
+                              'Tie Line', 'Tie Line', 'Tie Line', 'Tie Line',
+                              'Tie Line', 'Tie Line', 'Tie Line'])
             self.assertEqual(list(df.columns),
-                             [u'Counterparty'] + list(range(1, 25)) + [u'Total'])
+                             ['Counterparty'] + list(range(1, 25)) + ['Total'])
 
     def test_fetch_df_bad(self):
         # no data in year 2020
