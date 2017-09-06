@@ -1,9 +1,6 @@
 import os
-
 from pyiso import client_factory
-from pyiso import nvenergy
 from unittest import TestCase
-from io import StringIO
 from datetime import datetime, timedelta
 try:
     from urllib2 import HTTPError
@@ -11,7 +8,6 @@ except ImportError:
     from urllib.error import HTTPError
 import pytz
 import mock
-from requests import Response
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/nvenergy')
 
