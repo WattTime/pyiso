@@ -39,7 +39,6 @@ BALANCING_AUTHORITIES = {
     'PJM': {'class': 'PJMClient', 'module': 'pjm'},
     'PNM': {'class': 'SVERIClient', 'module': 'sveri'},
     'SASK': {'class': 'SaskPowerClient', 'module': 'sask'},
-    'SPP': {'class': 'SPPClient', 'module': 'spp'},
     'SPPC': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
     'SRP': {'class': 'SVERIClient', 'module': 'sveri'},
     'TEPC': {'class': 'SVERIClient', 'module': 'sveri'},
