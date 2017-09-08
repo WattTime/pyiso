@@ -1,7 +1,11 @@
+import os
+
 from pyiso import client_factory
 from unittest import TestCase
 from datetime import time, datetime, timedelta
 import pytz
+
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/sveri')
 
 
 class TestSVERI(TestCase):
@@ -16,16 +20,7 @@ class TestSVERI(TestCase):
         self.last_month = self.today - timedelta(days=32)
         self.next_month = self.today + timedelta(days=32)
 
-        self.sample = '"Time (MST)","Solar Aggregate (MW)","Wind Aggregate (MW)","Other Renewables Aggregate (MW)","Hydro Aggregate (MW)"\n\
-"2015-07-18 00:00:05",0.028038,134.236,116.294,835.628\n\
-"2015-07-18 00:00:15",0.079792,132.875,115.742,817.136\n\
-"2015-07-18 00:00:25",0.101218,131.663,115.727,802.076\n\
-"2015-07-18 00:00:35",0.119465,130.456,115.712,798.891\n\
-"2015-07-18 00:00:45",0.180171,129.403,115.697,820.483\n\
-"2015-07-18 00:00:55",0.268247,129.221,115.681,849.028\n\
-"2015-07-18 00:01:05",0.29724,128.836,115.666,865.843\n\
-"2015-07-18 00:01:15",0.281987,127.656,115.354,862.289\n\
-'
+        self.sample = open(FIXTURES_DIR + '/api_response.csv').read().encode('utf8')
         self.sample_start = pytz.timezone(self.TZ_NAME).localize(datetime(2015, 7, 18, 0, 0))
         self.sample_end = pytz.timezone(self.TZ_NAME).localize(datetime(2015, 7, 19, 0, 0))
 
