@@ -18,9 +18,6 @@ class TestFactory(TestCase):
             'name': 'MISO'
           },
           {
-            'name': 'SPP',
-          },
-          {
             'name': 'BPA',
           },
           {
