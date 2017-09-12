@@ -366,7 +366,7 @@ class TestCAISOBase(TestCase):
                            skiprows=1, nrows=24, header=0,
                            delimiter='\t+', engine='python')
         indexed = c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
-        self.assertEqual(type(indexed.index), pd.tseries.index.DatetimeIndex)
+        self.assertEqual(type(indexed.index).__name__, 'DatetimeIndex')
         self.assertEqual(indexed.index[0].hour, 7)
 
     def test_pivot(self):
