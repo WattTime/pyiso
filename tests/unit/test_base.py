@@ -117,8 +117,5 @@ class TestBaseClient(TestCase):
         self.assertEqual(len(outdf), 0)
 
     def test_timeout(self):
-        bc = BaseClient()
-        self.assertEqual(bc.timeout_seconds, 20)
-
         bc = BaseClient(timeout_seconds=30)
         self.assertEqual(bc.timeout_seconds, 30)
