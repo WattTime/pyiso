@@ -13,7 +13,7 @@ class IntegrationTestCAISOClient(TestCase):
 
     def test_request_renewable_report(self):
         c = client_factory('CAISO')
-        response = c.request('http://content.caiso.com/green/renewrpt/20140312_DailyRenewablesWatch.txt')
+        response = self.c.request('http://content.caiso.com/green/renewrpt/20140312_DailyRenewablesWatch.txt')
         self.assertIn('Hourly Breakdown of Renewable Resources (MW)', response.text)
 
     def test_fetch_oasis_csv(self):
@@ -30,15 +30,14 @@ class IntegrationTestCAISOClient(TestCase):
         self.assertIn(b'INTERVALSTARTTIME_GMT', data)
 
     def test_fetch_oasis_demand_dam(self):
-        c = client_factory('CAISO')
-        ts = c.utcify('2014-05-08 12:00')
+        ts = self.c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
                    'market_run_id': 'DAM',
-                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
-                   'enddatetime': (ts+timedelta(minutes=40)).strftime(c.oasis_request_time_format),
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(self.c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=40)).strftime(self.c.oasis_request_time_format),
                    }
-        payload.update(c.base_payload)
-        data = c.fetch_oasis(payload=payload)
+        payload.update(self.c.base_payload)
+        data = self.c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 5)
         self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>SYS_FCST_DA_MW</data_item>\n\
@@ -51,15 +50,14 @@ class IntegrationTestCAISOClient(TestCase):
 </report_data>'.lower())
 
     def test_fetch_oasis_demand_rtm(self):
-        c = client_factory('CAISO')
-        ts = c.utcify('2014-05-08 12:00')
+        ts = self.c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_FCST',
                    'market_run_id': 'RTM',
-                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
-                   'enddatetime': (ts+timedelta(minutes=20)).strftime(c.oasis_request_time_format),
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(self.c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=20)).strftime(self.c.oasis_request_time_format),
                    }
-        payload.update(c.base_payload)
-        data = c.fetch_oasis(payload=payload)
+        payload.update(self.c.base_payload)
+        data = self.c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 55)
         self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>sys_fcst_15min_mw</data_item>\n\
@@ -72,15 +70,14 @@ class IntegrationTestCAISOClient(TestCase):
 </report_data>'.lower())
 
     def test_fetch_oasis_ren_dam(self):
-        c = client_factory('CAISO')
-        ts = c.utcify('2014-05-08 12:00')
+        ts = self.c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'SLD_REN_FCST',
                    'market_run_id': 'DAM',
-                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
-                   'enddatetime': (ts+timedelta(minutes=40)).strftime(c.oasis_request_time_format),
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(self.c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=40)).strftime(self.c.oasis_request_time_format),
                    }
-        payload.update(c.base_payload)
-        data = c.fetch_oasis(payload=payload)
+        payload.update(self.c.base_payload)
+        data = self.c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 4)
         self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>RENEW_FCST_DA_MW</data_item>\n\
@@ -94,15 +91,14 @@ class IntegrationTestCAISOClient(TestCase):
 </report_data>'.lower())
 
     def test_fetch_oasis_slrs_dam(self):
-        c = client_factory('CAISO')
-        ts = c.utcify('2014-05-08 12:00')
+        ts = self.c.utcify('2014-05-08 12:00')
         payload = {'queryname': 'ENE_SLRS',
                    'market_run_id': 'DAM',
-                   'startdatetime': (ts-timedelta(minutes=20)).strftime(c.oasis_request_time_format),
-                   'enddatetime': (ts+timedelta(minutes=40)).strftime(c.oasis_request_time_format),
+                   'startdatetime': (ts-timedelta(minutes=20)).strftime(self.c.oasis_request_time_format),
+                   'enddatetime': (ts+timedelta(minutes=40)).strftime(self.c.oasis_request_time_format),
                    }
-        payload.update(c.base_payload)
-        data = c.fetch_oasis(payload=payload)
+        payload.update(self.c.base_payload)
+        data = self.c.fetch_oasis(payload=payload)
         self.assertEqual(len(data), 17)
         self.assertEqual(str(data[0]).lower(), '<report_data>\n\
 <data_item>ISO_TOT_EXP_MW</data_item>\n\
@@ -115,12 +111,11 @@ class IntegrationTestCAISOClient(TestCase):
 </report_data>'.lower())
 
     def test_get_AS_dataframe(self):
-        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_AS_dataframe(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
-                                    market_run_id='DAM')
+        as_prc = self.c.get_AS_dataframe(node_id='AS_CAISO_EXP', start_at=start, end_at=ts,
+                                         market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 288)
         self.assertAlmostEqual(as_prc['MW'].mean(), 1.528506944444443)
@@ -141,16 +136,14 @@ class IntegrationTestCAISOClient(TestCase):
             self.assertEqual(len(grouped.get_group(group)), 48)
 
     def test_get_AS_dataframe_empty(self):
-        c = client_factory('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
-        as_prc = c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
-                                    market_run_id='DAM', anc_type='RU')
+        as_prc = self.c.get_AS_dataframe('AS_CAISO_EXP', start_at=st, end_at=et,
+                                         market_run_id='DAM', anc_type='RU')
         self.assertTrue(as_prc.empty)
 
     def test_get_AS_dataframe_latest(self):
-        c = client_factory('CAISO')
-        as_prc = c.get_AS_dataframe('AS_CAISO_EXP')
+        as_prc = self.c.get_AS_dataframe('AS_CAISO_EXP')
 
         # Could be 1 or 2 prices in last 61 minutes
         self.assertLessEqual(len(as_prc), 12)
@@ -158,20 +151,18 @@ class IntegrationTestCAISOClient(TestCase):
 
     def test_get_AS_empty(self):
         """No AS data available 2 days in future"""
-        c = client_factory('CAISO')
         st = pytz.utc.localize(datetime.now() + timedelta(days=2))
         et = st + timedelta(days=1)
-        as_prc = c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
-                                          market_run_id='DAM', anc_type='RU')
+        as_prc = self.c.get_ancillary_services(node_id='AS_CAISO_EXP', start_at=st, end_at=et,
+                                               market_run_id='DAM', anc_type='RU')
         self.assertEqual(as_prc, {})
 
     def test_get_ancillary_services(self):
-        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
-                                          market_run_id='DAM')
+        as_prc = self.c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+                                               market_run_id='DAM')
 
         self.assertEqual(len(as_prc), 48)
         self.assertGreaterEqual(min([i['timestamp'] for i in as_prc]),
@@ -193,12 +184,11 @@ class IntegrationTestCAISOClient(TestCase):
             self.assertAlmostEqual(numpy.mean(dp), means[anc_type], places=6)
 
     def test_get_ancillary_services_RU(self):
-        c = client_factory('CAISO')
         ts = datetime(2015, 3, 1, 11, 0, 0, tzinfo=pytz.utc)
         start = ts - timedelta(days=2)
 
-        as_prc = c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
-                                          market_run_id='DAM', anc_type='RU')
+        as_prc = self.c.get_ancillary_services('AS_CAISO_EXP', start_at=start, end_at=ts,
+                                               market_run_id='DAM', anc_type='RU')
 
         self.assertEqual(len(as_prc), 48)
         self.assertGreaterEqual(min([i['timestamp'] for i in as_prc]),
@@ -209,10 +199,9 @@ class IntegrationTestCAISOClient(TestCase):
         self.assertAlmostEqual(numpy.mean([i['RU'] for i in as_prc]), 3.074583, places=6)
 
     def test_get_lmp_dataframe_latest(self):
-        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime.utcnow())
-        lmp = c.get_lmp_as_dataframe('SLAP_PGP2-APND')
-        lmp = c._standardize_lmp_dataframe(lmp)
+        lmp = self.c.get_lmp_as_dataframe('SLAP_PGP2-APND')
+        lmp = self.c._standardize_lmp_dataframe(lmp)
         self.assertEqual(len(lmp), 1)
 
         self.assertGreaterEqual(lmp.iloc[0]['lmp'], -300)
@@ -223,12 +212,10 @@ class IntegrationTestCAISOClient(TestCase):
         self.assertLess(lmp.iloc[0].name, ts + timedelta(minutes=5))
 
     def test_get_lmp_dataframe_hist(self):
-        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
-        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False,
-                                      start_at=start, end_at=ts,)
-        lmps = c._standardize_lmp_dataframe(lmps)
+        lmps = self.c.get_lmp_as_dataframe('SLAP_PGP2-APND', latest=False, start_at=start, end_at=ts)
+        lmps = self.c._standardize_lmp_dataframe(lmps)
         self.assertEqual(len(lmps), 24)
 
         self.assertGreaterEqual(lmps['lmp'].max(), 0)
@@ -239,11 +226,11 @@ class IntegrationTestCAISOClient(TestCase):
         self.assertLessEqual(lmps.index.to_pydatetime().max(), ts)
 
     def test_get_lmp_dataframe_fifteen(self):
-        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2016, 10, 1, 12))
         start = ts - timedelta(hours=2)
-        lmps = c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False, start_at=start, end_at=ts)
-        lmps = c._standardize_lmp_dataframe(lmps)
+        lmps = self.c.get_lmp_as_dataframe('SLAP_PGP2-APND', market='RTPD', market_run_id='RTPD', latest=False,
+                                           start_at=start, end_at=ts)
+        lmps = self.c._standardize_lmp_dataframe(lmps)
 
         self.assertEqual(len(lmps), 8)
         self.assertGreaterEqual(lmps['lmp'].max(), 0)

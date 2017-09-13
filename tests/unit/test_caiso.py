@@ -18,6 +18,7 @@ def read_fixture(filename):
 
 class TestCAISOBase(TestCase):
     def setUp(self):
+        self.c = client_factory('CAISO')
         self.ren_report_tsv = read_fixture('ren_report.csv')
         self.sld_fcst_xml = read_fixture('sld_forecast.xml')
         self.ene_slrs_xml = read_fixture('ene_slrs.xml')
@@ -26,42 +27,31 @@ class TestCAISOBase(TestCase):
         self.todays_outlook_renewables = read_fixture('todays_outlook_renewables.html')
 
     def test_parse_ren_report_top(self):
-        c = client_factory('CAISO')
-
         # top half
-        top_df = c.parse_to_df(self.ren_report_tsv,
-                               skiprows=1, nrows=24, header=0,
-                               delimiter='\t+', engine='python')
-        self.assertEqual(list(top_df.columns), ['Hour', 'GEOTHERMAL', 'BIOMASS', 'BIOGAS', 'SMALL HYDRO', 'WIND TOTAL', 'SOLAR PV', 'SOLAR THERMAL'])
+        top_df = self.c.parse_to_df(self.ren_report_tsv, skiprows=1, nrows=24, header=0, delimiter='\t+',
+                                    engine='python')
+        self.assertEqual(list(top_df.columns), ['Hour', 'GEOTHERMAL', 'BIOMASS', 'BIOGAS', 'SMALL HYDRO', 'WIND TOTAL',
+                                                'SOLAR PV', 'SOLAR THERMAL'])
         self.assertEqual(len(top_df), 24)
 
     def test_parse_ren_report_bottom(self):
-        c = client_factory('CAISO')
-
         # bottom half
-        bot_df = c.parse_to_df(self.ren_report_tsv,
-                               skiprows=29, nrows=24, header=0,
-                               delimiter='\t+', engine='python')
+        bot_df = self.c.parse_to_df(self.ren_report_tsv, skiprows=29, nrows=24, header=0, delimiter='\t+',
+                                    engine='python')
         self.assertEqual(list(bot_df.columns), ['Hour', 'RENEWABLES', 'NUCLEAR', 'THERMAL', 'IMPORTS', 'HYDRO'])
         self.assertEqual(len(bot_df), 24)
 
     def test_dt_index(self):
-        c = client_factory('CAISO')
-        df = c.parse_to_df(self.ren_report_tsv,
-                           skiprows=1, nrows=24, header=0,
-                           delimiter='\t+', engine='python')
-        indexed = c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
+        df = self.c.parse_to_df(self.ren_report_tsv, skiprows=1, nrows=24, header=0, delimiter='\t+', engine='python')
+        indexed = self.c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
         self.assertEqual(type(indexed.index).__name__, 'DatetimeIndex')
         self.assertEqual(indexed.index[0].hour, 7)
 
     def test_pivot(self):
-        c = client_factory('CAISO')
-        df = c.parse_to_df(self.ren_report_tsv,
-                           skiprows=1, nrows=24, header=0,
-                           delimiter='\t+', engine='python')
-        indexed = c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
+        df = self.c.parse_to_df(self.ren_report_tsv, skiprows=1, nrows=24, header=0, delimiter='\t+', engine='python')
+        indexed = self.c.set_dt_index(df, date(2014, 3, 12), df['Hour'])
         indexed.pop('Hour')
-        pivoted = c.unpivot(indexed)
+        pivoted = self.c.unpivot(indexed)
 
         # no rows with 'Hour'
         hour_rows = pivoted[pivoted['level_1'] == 'Hour']
@@ -71,27 +61,25 @@ class TestCAISOBase(TestCase):
         self.assertEqual(len(pivoted), 24*len(indexed.columns))
 
     def test_oasis_payload(self):
-        c = client_factory('CAISO')
-        c.handle_options(start_at='2014-01-01', end_at='2014-02-01',
-                         market=c.MARKET_CHOICES.fivemin, data='load')
-        constructed = c.construct_oasis_payload('SLD_FCST')
+        self.c.handle_options(start_at='2014-01-01', end_at='2014-02-01', market=self.c.MARKET_CHOICES.fivemin,
+                              data='load')
+        constructed = self.c.construct_oasis_payload('SLD_FCST')
         expected = {'queryname': 'SLD_FCST',
                     'market_run_id': 'RTM',
-                    'startdatetime': (datetime(2014, 1, 1, 8)).strftime(c.oasis_request_time_format),
-                    'enddatetime': (datetime(2014, 2, 1, 8)).strftime(c.oasis_request_time_format),
+                    'startdatetime': (datetime(2014, 1, 1, 8)).strftime(self.c.oasis_request_time_format),
+                    'enddatetime': (datetime(2014, 2, 1, 8)).strftime(self.c.oasis_request_time_format),
                     'version': 1,
                     }
         self.assertEqual(constructed, expected)
 
     def test_parse_oasis_demand_rtm(self):
         # set up list of data
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.sld_fcst_xml, 'xml')
         data = soup.find_all('REPORT_DATA')
 
         # parse
-        c.handle_options(market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
-        parsed_data = c.parse_oasis_demand_forecast(data)
+        self.c.handle_options(market=self.c.MARKET_CHOICES.fivemin, freq=self.c.FREQUENCY_CHOICES.fivemin)
+        parsed_data = self.c.parse_oasis_demand_forecast(data)
 
         # test
         self.assertEqual(len(parsed_data), 1)
@@ -103,15 +91,14 @@ class TestCAISOBase(TestCase):
 
     def test_parse_todays_outlook_renewables(self):
         # set up soup and ts
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.todays_outlook_renewables, 'lxml')
-        ts = c.utcify('2014-05-08 12:00')
+        ts = self.c.utcify('2014-05-08 12:00')
 
         # set up options
-        c.handle_options()
+        self.c.handle_options()
 
         # parse
-        parsed_data = c.parse_todays_outlook_renewables(soup, ts)
+        parsed_data = self.c.parse_todays_outlook_renewables(soup, ts)
 
         # test
         expected = [{'ba_name': 'CAISO',
@@ -124,22 +111,20 @@ class TestCAISOBase(TestCase):
 
     def test_parse_systemconditions(self):
         """Test for a newly discovered edge case: an extra, empty `docdata` cell."""
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.systemconditions_html, 'lxml')
-        c.handle_options()
-        parsed_data = c.todays_outlook_time(soup)
+        self.c.handle_options()
+        parsed_data = self.c.todays_outlook_time(soup)
         expected = datetime(2017, 1, 5, 21, 50, tzinfo=pytz.utc)
         self.assertEqual(parsed_data, expected)
 
     def test_parse_oasis_slrs_gen_rtm(self):
         # set up list of data
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
         data = soup.find_all('REPORT_DATA')
 
         # parse
-        c.handle_options(data='gen', market=c.MARKET_CHOICES.fivemin, freq=c.FREQUENCY_CHOICES.fivemin)
-        parsed_data = c.parse_oasis_slrs(data)
+        self.c.handle_options(data='gen', market=self.c.MARKET_CHOICES.fivemin, freq=self.c.FREQUENCY_CHOICES.fivemin)
+        parsed_data = self.c.parse_oasis_slrs(data)
 
         # test
         self.assertEqual(len(parsed_data), 2)
@@ -151,13 +136,12 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_slrs_trade_dam(self):
         # set up list of data
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.ene_slrs_xml, 'xml')
         data = soup.find_all('REPORT_DATA')
 
         # parse
-        c.handle_options(data='trade', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
-        parsed_data = c.parse_oasis_slrs(data)
+        self.c.handle_options(data='trade', market=self.c.MARKET_CHOICES.dam, freq=self.c.FREQUENCY_CHOICES.dam)
+        parsed_data = self.c.parse_oasis_slrs(data)
 
         # test
         self.assertEqual(len(parsed_data), 3)
@@ -169,13 +153,12 @@ class TestCAISOBase(TestCase):
 
     def test_parse_oasis_renewables_dam(self):
         # set up list of data
-        c = client_factory('CAISO')
         soup = BeautifulSoup(self.sld_ren_fcst_xml, 'xml')
         data = soup.find_all('REPORT_DATA')
 
         # parse
-        c.handle_options(data='gen', market=c.MARKET_CHOICES.dam, freq=c.FREQUENCY_CHOICES.dam)
-        parsed_data = c.parse_oasis_renewable(data)
+        self.c.handle_options(data='gen', market=self.c.MARKET_CHOICES.dam, freq=self.c.FREQUENCY_CHOICES.dam)
+        parsed_data = self.c.parse_oasis_renewable(data)
 
         # test
         self.assertEqual(len(parsed_data), 6)
@@ -187,8 +170,7 @@ class TestCAISOBase(TestCase):
 
     @skip('Not ready yet')
     def test_lmp_loc(self):
-        c = client_factory('CAISO')
-        loc_data = c.get_lmp_loc()
+        loc_data = self.c.get_lmp_loc()
 
         # one entry for each node
         self.assertGreaterEqual(len(loc_data), 4228)
@@ -202,10 +184,9 @@ class TestCAISOBase(TestCase):
         expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
         exptected_request.get(expected_url, content='bad data')
 
-        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
-        df = c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts)
+        df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts)
 
         self.assertIsInstance(df, pd.DataFrame)
 
@@ -214,9 +195,7 @@ class TestCAISOBase(TestCase):
         expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
         exptected_request.get(expected_url, content='bad data')
 
-        c = client_factory('CAISO')
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
-        df = c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts,
-                                    lmp_only=False)
+        df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts, lmp_only=False)
         self.assertIsInstance(df, pd.DataFrame)
