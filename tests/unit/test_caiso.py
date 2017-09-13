@@ -1,4 +1,5 @@
 import os
+from io import StringIO
 
 import requests_mock
 
@@ -182,7 +183,7 @@ class TestCAISOBase(TestCase):
     @requests_mock.Mocker()
     def test_bad_data(self, exptected_request):
         expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
-        exptected_request.get(expected_url, content='bad data')
+        exptected_request.get(expected_url, content='bad data'.encode('utf-8'))
 
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
@@ -193,7 +194,7 @@ class TestCAISOBase(TestCase):
     @requests_mock.Mocker()
     def test_bad_data_lmp_only(self, exptected_request):
         expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
-        exptected_request.get(expected_url, content='bad data')
+        exptected_request.get(expected_url, content='bad data'.encode('utf-8'))
 
         ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
         start = ts - timedelta(hours=2)
