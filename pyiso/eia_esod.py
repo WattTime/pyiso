@@ -23,7 +23,7 @@ class EIAClient(BaseClient):
 
     NAME = 'EIA'
 
-    base_url = 'http://api.eia.gov/'
+    base_url = 'http://api.eia.gov'
 
     fuels = {
         'Other': 'other',
@@ -56,8 +56,6 @@ class EIAClient(BaseClient):
             raise RuntimeError(msg)
 
         self.TZ_NAME = 'UTC'
-        self.series_url = '{url}series/?api_key={key}&series_id=EBA.'.format(
-            url=self.base_url, key=self.auth)
 
     def set_ba(self, bal_auth):
         if bal_auth in self.EIA_BAs:
@@ -179,10 +177,9 @@ class EIAClient(BaseClient):
             LOGGER.error('Data not supported for %s' % self.BA)
             raise ValueError('Data not currently supported for Canada and Mexico')
 
-    def set_url(self, type, text):
-        self.url = '{url}{ba}{abbrev}'.format(url=self.series_url,
-                                              ba=self.BA,
-                                              abbrev=text)
+    def set_url(self, type, series_id_suffix):
+        url_format = '{base_url}/series/?api_key={api_key}&series_id=EBA.{ba}{suffix}'
+        self.url = url_format.format(base_url=self.base_url, api_key=self.auth, ba=self.BA, suffix=series_id_suffix)
 
     def format_url(self):
         """Set EIA API URL based on options"""
