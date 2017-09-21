@@ -6,7 +6,6 @@ import pytz
 from parameterized import parameterized
 
 from pyiso import client_factory
-from pyiso.base import BaseClient
 from pyiso.eia_esod import EIAClient
 
 
@@ -47,6 +46,16 @@ BALISTS.n_samples = 2
 
 
 class IntegrationTestEIAClient(TestCase):
+    """
+    Integration tests for the EIA client. To use, set the your EIA key as an environment variable:
+
+        export EIA_KEY=my-eia-api-key
+
+    Run tests as follows:
+
+        python setup.py test -s tests.integration.integration_test_eia.IntegrationTestEIALoad.test_latest_all
+    """
+
     def setUp(self):
         self.c = client_factory("EIA")
         self.longMessage = True
@@ -128,9 +137,6 @@ class IntegrationTestEIAClient(TestCase):
                                msg='BA is %s' % ba_name)
 
         return data
-
-    def test_eiaclient_from_client_factory(self):
-        self.assertIsInstance(self.c, BaseClient)
 
 
 class IntegrationTestEIALoad(IntegrationTestEIAClient):

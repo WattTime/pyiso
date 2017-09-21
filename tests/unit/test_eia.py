@@ -9,14 +9,6 @@ from pyiso import client_factory
 from pyiso.base import BaseClient
 from pyiso.eia_esod import EIAClient
 
-"""Test EIA client.
-To use, set the your EIA key as an environment variable:
-    export EIA_KEY=my-eia-api-key
-
-Run tests as follows:
-    python setup.py test -s tests.test_eia.TestEIA.test_get_generation
-"""
-
 
 class BALists:
     can_mex = ['IESO', 'BCTC', 'MHEB', 'AESO', 'HQT', 'NBSO', 'CFE', 'SPC']
