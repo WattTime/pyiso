@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, timedelta
+from os import environ
 from unittest import TestCase
 
 import mock
@@ -40,6 +41,8 @@ class BALists:
 
 class TestEIA(TestCase):
     def setUp(self):
+        environ['EIA_KEY'] = 'test'
+
         self.c = client_factory("EIA")
         self.longMessage = True
         self.BA_CHOICES = EIAClient.EIA_BAs
