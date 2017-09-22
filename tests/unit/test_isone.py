@@ -8,7 +8,7 @@ import pytz
 
 def read_fixture(filename):
     fixtures_base_path = path.join(path.dirname(__file__), '../fixtures/isone')
-    return open(path.join(fixtures_base_path, filename), 'r').read()
+    return open(path.join(fixtures_base_path, filename), 'r').read().encode('utf-8')
 
 
 class TestISONE(TestCase):
