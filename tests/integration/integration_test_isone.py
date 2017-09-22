@@ -46,7 +46,7 @@ class IntegrationTestISONE(TestCase):
         self.assertGreater(data['FiveMinSystemLoad'][0]['LoadMw'], 0)
 
     def test_load_past_json_format(self):
-        data = self.c.fetch_data('/fiveminutesystemload/day/20150610.json', self.c.auth)
+        data = self.c.fetch_data('/fiveminutesystemload/day/20170610.json', self.c.auth)
 
         # one item, FiveMinSystemLoads
         self.assertIn('FiveMinSystemLoads', data.keys())
@@ -101,7 +101,7 @@ class IntegrationTestISONE(TestCase):
         self.assertGreater(data['FiveMinLmp'][0]['LmpTotal'], -150)
 
     def test_lmp_past_json_format(self):
-        data = self.c.fetch_data('/fiveminutelmp/day/20150610/location/4001.json', self.c.auth)
+        data = self.c.fetch_data('/fiveminutelmp/day/20170610/location/4001.json', self.c.auth)
 
         # one item, FiveMinLmps
         self.assertIn('FiveMinLmps', data.keys())
@@ -117,7 +117,7 @@ class IntegrationTestISONE(TestCase):
         self.assertIn('LmpTotal', data['FiveMinLmps']['FiveMinLmp'][0].keys())
 
     def test_get_lmp_hist(self):
-        start_at = datetime(2015, 1, 1, 1, 0, 0, 0,
+        start_at = datetime(2017, 1, 1, 1, 0, 0, 0,
                             tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
         end_at = start_at + timedelta(minutes=55)
 
@@ -125,7 +125,7 @@ class IntegrationTestISONE(TestCase):
         self.assertEqual(len(prices), 11)
         self.assertGreaterEqual(prices[0]['timestamp'], start_at)
         self.assertLessEqual(prices[0]['timestamp'], start_at + timedelta(minutes=5))
-        self.assertEqual(prices[0]['lmp'], 56.92)
+        self.assertEqual(prices[0]['lmp'], 36.72)
 
     def test_get_lmp_latest(self):
         prices = self.c.get_lmp('NEMASSBOST')
