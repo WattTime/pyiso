@@ -1,4 +1,4 @@
-import os
+from os import environ, path
 import json
 from pyiso import client_factory
 from unittest import TestCase
@@ -7,12 +7,17 @@ import pytz
 import dateutil.parser
 import mock
 
-fixtures_base_path = os.path.join(os.path.dirname(__file__), 'fixtures')
+fixtures_base_path = path.join(path.dirname(__file__), 'fixtures')
+
+
 def read_fixture(filename):
-    return open(os.path.join(fixtures_base_path, filename), 'r').read()
+    return open(path.join(fixtures_base_path, filename), 'r').read()
+
 
 class TestISONE(TestCase):
     def setUp(self):
+        environ['ISONE_USERNAME'] = 'test'
+        environ['ISONE_PASSWORD'] = 'test'
         self.c = client_factory('ISONE')
 
     def test_auth(self):
