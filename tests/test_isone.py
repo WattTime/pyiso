@@ -7,10 +7,9 @@ import pytz
 import dateutil.parser
 import mock
 
-fixtures_base_path = path.join(path.dirname(__file__), 'fixtures')
-
 
 def read_fixture(filename):
+    fixtures_base_path = path.join(path.dirname(__file__), 'fixtures')
     return open(path.join(fixtures_base_path, filename), 'r').read()
 
 
