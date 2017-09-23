@@ -1,16 +1,21 @@
+from os import environ
 from pyiso import client_factory
 from unittest import TestCase
-from datetime import datetime
 import mock
 from mock import patch
-import pytz
 
 
 class TestEU(TestCase):
     def setUp(self):
+        environ['ENTSOe_USERNAME'] = 'test'
+        environ['ENTSOe_PASSWORD'] = 'test'
         self.c = client_factory('EU')
 
     def test_auth(self):
+        self.c.session = mock.MagicMock()
+        response = mock.MagicMock()
+        response.text = 'ok'
+        self.c.session.post.return_value = response
         self.assertTrue(self.c.auth())
 
     def test_auth_wrongemail(self):
