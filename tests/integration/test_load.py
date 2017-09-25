@@ -369,6 +369,24 @@ class TestNYISOLoad(TestBaseLoad):
         self.assertLessEqual(min(timestamps), today+timedelta(days=2))
 
 
+class TestPEILoad(TestBaseLoad):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('PEI', latest=True)
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('PEI', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.tenmin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.tenmin)
+
+
 class TestPJMLoad(TestBaseLoad):
     def test_null_response_latest(self):
         self._run_null_repsonse_test('PJM', latest=True)
