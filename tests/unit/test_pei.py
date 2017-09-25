@@ -27,7 +27,7 @@ class TestPEIClient(TestCase):
         self.assertIsInstance(self.c, BaseClient)
 
     @requests_mock.Mocker()
-    def test_get_load_parses_json(self, mock_request):
+    def test_get_load_success(self, mock_request):
         expected_response = read_fixture(self.c.NAME, 'chart-values.json').encode('utf8')
         mock_request.get('http://www.gov.pe.ca/windenergy/chart-values.php', content=expected_response)
 
@@ -37,3 +37,20 @@ class TestPEIClient(TestCase):
         self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=9, day=25, hour=10, minute=1,
                                                                      second=1, microsecond=0, tzinfo=pytz.utc))
         self.assertEqual(load_ts[0].get('load_MW', None), 150.56)
+
+    @requests_mock.Mocker()
+    def test_get_generation_success(self, mock_request):
+        expected_response = read_fixture(self.c.NAME, 'chart-values.json').encode('utf8')
+        mock_request.get('http://www.gov.pe.ca/windenergy/chart-values.php', content=expected_response)
+        expected_timestamp = datetime(year=2017, month=9, day=25, hour=10, minute=1, second=1, microsecond=0,
+                                      tzinfo=pytz.utc)
+
+        load_ts = self.c.get_generation(latest=True)
+
+        self.assertEqual(len(load_ts), 2)
+        self.assertEqual(load_ts[0].get('timestamp', None), expected_timestamp)
+        self.assertEqual(load_ts[0].get('fuel_name', None), 'wind')
+        self.assertEqual(load_ts[0].get('gen_MW', None), 4.55)
+        self.assertEqual(load_ts[1].get('timestamp', None), expected_timestamp)
+        self.assertEqual(load_ts[1].get('fuel_name', None), 'other')
+        self.assertEqual(load_ts[1].get('gen_MW', None), 146.01)

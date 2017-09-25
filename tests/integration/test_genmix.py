@@ -65,7 +65,7 @@ class TestBaseGenMix(TestCase):
         # method not implemented yet
         self.assertRaises(NotImplementedError, c.get_generation)
 
-    def _run_null_repsonse_test(self, ba_name, **kwargs):
+    def _run_null_response_test(self, ba_name, **kwargs):
         # set up
         c = client_factory(ba_name)
 
@@ -104,7 +104,7 @@ class TestISONEGenMix(TestBaseGenMix):
 
 class TestMISOGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('MISO', latest=True)
+        self._run_null_response_test('MISO', latest=True)
 
     def test_latest(self):
         # basic test
@@ -200,7 +200,7 @@ class TestSPPGenMix(TestBaseGenMix):
 
 class TestBPAGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('BPA', latest=True)
+        self._run_null_response_test('BPA', latest=True)
 
     def test_latest(self):
         # basic test
@@ -238,7 +238,7 @@ class TestBPAGenMix(TestBaseGenMix):
 
 class TestCAISOGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('CAISO', latest=True)
+        self._run_null_response_test('CAISO', latest=True)
 
     def test_date_range_rthr(self):
         # basic test
@@ -348,7 +348,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
 class TestERCOTGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('ERCOT', latest=True)
+        self._run_null_response_test('ERCOT', latest=True)
 
     def test_latest(self):
         data = self._run_test('ERCOT', latest=True, market=self.MARKET_CHOICES.fivemin)
@@ -371,7 +371,7 @@ class TestERCOTGenMix(TestBaseGenMix):
 
 class TestPJMGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('PJM', latest=True)
+        self._run_null_response_test('PJM', latest=True)
 
     def test_latest(self):
         # basic test
@@ -396,7 +396,7 @@ class TestPJMGenMix(TestBaseGenMix):
 
 class TestNYISOGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
-        self._run_null_repsonse_test('NYISO', latest=True)
+        self._run_null_response_test('NYISO', latest=True)
 
     def test_latest(self):
         # basic test
@@ -449,6 +449,19 @@ class TestNEVPGenMix(TestBaseGenMix):
         self._run_notimplemented_test('NEVP')
 
 
+class TestPEIGenMix(TestBaseGenMix):
+    def test_null_response_latest(self):
+        self._run_null_response_test('PEI', latest=True)
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('PEI', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+
 class TestSPPCGenMix(TestBaseGenMix):
     def test_failing(self):
         self._run_notimplemented_test('SPPC')
@@ -460,7 +473,7 @@ class TestSVERIGenMix(TestBaseGenMix):
         self.bas = [k for k, v in BALANCING_AUTHORITIES.items() if v['module'] == 'sveri']
 
     def test_null_response_latest(self):
-        self._run_null_repsonse_test(self.bas[0], latest=True)
+        self._run_null_response_test(self.bas[0], latest=True)
 
     # @freezegun.freeze_time('2016-05-20 12:10', tz_offset=0, tick=True)
     # @requests_mock.mock()
