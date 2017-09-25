@@ -74,7 +74,7 @@ class PEIClient(BaseClient):
             Timestamps are in UTC.
         :rtype: list
         """
-        loads = []
+        genmix = []
         response = self.request(self.chart_values_url)
         if response:
             sysload_list = json.loads(response.content.decode('utf-8'))
@@ -83,21 +83,20 @@ class PEIClient(BaseClient):
             last_updated = self.pei_tz.localize(datetime.fromtimestamp(seconds_epoch))
             total_on_island_load = float(sysload_json.get('data1', None))
             wind_mw = float(sysload_json.get('data2', None))
-            other_mw = total_on_island_load - wind_mw
-            loads.append({
-                'ba_name': self.NAME,
-                'timestamp': last_updated.astimezone(pytz.utc),
-                'freq': self.FREQUENCY_CHOICES.tenmin,
-                'market': self.MARKET_CHOICES.tenmin,
-                'fuel_name': 'wind',
-                'gen_MW': wind_mw
-            })
-            loads.append({
-                'ba_name': self.NAME,
-                'timestamp': last_updated.astimezone(pytz.utc),
-                'freq': self.FREQUENCY_CHOICES.tenmin,
-                'market': self.MARKET_CHOICES.tenmin,
-                'fuel_name': 'other',
-                'gen_MW': other_mw
-            })
-        return loads
+            oil_mw = float(sysload_json.get('data3', None))
+            other_mw = total_on_island_load - wind_mw - oil_mw
+            utc_dt = last_updated.astimezone(pytz.utc)
+            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='oil', gen_mw=oil_mw)
+            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='other', gen_mw=other_mw)
+            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='wind', gen_mw=wind_mw)
+        return genmix
+
+    def _append_generation(self, generation_ts, utc_dt, fuel_name, gen_mw):
+        generation_ts.append({
+            'ba_name': self.NAME,
+            'timestamp': utc_dt,
+            'freq': self.FREQUENCY_CHOICES.tenmin,
+            'market': self.MARKET_CHOICES.tenmin,
+            'fuel_name': fuel_name,
+            'gen_MW': gen_mw
+        })

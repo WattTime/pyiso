@@ -47,10 +47,13 @@ class TestPEIClient(TestCase):
 
         load_ts = self.c.get_generation(latest=True)
 
-        self.assertEqual(len(load_ts), 2)
+        self.assertEqual(len(load_ts), 3)
         self.assertEqual(load_ts[0].get('timestamp', None), expected_timestamp)
-        self.assertEqual(load_ts[0].get('fuel_name', None), 'wind')
-        self.assertEqual(load_ts[0].get('gen_MW', None), 4.55)
+        self.assertEqual(load_ts[0].get('fuel_name', None), 'oil')
+        self.assertEqual(load_ts[0].get('gen_MW', None), 0)
         self.assertEqual(load_ts[1].get('timestamp', None), expected_timestamp)
         self.assertEqual(load_ts[1].get('fuel_name', None), 'other')
         self.assertEqual(load_ts[1].get('gen_MW', None), 146.01)
+        self.assertEqual(load_ts[2].get('timestamp', None), expected_timestamp)
+        self.assertEqual(load_ts[2].get('fuel_name', None), 'wind')
+        self.assertEqual(load_ts[2].get('gen_MW', None), 4.55)
