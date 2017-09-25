@@ -50,6 +50,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       NBP                       New Brunswick Power                      NBPower
       NEVP                      Nevada Power                             NVEnergy
       NYISO                     New York ISO                             NYISO
+      PEI                       Price Edward Island (Canada)             PEI
       PJM                       Mid-Atlantic                             PJM
       PNM                       Public Service Co New Mexico             SVERI
       SASK                      Saskatchewan Power                       SaskPower

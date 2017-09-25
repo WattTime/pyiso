@@ -6,6 +6,11 @@ from pyiso.base import BaseClient
 
 
 class PEIClient(BaseClient):
+    """
+    The government of Prince Edward Island, Canada publishes a "Wind Energy" summary page for the island at
+    http://www.gov.pe.ca/windenergy/chart.php The latest load and a basic generation mix can be derived from this data.
+    """
+
     NAME = 'PEI'
     TZ_NAME = 'Etc/GMT+4'  # Times are always given in Atlantic Standard Time
 
