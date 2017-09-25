@@ -55,7 +55,7 @@ class PEIClient(BaseClient):
             sysload_list = json.loads(response.content.decode('utf-8'))
             sysload_json = sysload_list[0]
             seconds_epoch = int(sysload_json.get('updateDate', None))
-            last_updated = self.pei_tz.localize(datetime.fromtimestamp(seconds_epoch))
+            last_updated = datetime.fromtimestamp(timestamp=seconds_epoch, tz=self.pei_tz)
             total_on_island_load = float(sysload_json.get('data1', None))
             loads.append({
                 'ba_name': self.NAME,
@@ -80,7 +80,7 @@ class PEIClient(BaseClient):
             sysload_list = json.loads(response.content.decode('utf-8'))
             sysload_json = sysload_list[0]
             seconds_epoch = int(sysload_json.get('updateDate', None))
-            last_updated = self.pei_tz.localize(datetime.fromtimestamp(seconds_epoch))
+            last_updated = datetime.fromtimestamp(timestamp=seconds_epoch, tz=self.pei_tz)
             total_on_island_load = float(sysload_json.get('data1', None))
             wind_mw = float(sysload_json.get('data2', None))
             oil_mw = float(sysload_json.get('data3', None))
