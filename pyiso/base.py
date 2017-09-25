@@ -43,9 +43,7 @@ class BaseClient(object):
     # name
     NAME = ''
 
-    TIMEOUT_SECONDS = 20
-
-    def __init__(self, timeout_seconds=20):
+    def __init__(self, timeout_seconds=30):
         # will hold query options
         self.options = {}
 

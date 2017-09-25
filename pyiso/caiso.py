@@ -272,6 +272,7 @@ class CAISOClient(BaseClient):
         self.handle_options(data='lmp', latest=latest,
                             start_at=start_at, end_at=end_at,
                             **kwargs)
+        self.timeout_seconds = 45
 
         if self.options['latest']:
             queryname = 'PRC_CURR_LMP'
