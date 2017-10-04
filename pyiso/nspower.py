@@ -1,6 +1,6 @@
+import pandas
 import pytz
-from datetime import timedelta
-
+from datetime import timedelta, datetime
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -8,6 +8,26 @@ from pyiso.base import BaseClient
 class NSPowerClient(BaseClient):
     NAME = 'NSP'
     TZ_NAME = 'Canada/Atlantic'
+
+    # LM6000s are combined cycle gas turbines. I don't know if the value being listed seperately represents just the
+    # condensing steam generator (i.e. Tuft Cove 6) or the entire combined cycle system of two natural gas generators
+    # (Tuft Cove 4 & 5) plus the condensing steam generator (Tuft Cove 6).
+    # See http://www.novascotia.ca/nse/ea/tuftscove6/NSPI-TuftsCove6-Registration.pdf
+    #
+    # CTs are diesel (oil) combustion turbines (I think).
+    # See http://www.nspower.ca/en/home/about-us/how-we-make-electricity/thermal-electricity/oil-facilities.aspx
+    #
+    # "HFO/Natural Gas" is Heavy Fuel Oil/Natural Gas
+    fuels = {
+        'Solid Fuel': 'coal',
+        'HFO/Natural Gas': 'natgas',
+        'CT\'s': 'oil',
+        'LM 6000\'s': 'thermal',
+        'Biomass': 'biomass',
+        'Hydro': 'hydro',
+        'Wind': 'wind',
+        'Imports': 'other'
+    }
 
     def __init__(self):
         super(NSPowerClient, self).__init__()
@@ -27,10 +47,8 @@ class NSPowerClient(BaseClient):
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='gen', **kwargs)
-        # LM6000s are gas turbines. CTs are diesel (oil) combustion turbines.
-        # See http://www.nspower.ca/en/home/about-us/how-we-make-electricity/thermal-electricity/oil-facilities.aspx
-        generation_url = self.base_url + 'currentmix.json'
 
+        genmix = []
         if not self._is_valid_date_range():
             if self.options.get('forecast', False):
                 LOGGER.warn(self.NAME + ': Generation mix forecasts are not supported.')
@@ -39,11 +57,9 @@ class NSPowerClient(BaseClient):
                       (self.NAME, self.options.get('start_at', None), self.options.get('end_at', None),
                        self.options.get('earliest_data_at', None), self.options.get('latest_data_at', None))
                 LOGGER.warn(msg)
-            return []
-        elif latest:
-            pass
         else:
-            pass
+            self._parse_currentmix(genmix)
+        return genmix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='load', **kwargs)
@@ -81,3 +97,30 @@ class NSPowerClient(BaseClient):
             return False
         else:
             return True
+
+    def _parse_currentmix(self, genmix):
+        """
+        :param list genmix:
+        """
+        generation_url = self.base_url + 'currentmix.json'
+        response = self.request(url=generation_url)
+        currentmix_df = pandas.read_json(response.content.decode('utf-8'))
+        currentmix_df['datetime'] = currentmix_df['datetime'].str.replace(r'\D+', '').astype('int')
+        currentmix_df['datetime'] = currentmix_df['datetime'].apply(lambda d: datetime.fromtimestamp(d / 1000,
+                                                                                                     tz=pytz.utc))
+        currentmix_df.set_index('datetime', inplace=True, drop=True)
+        stacked = currentmix_df.stack()
+        for index, row in list(stacked.items()):
+            row_dt = index[0].to_pydatetime()
+            if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                self.append_generation(genmix=genmix, fuel_name=self.fuels[index[1]], tzaware_dt=row_dt, gen_mw=row)
+
+    def append_generation(self, genmix, fuel_name, tzaware_dt, gen_mw):
+        genmix.append({
+            'ba_name': self.NAME,
+            'timestamp': tzaware_dt.astimezone(pytz.utc),
+            'freq': self.FREQUENCY_CHOICES.hourly,
+            'market': self.MARKET_CHOICES.hourly,
+            'fuel_name': fuel_name,
+            'gen_MW': gen_mw
+        })

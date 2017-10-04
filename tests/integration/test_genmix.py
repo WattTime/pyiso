@@ -394,6 +394,18 @@ class TestPJMGenMix(TestBaseGenMix):
                           end_at=today-timedelta(days=1))
 
 
+class TestNSPowerGenMix(TestBaseGenMix):
+    def test_date_range(self):
+        # basic test
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        data = self._run_test('NSP', start_at=today-timedelta(days=1),
+                              end_at=today)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+
 class TestNYISOGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
         self._run_null_response_test('NYISO', latest=True)
