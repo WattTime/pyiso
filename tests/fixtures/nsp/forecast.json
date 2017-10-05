@@ -1,0 +1,202 @@
+[
+    {
+        "datetime":  "\/Date(1507201200000)\/",
+        "Current Forecasted Demand":  973
+    },
+    {
+        "datetime":  "\/Date(1507114800000)\/",
+        "Current Forecasted Demand":  1088
+    },
+    {
+        "datetime":  "\/Date(1507204800000)\/",
+        "Current Forecasted Demand":  1016
+    },
+    {
+        "datetime":  "\/Date(1507118400000)\/",
+        "Current Forecasted Demand":  1113
+    },
+    {
+        "datetime":  "\/Date(1507208400000)\/",
+        "Current Forecasted Demand":  1047
+    },
+    {
+        "datetime":  "\/Date(1507122000000)\/",
+        "Current Forecasted Demand":  1105
+    },
+    {
+        "datetime":  "\/Date(1507212000000)\/",
+        "Current Forecasted Demand":  971
+    },
+    {
+        "datetime":  "\/Date(1507125600000)\/",
+        "Current Forecasted Demand":  1105
+    },
+    {
+        "datetime":  "\/Date(1507215600000)\/",
+        "Current Forecasted Demand":  991
+    },
+    {
+        "datetime":  "\/Date(1507129200000)\/",
+        "Current Forecasted Demand":  1092
+    },
+    {
+        "datetime":  "\/Date(1507219200000)\/",
+        "Current Forecasted Demand":  990
+    },
+    {
+        "datetime":  "\/Date(1507132800000)\/",
+        "Current Forecasted Demand":  1080
+    },
+    {
+        "datetime":  "\/Date(1507222800000)\/",
+        "Current Forecasted Demand":  989
+    },
+    {
+        "datetime":  "\/Date(1507136400000)\/",
+        "Current Forecasted Demand":  1070
+    },
+    {
+        "datetime":  "\/Date(1507226400000)\/",
+        "Current Forecasted Demand":  984
+    },
+    {
+        "datetime":  "\/Date(1507140000000)\/",
+        "Current Forecasted Demand":  1056
+    },
+    {
+        "datetime":  "\/Date(1507230000000)\/",
+        "Current Forecasted Demand":  993
+    },
+    {
+        "datetime":  "\/Date(1507143600000)\/",
+        "Current Forecasted Demand":  1009
+    },
+    {
+        "datetime":  "\/Date(1507233600000)\/",
+        "Current Forecasted Demand":  1018
+    },
+    {
+        "datetime":  "\/Date(1507147200000)\/",
+        "Current Forecasted Demand":  1074.01
+    },
+    {
+        "datetime":  "\/Date(1507237200000)\/",
+        "Current Forecasted Demand":  1022
+    },
+    {
+        "datetime":  "\/Date(1507150800000)\/",
+        "Current Forecasted Demand":  1050.01
+    },
+    {
+        "datetime":  "\/Date(1507240800000)\/",
+        "Current Forecasted Demand":  1002
+    },
+    {
+        "datetime":  "\/Date(1507154400000)\/",
+        "Current Forecasted Demand":  1079
+    },
+    {
+        "datetime":  "\/Date(1507244400000)\/",
+        "Current Forecasted Demand":  1020
+    },
+    {
+        "datetime":  "\/Date(1507158000000)\/",
+        "Current Forecasted Demand":  1087
+    },
+    {
+        "datetime":  "\/Date(1507248000000)\/",
+        "Current Forecasted Demand":  982
+    },
+    {
+        "datetime":  "\/Date(1507161600000)\/",
+        "Current Forecasted Demand":  1054
+    },
+    {
+        "datetime":  "\/Date(1507251600000)\/",
+        "Current Forecasted Demand":  917
+    },
+    {
+        "datetime":  "\/Date(1507165200000)\/",
+        "Current Forecasted Demand":  971
+    },
+    {
+        "datetime":  "\/Date(1507255200000)\/",
+        "Current Forecasted Demand":  834
+    },
+    {
+        "datetime":  "\/Date(1507168800000)\/",
+        "Current Forecasted Demand":  902
+    },
+    {
+        "datetime":  "\/Date(1507258800000)\/",
+        "Current Forecasted Demand":  759
+    },
+    {
+        "datetime":  "\/Date(1507172400000)\/",
+        "Current Forecasted Demand":  878
+    },
+    {
+        "datetime":  "\/Date(1507262400000)\/",
+        "Current Forecasted Demand":  714
+    },
+    {
+        "datetime":  "\/Date(1507176000000)\/",
+        "Current Forecasted Demand":  827
+    },
+    {
+        "datetime":  "\/Date(1507266000000)\/",
+        "Current Forecasted Demand":  680
+    },
+    {
+        "datetime":  "\/Date(1507179600000)\/",
+        "Current Forecasted Demand":  841
+    },
+    {
+        "datetime":  "\/Date(1507269600000)\/",
+        "Current Forecasted Demand":  660
+    },
+    {
+        "datetime":  "\/Date(1507183200000)\/",
+        "Current Forecasted Demand":  814.99
+    },
+    {
+        "datetime":  "\/Date(1507273200000)\/",
+        "Current Forecasted Demand":  650
+    },
+    {
+        "datetime":  "\/Date(1507186800000)\/",
+        "Current Forecasted Demand":  814
+    },
+    {
+        "datetime":  "\/Date(1507276800000)\/",
+        "Current Forecasted Demand":  655
+    },
+    {
+        "datetime":  "\/Date(1507190400000)\/",
+        "Current Forecasted Demand":  797
+    },
+    {
+        "datetime":  "\/Date(1507280400000)\/",
+        "Current Forecasted Demand":  691
+    },
+    {
+        "datetime":  "\/Date(1507194000000)\/",
+        "Current Forecasted Demand":  786
+    },
+    {
+        "datetime":  "\/Date(1507284000000)\/",
+        "Current Forecasted Demand":  809
+    },
+    {
+        "datetime":  "\/Date(1507197600000)\/",
+        "Current Forecasted Demand":  853
+    },
+    {
+        "datetime":  "\/Date(1507287600000)\/",
+        "Current Forecasted Demand":  927
+    },
+    {
+        "datetime":  "\/Date(1507201200000)\/",
+        "Current Forecasted Demand":  973
+    }
+]
