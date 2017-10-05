@@ -147,7 +147,8 @@ class NYISOClient(BaseClient):
             dates_list = self.dates()
 
         # fetch and parse all csvs
-        for date in dates_list:
+        date = dates_list[0]
+        while date in dates_list:
             for csv in self.fetch_csvs(date, label):
 
                 try:
@@ -157,8 +158,9 @@ class NYISOClient(BaseClient):
 
             # if fetch_csvs cannot get the individual days, it gets the whole month
             # Shortcut the loop if any call to fetch_csvs gets all dates in dates_list
+            date = pieces[-1].index[-1]
             try:
-                if (pieces[-1].index[-1] - timedelta(days=1)).date() > max(dates_list):
+                if (date - timedelta(days=1)).date() > max(dates_list):
                     break
             except IndexError:
                 pass
