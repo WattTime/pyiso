@@ -49,7 +49,11 @@ class NSPowerClient(BaseClient):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='gen', **kwargs)
 
         genmix = []
-        if not self._is_valid_date_range():
+        if latest:
+            self._generation_latest(genmix)
+        elif self._is_valid_date_range():
+            self._generation_range(genmix)
+        else:
             if self.options.get('forecast', False):
                 LOGGER.warn(self.NAME + ': Generation mix forecasts are not supported.')
             else:
@@ -57,8 +61,7 @@ class NSPowerClient(BaseClient):
                       (self.NAME, self.options.get('start_at', None), self.options.get('end_at', None),
                        self.options.get('earliest_data_at', None), self.options.get('latest_data_at', None))
                 LOGGER.warn(msg)
-        else:
-            self._parse_currentmix(genmix)
+
         return genmix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
@@ -98,29 +101,68 @@ class NSPowerClient(BaseClient):
         else:
             return True
 
-    def _parse_currentmix(self, genmix):
+    def _current_mix_dataframe(self):
         """
-        :param list genmix:
+        Requests the "current mix" data from Nova Scotia Power's public website and returns the data in a pandas
+        DataFrame.
+        :return: A pandas DataFrame indexed by datetime, fuel columns, and generation values in MW.
+        :rtype: pandas.DataFrame
         """
         generation_url = self.base_url + 'currentmix.json'
         response = self.request(url=generation_url)
-        currentmix_df = pandas.read_json(response.content.decode('utf-8'))
-        currentmix_df['datetime'] = currentmix_df['datetime'].str.replace(r'\D+', '').astype('int')
-        currentmix_df['datetime'] = currentmix_df['datetime'].apply(lambda d: datetime.fromtimestamp(d / 1000,
-                                                                                                     tz=pytz.utc))
-        currentmix_df.set_index('datetime', inplace=True, drop=True)
-        stacked = currentmix_df.stack()
-        for index, row in list(stacked.items()):
-            row_dt = index[0].to_pydatetime()
-            if self.options['start_at'] <= row_dt <= self.options['end_at']:
-                self.append_generation(genmix=genmix, fuel_name=self.fuels[index[1]], tzaware_dt=row_dt, gen_mw=row)
+        if response and response.content:
+            json = response.content.decode('utf-8')
+            currentmix_df = pandas.read_json(json)
+            currentmix_df['datetime'] = currentmix_df['datetime'].str.replace(r'\D+', '').astype('int')
+            currentmix_df['datetime'] = currentmix_df['datetime'].apply(lambda d: datetime.fromtimestamp(d / 1000,
+                                                                                                         tz=pytz.utc))
+            currentmix_df.set_index('datetime', inplace=True, drop=True)
+            return currentmix_df
+        else:
+            return pandas.DataFrame()
 
-    def append_generation(self, genmix, fuel_name, tzaware_dt, gen_mw):
-        genmix.append({
+    def _generation_latest(self, genmix):
+        """
+        Requests the latest electricity generation mix data and appends results in pyiso format to the provided list.
+        :param list genmix: The pyiso results list to append results to.
+        """
+        currentmix_df = self._current_mix_dataframe()
+        if len(currentmix_df) > 0:
+            latest_mix_fuel_series = currentmix_df.iloc[len(currentmix_df) - 1]
+            latest_dt = latest_mix_fuel_series.name.to_pydatetime()
+            for index, val in list(latest_mix_fuel_series.items()):
+                self._append_generation(result_ts=genmix, fuel=index, tz_aware_dt=latest_dt, gen_mw=val)
+
+    def _generation_range(self, genmix):
+        """
+        Requests historical generation mix data and appends results in pyiso format to the provided list for those
+        results which fall between start_at and end_at time range.
+        :param list genmix: The pyiso results list to append results to.
+        """
+        currentmix_df = self._current_mix_dataframe()
+        if len(currentmix_df) > 0:
+            stacked = currentmix_df.stack()
+            for index, row in list(stacked.items()):
+                row_dt = index[0].to_pydatetime()
+                if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                    self._append_generation(result_ts=genmix, fuel=index[1], tz_aware_dt=row_dt, gen_mw=row)
+
+    def _append_generation(self, result_ts, fuel, tz_aware_dt, gen_mw):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, fuel_name, gen_MW].
+        Timestamps are in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param str fuel: NSP fuel name (will be converted to WattTime name).
+        :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
+        :param float gen_mw: Electricity generation in megawatts (MW)
+        """
+        result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tzaware_dt.astimezone(pytz.utc),
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
             'freq': self.FREQUENCY_CHOICES.hourly,
             'market': self.MARKET_CHOICES.hourly,
-            'fuel_name': fuel_name,
+            'fuel_name': self.fuels[fuel],
             'gen_MW': gen_mw
         })
+
+

@@ -52,7 +52,7 @@ class TestNSPower(TestCase):
 
         results = self.c.get_generation(start_at=start_at, end_at=end_at)
 
-        expected_length = 96  # 8 * 12 fuels
+        expected_length = 96  # 8 fuels * 12 hours
         self.assertEqual(len(results), expected_length)
 
         # Spot check values at the start and end of the results
@@ -62,3 +62,33 @@ class TestNSPower(TestCase):
         self.assertEqual(results[95]['timestamp'], parse('2017-09-29T12:00:00.000Z'))
         self.assertEqual(results[95]['fuel_name'], 'wind')
         self.assertEqual(results[95]['gen_MW'], 23.27)
+
+    @requests_mock.Mocker()
+    def test_get_generation_latest_returns_expected(self, mocked_request):
+        expected_url = 'http://www.nspower.ca/system_report/today/currentmix.json'
+        expected_response = read_fixture(self.c.NAME, 'currentmix.json')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = self.c.get_generation(latest=True)
+
+        expected_length = 8  # 8 fuels
+        self.assertEqual(len(results), expected_length)
+
+        # Check that all datetime values are equal and known fuel values
+        expected_datetime = parse('2017-09-29T12:00:00.000Z')
+        expected_mw_by_fuel = {
+            'coal': 42.8,
+            'natgas': 14.06,
+            'oil': 0.06,
+            'thermal': 7.17,
+            'biomass': 3.46,
+            'hydro': 2.79,
+            'wind': 23.27,
+            'other': 6.39
+        }
+        for result in results:
+            self.assertEqual(result['timestamp'], expected_datetime)
+            expected_gen_mw = expected_mw_by_fuel.get(result['fuel_name'], -1)
+            self.assertEqual(result['gen_MW'], expected_gen_mw)
+
+

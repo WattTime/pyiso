@@ -395,6 +395,17 @@ class TestPJMGenMix(TestBaseGenMix):
 
 
 class TestNSPowerGenMix(TestBaseGenMix):
+    def test_null_response_latest(self):
+        self._run_null_response_test('NSP', latest=True)
+
+    def test_latest(self):
+        # basic test
+        data = self._run_test('NSP', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
     def test_date_range(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
