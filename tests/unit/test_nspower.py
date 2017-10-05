@@ -9,7 +9,7 @@ import requests_mock
 import pytz
 
 
-@freeze_time('2017-09-29T12:55:00Z')
+@freeze_time('2017-10-05T11:45:00Z')
 class TestNSPower(TestCase):
     def setUp(self):
         self.tzaware_utcnow = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -56,12 +56,12 @@ class TestNSPower(TestCase):
         self.assertEqual(len(results), expected_length)
 
         # Spot check values at the start and end of the results
-        self.assertEqual(results[0]['timestamp'], parse('2017-09-29T01:00:00.000Z'))
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-05T00:00:00.000Z'))
         self.assertEqual(results[0]['fuel_name'], 'biomass')
-        self.assertEqual(results[0]['gen_MW'], 4.83)
-        self.assertEqual(results[95]['timestamp'], parse('2017-09-29T12:00:00.000Z'))
+        self.assertAlmostEqual(results[0]['gen_MW'], 1.95)
+        self.assertEqual(results[95]['timestamp'], parse('2017-10-05T11:00:00.000Z'))
         self.assertEqual(results[95]['fuel_name'], 'wind')
-        self.assertEqual(results[95]['gen_MW'], 23.27)
+        self.assertAlmostEqual(results[95]['gen_MW'], 35.52)
 
     @requests_mock.Mocker()
     def test_get_generation_latest_returns_expected(self, mocked_request):
@@ -75,20 +75,20 @@ class TestNSPower(TestCase):
         self.assertEqual(len(results), expected_length)
 
         # Check that all datetime values are equal and known fuel values
-        expected_datetime = parse('2017-09-29T12:00:00.000Z')
+        expected_datetime = parse('2017-10-05T11:00:00.000Z')
         expected_mw_by_fuel = {
-            'coal': 42.8,
-            'natgas': 14.06,
-            'oil': 0.06,
-            'thermal': 7.17,
-            'biomass': 3.46,
-            'hydro': 2.79,
-            'wind': 23.27,
-            'other': 6.39
+            'coal': 44.91,
+            'natgas': 14.13,
+            'oil': 0.02,
+            'thermal': 0,
+            'biomass': 2.44,
+            'hydro': 2.74,
+            'wind': 35.52,
+            'other': 0.25
         }
         for result in results:
             self.assertEqual(result['timestamp'], expected_datetime)
             expected_gen_mw = expected_mw_by_fuel.get(result['fuel_name'], -1)
-            self.assertEqual(result['gen_MW'], expected_gen_mw)
+            self.assertAlmostEqual(result['gen_MW'], expected_gen_mw)
 
 
