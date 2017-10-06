@@ -47,7 +47,6 @@ class NSPowerClient(BaseClient):
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='gen', **kwargs)
-
         genmix = []
         if latest:
             self._generation_latest(genmix)
@@ -61,24 +60,23 @@ class NSPowerClient(BaseClient):
                       (self.NAME, self.options.get('start_at', None), self.options.get('end_at', None),
                        self.options.get('earliest_data_at', None), self.options.get('latest_data_at', None))
                 LOGGER.warn(msg)
-
         return genmix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='load', **kwargs)
-        load_0_24_url = self.base_url + 'currentload.json'
-        load_24_48_url = self.base_url + 'forecast.json'
-
-        if not self._is_valid_date_range():
+        loads = []
+        if latest:
+            self._load_latest(loads)
+        elif self._is_valid_date_range():
+            self._load_range(loads)
+            if self.options.get('forecast', False):
+                self._load_forecast(loads)
+        else:
             msg = '%s: Requested date range %s to %s is outside range of available data from %s to %s.' % \
                   (self.NAME, self.options.get('start_at', None), self.options.get('end_at', None),
                    self.options.get('earliest_data_at', None), self.options.get('latest_data_at', None))
             LOGGER.warn(msg)
-            return []
-        elif latest:
-            pass
-        else:
-            pass
+        return loads
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         # The data from currentmix.json contains 'Imports' but exports are not reported anywhere.
@@ -113,11 +111,28 @@ class NSPowerClient(BaseClient):
         if response and response.content:
             json = response.content.decode('utf-8')
             currentmix_df = pandas.read_json(json)
-            currentmix_df['datetime'] = currentmix_df['datetime'].str.replace(r'\D+', '').astype('int')
-            currentmix_df['datetime'] = currentmix_df['datetime'].apply(lambda d: datetime.fromtimestamp(d / 1000,
-                                                                                                         tz=pytz.utc))
+            currentmix_df['datetime'] = self._json_serialized_dates_to_timestamps(currentmix_df['datetime'])
             currentmix_df.set_index('datetime', inplace=True, drop=True)
             return currentmix_df
+        else:
+            return pandas.DataFrame()
+
+    def _current_load_dataframe(self):
+        """
+        Requests the "current load" data from Nova Scotia Power's public website and returns the data in a pandas
+        DataFrame.
+        :return: A pandas DataFrame indexed by datetime with load values in MW.
+        :rtype: pandas.DataFrame
+        """
+        currentload_url = self.base_url + 'currentload.json'
+        response = self.request(url=currentload_url)
+        if response and response.content:
+            json = response.content.decode('utf-8')
+            currentload_df = pandas.read_json(json)
+            currentload_df.drop(currentload_df.head(1).index, inplace=True)  # First row is always 0; drop it.
+            currentload_df['datetime'] = self._json_serialized_dates_to_timestamps(currentload_df['datetime'])
+            currentload_df.set_index('datetime', inplace=True, drop=True)
+            return currentload_df
         else:
             return pandas.DataFrame()
 
@@ -128,9 +143,9 @@ class NSPowerClient(BaseClient):
         """
         currentmix_df = self._current_mix_dataframe()
         if len(currentmix_df) > 0:
-            latest_mix_fuel_series = currentmix_df.iloc[len(currentmix_df) - 1]
-            latest_dt = latest_mix_fuel_series.name.to_pydatetime()
-            for index, val in list(latest_mix_fuel_series.items()):
+            latest_fuel_outputs = currentmix_df.iloc[len(currentmix_df) - 1]
+            latest_dt = latest_fuel_outputs.name.to_pydatetime()
+            for index, val in list(latest_fuel_outputs.items()):
                 self._append_generation(result_ts=genmix, fuel=index, tz_aware_dt=latest_dt, gen_mw=val)
 
     def _generation_range(self, genmix):
@@ -165,4 +180,56 @@ class NSPowerClient(BaseClient):
             'gen_MW': gen_mw
         })
 
+    def _append_load(self, result_ts, tz_aware_dt, load_mw):
+        """
+        Appends a dict to the results list, with the keys [ba_name, timestamp, freq, market, load_MW].
+        Timestamps are in UTC.
+        :param list result_ts: The timeseries (a list of dicts) which results should be appended to.
+        :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
+        :param float load_mw: Electricity load in megawatts (MW)
+        """
+        result_ts.append({
+            'ba_name': self.NAME,
+            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'freq': self.FREQUENCY_CHOICES.hourly,
+            'market': self.MARKET_CHOICES.hourly,
+            'load_MW': load_mw
+        })
+        pass
 
+    def _json_serialized_dates_to_timestamps(self, serialized_datetimes):
+        """
+        :param pandas.Series serialized_datetimes: Series of datetimes strings in NSPower's... special... serialization
+            format.
+        :return: pandas.Series Series of UTC Timestamps.
+        """
+        ticks = serialized_datetimes.str.replace(r'\D+', '').astype('int')
+        return ticks.apply(lambda d: datetime.fromtimestamp(d / 1000, tz=pytz.utc))
+
+    def _load_range(self, loads):
+        """
+        Requests historical electricity loads and appends results in pyiso format to the provided list for those
+        results which fall between start_at and end_at time range.
+        :param list loads: The pyiso results list to append results to.
+        """
+        currentload_df = self._current_load_dataframe()
+        for index, row in list(currentload_df['Base Load'].items()):
+            row_dt = index.to_pydatetime()
+            if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                self._append_load(result_ts=loads, tz_aware_dt=row_dt, load_mw=row)
+
+    def _load_latest(self, loads):
+        """
+        Requests the latest electricity loads and appends results in pyiso format to the provided list.
+        :param list loads: The pyiso results list to append results to.
+        """
+        currentload_df = self._current_load_dataframe()
+        if len(currentload_df) > 0:
+            latest_load = currentload_df.tail(1)
+            load_mw = latest_load.loc['Base Load'][0]
+            latest_dt = latest_load.iloc[0].name.to_pydatetime()
+            self._append_load(result_ts=loads, tz_aware_dt=latest_dt, load_mw=load_mw)
+
+    def _load_forecast(self, loads):
+        load_forecast_url = self.base_url + 'forecast.json'
+        response = self.request(url=load_forecast_url)
