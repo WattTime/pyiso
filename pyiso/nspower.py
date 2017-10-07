@@ -156,7 +156,7 @@ class NSPowerClient(BaseClient):
         if len(currentmix_df) > 0:
             latest_fuel_outputs = currentmix_df.iloc[len(currentmix_df) - 1]
             latest_dt = latest_fuel_outputs.name.to_pydatetime()
-            for index, val in list(latest_fuel_outputs.items()):
+            for index, val in latest_fuel_outputs.iteritems():
                 self._append_generation(result_ts=genmix, fuel=index, tz_aware_dt=latest_dt, gen_mw=val)
 
     def _generation_range(self, genmix):
@@ -168,7 +168,7 @@ class NSPowerClient(BaseClient):
         currentmix_df = self._current_mix_dataframe()
         if len(currentmix_df) > 0:
             stacked = currentmix_df.stack()
-            for index, row in list(stacked.items()):
+            for index, row in stacked.iteritems():
                 row_dt = index[0].to_pydatetime()
                 if self.options['start_at'] <= row_dt <= self.options['end_at']:
                     self._append_generation(result_ts=genmix, fuel=index[1], tz_aware_dt=row_dt, gen_mw=row)
@@ -242,7 +242,7 @@ class NSPowerClient(BaseClient):
         """
         currentload_df = self._current_load_dataframe()
         if len(currentload_df) > 0:
-            for index, row in list(currentload_df['Base Load'].items()):
+            for index, row in currentload_df.itertuples():
                 row_dt = index.to_pydatetime()
                 if self.options['start_at'] <= row_dt <= self.options['end_at']:
                     self._append_load(result_ts=loads, tz_aware_dt=row_dt, load_mw=row)
@@ -267,7 +267,7 @@ class NSPowerClient(BaseClient):
         """
         forecastload_df = self._forecast_load_dataframe()
         if len(forecastload_df) > 0:
-            for index, row in list(forecastload_df['Current Forecasted Demand'].items()):
+            for index, row in forecastload_df.itertuples():
                 row_dt = index.to_pydatetime()
                 # For some reason, historical forecast values are included in the response.
                 # They must also be filtered out, in case the start_at/end_at range is a historical+forecast range.
