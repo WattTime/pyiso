@@ -323,7 +323,7 @@ class TestNEVPLoad(TestBaseLoad):
         self.assertEqual(len(data), 2*24)
 
 
-class TestNSPLoad(TestBaseLoad):
+class TestNSPowerLoad(TestBaseLoad):
     def test_null_response_range(self):
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
         self._run_null_repsonse_test('NSP', start_at=now-timedelta(hours=2), end_at=now+timedelta(hours=2))
