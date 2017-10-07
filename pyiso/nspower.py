@@ -68,7 +68,8 @@ class NSPowerClient(BaseClient):
         if latest:
             self._load_latest(loads)
         elif self._is_valid_date_range():
-            self._load_range(loads)
+            if self.options['start_at'] < self.ns_now:
+                self._load_range(loads)
             if self.options.get('forecast', False):
                 self._load_forecast(loads)
         else:
@@ -128,6 +129,7 @@ class NSPowerClient(BaseClient):
         response = self.request(url=currentload_url)
         if response and response.content:
             json = response.content.decode('utf-8')
+            LOGGER.info(json)
             currentload_df = pandas.read_json(json)
             currentload_df.drop(currentload_df.head(1).index, inplace=True)  # First row is always 0; drop it.
             currentload_df['datetime'] = self._json_serialized_dates_to_timestamps(currentload_df['datetime'])
@@ -195,7 +197,24 @@ class NSPowerClient(BaseClient):
             'market': self.MARKET_CHOICES.hourly,
             'load_MW': load_mw
         })
-        pass
+
+    def _forecast_load_dataframe(self):
+        """
+        Requests the "forecast" load data from Nova Scotia Power's public website and returns the data in a pandas
+        DataFrame.
+        :return: A pandas DataFrame indexed by datetime with load values in MW.
+        :rtype: pandas.DataFrame
+        """
+        load_forecast_url = self.base_url + 'forecast.json'
+        response = self.request(url=load_forecast_url)
+        if response and response.content:
+            json = response.content.decode('utf-8')
+            forecastload_df = pandas.read_json(json)
+            forecastload_df['datetime'] = self._json_serialized_dates_to_timestamps(forecastload_df['datetime'])
+            forecastload_df.set_index('datetime', inplace=True, drop=True)
+            return forecastload_df
+        else:
+            return pandas.DataFrame()
 
     def _json_serialized_dates_to_timestamps(self, serialized_datetimes):
         """
@@ -213,10 +232,11 @@ class NSPowerClient(BaseClient):
         :param list loads: The pyiso results list to append results to.
         """
         currentload_df = self._current_load_dataframe()
-        for index, row in list(currentload_df['Base Load'].items()):
-            row_dt = index.to_pydatetime()
-            if self.options['start_at'] <= row_dt <= self.options['end_at']:
-                self._append_load(result_ts=loads, tz_aware_dt=row_dt, load_mw=row)
+        if len(currentload_df) > 0:
+            for index, row in list(currentload_df['Base Load'].items()):
+                row_dt = index.to_pydatetime()
+                if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                    self._append_load(result_ts=loads, tz_aware_dt=row_dt, load_mw=row)
 
     def _load_latest(self, loads):
         """
@@ -226,10 +246,21 @@ class NSPowerClient(BaseClient):
         currentload_df = self._current_load_dataframe()
         if len(currentload_df) > 0:
             latest_load = currentload_df.tail(1)
-            load_mw = latest_load.loc['Base Load'][0]
+            load_mw = latest_load.iloc[0]['Base Load']
             latest_dt = latest_load.iloc[0].name.to_pydatetime()
             self._append_load(result_ts=loads, tz_aware_dt=latest_dt, load_mw=load_mw)
 
     def _load_forecast(self, loads):
-        load_forecast_url = self.base_url + 'forecast.json'
-        response = self.request(url=load_forecast_url)
+        """
+        Requests the electricity demand forecast and appends results in pyiso format to the provided list for those
+        results which fall between start_at and end_at time range.
+        :param list loads: The pyiso results list to append results to.
+        """
+        forecastload_df = self._forecast_load_dataframe()
+        if len(forecastload_df) > 0:
+            for index, row in list(forecastload_df['Current Forecasted Demand'].items()):
+                row_dt = index.to_pydatetime()
+                # For some reason, historical forecast values are included in the response.
+                # They must also be filtered out, in case the start_at/end_at range is a historical+forecast range.
+                if self.options['start_at'] <= row_dt <= self.options['end_at'] and self.ns_now < row_dt:
+                    self._append_load(result_ts=loads, tz_aware_dt=row_dt, load_mw=row)

@@ -200,3 +200,11 @@ class TestCAISOBase(TestCase):
         start = ts - timedelta(hours=2)
         df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts, lmp_only=False)
         self.assertIsInstance(df, pd.DataFrame)
+
+    def test_freq(self):
+        c = client_factory('CAISO')
+        start_at = datetime(year=2017, month=10, day=5, hour=0)
+        end_at = datetime(year=2017, month=10, day=5, hour=12)
+        results = c.get_load(start_at=start_at, end_at=end_at,
+                             freq=c.FREQUENCY_CHOICES.hourly, market=c.MARKET_CHOICES.hourly)
+        print(results)

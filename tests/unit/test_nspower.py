@@ -111,7 +111,7 @@ class TestNSPower(TestCase):
         self.assertAlmostEqual(results[11]['load_MW'], 892.64)
 
     @requests_mock.Mocker()
-    def test_get_load_valid_date_range_returns_expected(self, mocked_request):
+    def test_get_load_latest_returns_expected(self, mocked_request):
         expected_url = 'http://www.nspower.ca/system_report/today/currentload.json'
         expected_response = read_fixture(self.c.NAME, 'currentload.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
@@ -121,3 +121,44 @@ class TestNSPower(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['timestamp'], parse('2017-10-05T11:00:00.000Z'))
         self.assertAlmostEqual(results[0]['load_MW'], 892.64)
+
+    @requests_mock.Mocker()
+    def test_get_load_valid_forecast_returns_expected(self, mocked_request):
+        hours = 12
+        start_at = self.tzaware_utcnow
+        end_at = self.tzaware_utcnow + timedelta(hours=hours)
+        expected_url = 'http://www.nspower.ca/system_report/today/forecast.json'
+        expected_response = read_fixture(self.c.NAME, 'forecast.json')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = self.c.get_load(start_at=start_at, end_at=end_at)
+
+        self.assertEqual(len(results), hours)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-05T12:00:00.000Z'))
+        self.assertAlmostEqual(results[0]['load_MW'], 1016)
+        self.assertEqual(results[11]['timestamp'], parse('2017-10-05T23:00:00.000Z'))
+        self.assertAlmostEqual(results[11]['load_MW'], 1020)
+
+    @requests_mock.Mocker()
+    def test_get_load_historical_and_forecast_date_range_returns_expected(self, mocked_request):
+        hours = 12
+        start_at = self.tzaware_utcnow - timedelta(hours=hours)
+        end_at = self.tzaware_utcnow + timedelta(hours=hours)
+        expected_historical_url = 'http://www.nspower.ca/system_report/today/currentload.json'
+        expected_historical_response = read_fixture(self.c.NAME, 'currentload.json')
+        mocked_request.get(expected_historical_url, content=expected_historical_response.encode('utf-8'))
+        expected_forecast_url = 'http://www.nspower.ca/system_report/today/forecast.json'
+        expected_forecast_reponse = read_fixture(self.c.NAME, 'forecast.json')
+        mocked_request.get(expected_forecast_url, content=expected_forecast_reponse.encode('utf-8'))
+
+        results = self.c.get_load(start_at=start_at, end_at=end_at)
+
+        self.assertEqual(len(results), hours * 2)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-05T00:00:00.000Z'))
+        self.assertAlmostEqual(results[0]['load_MW'], 877.25)
+        self.assertEqual(results[23]['timestamp'], parse('2017-10-05T23:00:00.000Z'))
+        self.assertAlmostEqual(results[23]['load_MW'], 1020)
