@@ -6,6 +6,16 @@ from pyiso.base import BaseClient
 
 
 class NSPowerClient(BaseClient):
+    """
+    Nova Scotia Power (Canada) has a public, informational page titled "Today's Power" which is backed by several
+    useful JSON data sources.
+
+    https://www.nspower.ca/en/home/about-us/todayspower.aspx
+
+    This client provides:
+        * historical loads up to 24 hours in the past and load forecasts up to 24 hours into the future.
+        * historical generation mix up to 24 hours in the past through to the start of the current hour.
+    """
     NAME = 'NSP'
     TZ_NAME = 'Canada/Atlantic'
 

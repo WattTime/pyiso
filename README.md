@@ -17,6 +17,7 @@ Upcoming Changes
 * Add EIA
 * Add IESO
 * Add NBPower
+* Add NSPower
 * Add AESO
 * Add SASK
 
