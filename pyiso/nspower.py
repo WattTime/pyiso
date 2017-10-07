@@ -139,7 +139,6 @@ class NSPowerClient(BaseClient):
         response = self.request(url=currentload_url)
         if response and response.content:
             json = response.content.decode('utf-8')
-            LOGGER.info(json)
             currentload_df = pandas.read_json(json)
             currentload_df.drop(currentload_df.head(1).index, inplace=True)  # First row is always 0; drop it.
             currentload_df['datetime'] = self._json_serialized_dates_to_timestamps(currentload_df['datetime'])
