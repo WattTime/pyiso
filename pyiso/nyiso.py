@@ -315,13 +315,13 @@ class NYISOClient(BaseClient):
 
         # set index
         df.index.name = 'timestamp'
-        print(df.index)
-        #for n in df.Name.unique():
-        #    df.loc[df['Name']==n].index = self.utcify_index(df.loc[df['Name']==n].index)
-        #df.index = self.utcify_index(df.index)
-        df['utctimestamp'] = df.groupby(['Name']).apply(lambda x: self.utcify_index(x.index))
-        print(df.index)
-        #df.reindex(inplace=True)
+        temp = []
+        group = df.groupby('Name')
+        for n,ndf in group:
+            ndf.index = self.utcify_index(ndf.index)
+            temp.append(ndf)
+
+        df = pd.concat(temp)
 
         # if latest, throw out 15 min predicted data
         if self.options['latest']:
