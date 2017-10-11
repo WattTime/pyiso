@@ -574,3 +574,19 @@ class TestEULoad(TestBaseLoad):
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
+
+
+class TestYukonEnergyClientLoad(TestBaseLoad):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('YUKON', latest=True)
+
+    def test_latest(self):
+        data = self._run_test('YUKON', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.tenmin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.tenmin)
