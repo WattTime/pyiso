@@ -35,6 +35,7 @@ BALANCING_AUTHORITIES = {
     'MISO': {'class': 'MISOClient', 'module': 'miso'},
     'NBP': {'class': 'NBPowerClient', 'module': 'nbpower'},
     'NEVP': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
+    'NSP': {'class': 'NSPowerClient', 'module': 'nspower'},
     'NYISO': {'class': 'NYISOClient', 'module': 'nyiso'},
     'PEI': {'class': 'PEIClient', 'module': 'pei'},
     'PJM': {'class': 'PJMClient', 'module': 'pjm'},
