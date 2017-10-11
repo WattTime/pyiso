@@ -82,11 +82,13 @@ class YukonEnergyClient(BaseClient):
         :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
         :param float gen_mw: Electricity generation in megawatts (MW)
         """
+        freq = self.FREQUENCY_CHOICES.tenmin if self.options.get('latest', False) else self.FREQUENCY_CHOICES.hourly
+        market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
             'timestamp': tz_aware_dt.astimezone(pytz.utc),
-            'freq': self.FREQUENCY_CHOICES.hourly,
-            'market': self.MARKET_CHOICES.hourly,
+            'freq': freq,
+            'market': market,
             'fuel_name': fuel,
             'gen_MW': gen_mw
         })
@@ -99,11 +101,13 @@ class YukonEnergyClient(BaseClient):
         :param datetime tz_aware_dt: The datetime of the data being appended (timezone-aware).
         :param float load_mw: Electricity load in megawatts (MW)
         """
+        freq = self.FREQUENCY_CHOICES.tenmin if self.options.get('latest', False) else self.FREQUENCY_CHOICES.hourly
+        market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
             'timestamp': tz_aware_dt.astimezone(pytz.utc),
-            'freq': self.FREQUENCY_CHOICES.hourly,
-            'market': self.MARKET_CHOICES.hourly,
+            'freq': freq,
+            'market': market,
             'load_MW': load_mw
         })
 
