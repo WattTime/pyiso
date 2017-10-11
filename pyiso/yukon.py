@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import pytz
+from bs4 import BeautifulSoup
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
@@ -19,11 +20,11 @@ class YukonEnergyClient(BaseClient):
 
     def __init__(self):
         super(YukonEnergyClient, self).__init__()
-        self.atlantic_tz = pytz.timezone(self.TZ_NAME)
+        self.yukon_tz = pytz.timezone(self.TZ_NAME)
+        self.yukon_now = self.local_now()
         self.base_url = 'http://www.yukonenergy.ca/consumption/'
         self.current_url = self.base_url + 'chart_current.php?chart=current'
         self.hourly_url = self.base_url + 'chart.php?chart=hourly'
-        self.yukon_now = self.local_now()
 
     def handle_options(self, **kwargs):
         super(YukonEnergyClient, self).handle_options(**kwargs)
@@ -106,12 +107,46 @@ class YukonEnergyClient(BaseClient):
             'load_MW': load_mw
         })
 
+    def _datetime_from_current_chart(self, current_soup):
+        """
+        :param BeautifulSoup current_soup: The Current Energy Consumption chart's HTML content.
+        :return: A timezone-aware local datetime indicating when the report was generated.
+        :rtype: datetime
+        """
+        time_element = current_soup.find(name='div', attrs={'class': 'current_time'})
+        date_element = current_soup.find(name='div', attrs={'class': 'current_date'})
+        dt_format = '%A, %B %d, %Y %I:%M %p'
+        concat_timestamp = date_element.string + ' ' + time_element.string
+        local_report_dt = self.yukon_tz.localize(datetime.strptime(concat_timestamp, dt_format))
+        return local_report_dt
+
     def _generation_latest(self, genmix):
         """
         Requests the latest electricity generation mix data and appends results in pyiso format to the provided list.
         :param list genmix: The pyiso results list to append results to.
         """
-        pass
+        response = self.request(url=self.current_url)
+        if response and response.content:
+            current_soup = BeautifulSoup(response.content, 'html.parser')
+            latest_dt = self._datetime_from_current_chart(current_soup)
+
+            # hydro generation
+            hydro_legend_element = current_soup.find(name='div', attrs={'class': 'chart_legend load_hydro'})
+            if hydro_legend_element and hydro_legend_element.div:
+                hydro_str = hydro_legend_element.div.string.replace(' MW - hydro', '')
+                self._append_generation(result_ts=genmix, fuel='hydro', tz_aware_dt=latest_dt,
+                                        gen_mw=float(hydro_str))
+            else:  # missing element means zero
+                self._append_generation(result_ts=genmix, fuel='hydro', tz_aware_dt=latest_dt, gen_mw=0)
+
+            # thermal generation
+            thermal_legend_element = current_soup.find(name='div', attrs={'class': 'chart_legend load_thermal'})
+            if thermal_legend_element and thermal_legend_element.div:
+                thermal_str = thermal_legend_element.div.string.replace(' MW - thermal', '')
+                self._append_generation(result_ts=genmix, fuel='thermal', tz_aware_dt=latest_dt,
+                                        gen_mw=float(thermal_str))
+            else:  # missing element means zero
+                self._append_generation(result_ts=genmix, fuel='thermal', tz_aware_dt=latest_dt, gen_mw=0)
 
     def _generation_range(self, genmix):
         """
@@ -147,4 +182,11 @@ class YukonEnergyClient(BaseClient):
         Requests the latest electricity loads and appends results in pyiso format to the provided list.
         :param list loads: The pyiso results list to append results to.
         """
-        pass
+        response = self.request(url=self.current_url)
+        if response and response.content:
+            current_soup = BeautifulSoup(response.content, 'html.parser')
+            latest_dt = self._datetime_from_current_chart(current_soup)
+            total_load_element = current_soup.find(name='div', attrs={'class': 'total_load'})
+            if total_load_element and total_load_element.span:
+                load_str = total_load_element.span.string.replace(' MW (megawatt)', '')
+                self._append_load(result_ts=loads, tz_aware_dt=latest_dt, load_mw=float(load_str))
