@@ -78,9 +78,9 @@ class TestNSPower(TestCase):
         expected_datetime = parse('2017-10-05T11:00:00.000Z')
         expected_mw_by_fuel = {
             'coal': 44.91,
-            'natgas': 14.13,
+            'dual': 14.13,
             'oil': 0.02,
-            'thermal': 0,
+            'ccgt': 0,
             'biomass': 2.44,
             'hydro': 2.74,
             'wind': 35.52,

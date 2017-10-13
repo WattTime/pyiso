@@ -14,6 +14,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Upcoming Changes
 ----------------
+* Add `ccgt` as a fuel type in `BaseClient` representing Combined Cycle Gas Turbine.
 * Add EIA
 * Add IESO
 * Add NBPower

@@ -19,20 +19,15 @@ class NSPowerClient(BaseClient):
     NAME = 'NSP'
     TZ_NAME = 'Canada/Atlantic'
 
-    # LM6000s are combined cycle gas turbines. I don't know if the value being listed seperately represents just the
+    # LM6000s are combined cycle gas turbines. I don't know if the value being listed separately represents just the
     # condensing steam generator (i.e. Tuft Cove 6) or the entire combined cycle system of two natural gas generators
     # (Tuft Cove 4 & 5) plus the condensing steam generator (Tuft Cove 6).
     # See http://www.novascotia.ca/nse/ea/tuftscove6/NSPI-TuftsCove6-Registration.pdf
-    #
-    # CTs are diesel (oil) combustion turbines (I think).
-    # See http://www.nspower.ca/en/home/about-us/how-we-make-electricity/thermal-electricity/oil-facilities.aspx
-    #
-    # "HFO/Natural Gas" is Heavy Fuel Oil/Natural Gas
     fuels = {
         'Solid Fuel': 'coal',
-        'HFO/Natural Gas': 'natgas',
-        'CT\'s': 'oil',
-        'LM 6000\'s': 'thermal',
+        'HFO/Natural Gas': 'dual',  # Heavy Fuel Oil/Natural Gas, indicating that either fuel could be used.
+        'CT\'s': 'oil',  # CTs are diesel (oil) combustion turbines (I think).
+        'LM 6000\'s': 'ccgt',  # LM6000s are combined cycle gas turbines.
         'Biomass': 'biomass',
         'Hydro': 'hydro',
         'Wind': 'wind',
