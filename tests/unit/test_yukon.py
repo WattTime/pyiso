@@ -71,3 +71,43 @@ class YukonEnergyClient(TestCase):
         self.assertEqual(results[1]['timestamp'], parse('2017-10-11T10:40:00.000Z'))
         self.assertEqual(results[1]['fuel_name'], 'thermal')
         self.assertAlmostEqual(results[1]['gen_MW'], 0)
+
+    @requests_mock.Mocker()
+    def test_get_generation_valid_date_range_returns_expected(self, mocked_request):
+        start_at = self.tzaware_utcnow - timedelta(hours=12)
+        end_at = self.tzaware_utcnow
+        expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
+        expected_response = read_fixture(self.c.NAME, 'hourly.html')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = self.c.get_generation(start_at=start_at, end_at=end_at)
+
+        expected_length = 22  # 2 fuels * 11 hours (1 hour is missing in this particular response)
+        self.assertEqual(len(results), expected_length)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-10T23:00:00Z'))
+        self.assertEqual(results[0]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(results[0]['gen_MW'], 51.36)
+        self.assertEqual(results[21]['timestamp'], parse('2017-10-11T09:00:00Z'))
+        self.assertEqual(results[21]['fuel_name'], 'thermal')
+        self.assertAlmostEqual(results[21]['gen_MW'], 0)
+
+    @requests_mock.Mocker()
+    def test_get_load_valid_date_range_returns_expected(self, mocked_request):
+        start_at = self.tzaware_utcnow - timedelta(hours=12)
+        end_at = self.tzaware_utcnow
+        expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
+        expected_response = read_fixture(self.c.NAME, 'hourly.html')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = self.c.get_load(start_at=start_at, end_at=end_at)
+
+        expected_length = 11  # 11 hours (1 hour is missing in this particular response)
+        self.assertEqual(len(results), expected_length)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-10T23:00:00Z'))
+        self.assertAlmostEqual(results[0]['load_MW'], 51.36)
+        self.assertEqual(results[10]['timestamp'], parse('2017-10-11T09:00:00Z'))
+        self.assertAlmostEqual(results[10]['load_MW'], 38.94)

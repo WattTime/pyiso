@@ -1,8 +1,7 @@
-from datetime import timedelta, datetime
-
+import re
 import pytz
+from datetime import timedelta, datetime
 from bs4 import BeautifulSoup
-
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -25,6 +24,7 @@ class YukonEnergyClient(BaseClient):
         self.base_url = 'http://www.yukonenergy.ca/consumption/'
         self.current_url = self.base_url + 'chart_current.php?chart=current'
         self.hourly_url = self.base_url + 'chart.php?chart=hourly'
+        self.hourly_regex_pattern = self._compile_hourly_regex_pattern()
 
     def handle_options(self, **kwargs):
         super(YukonEnergyClient, self).handle_options(**kwargs)
@@ -39,7 +39,7 @@ class YukonEnergyClient(BaseClient):
         if latest:
             self._generation_latest(genmix)
         elif self._is_valid_date_range():
-            self._generation_range(genmix)
+            self._hourly_range(genmix)
         else:
             if self.options.get('forecast', False):
                 LOGGER.warn(self.NAME + ': Generation mix forecasts are not supported.')
@@ -56,7 +56,7 @@ class YukonEnergyClient(BaseClient):
         if latest:
             self._load_latest(loads)
         elif self._is_valid_date_range():
-            self._load_range(loads)
+            self._hourly_range(loads)
         else:
             if self.options.get('forecast', False):
                 LOGGER.warn(self.NAME + ': Load forecasts are not supported.')
@@ -72,6 +72,17 @@ class YukonEnergyClient(BaseClient):
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
+
+    @staticmethod
+    def _compile_hourly_regex_pattern():
+        """
+        Hourly data is javascript content generated server-side. Javascript array elements are matched using regex.
+        The pattern matches strings similar to: '12:00 AM',41.42,0,0
+        :return: Compiled regex pattern matching each hourly javascript array element.
+        :rtype: sre_parse.Pattern
+        """
+        pattern = '(\'\\d{1,2}:\\d{2} [AP]M\',\\d{1,3}\\.?\\d{0,2},\\d{1,3}\\.?\\d{0,2},\\d{1,3}\\.?\\d{0,2})+'
+        return re.compile(pattern)
 
     def _append_generation(self, result_ts, fuel, tz_aware_dt, gen_mw):
         """
@@ -111,14 +122,14 @@ class YukonEnergyClient(BaseClient):
             'load_MW': load_mw
         })
 
-    def _datetime_from_current_chart(self, current_soup):
+    def _datetime_from_chart_soup(self, chart_soup):
         """
-        :param BeautifulSoup current_soup: The Current Energy Consumption chart's HTML content.
+        :param BeautifulSoup chart_soup: HTML tag soup from charts in the in Current Energy pages of the website.
         :return: A timezone-aware local datetime indicating when the report was generated.
         :rtype: datetime
         """
-        time_element = current_soup.find(name='div', attrs={'class': 'current_time'})
-        date_element = current_soup.find(name='div', attrs={'class': 'current_date'})
+        time_element = chart_soup.find(name='div', attrs={'class': 'current_time'})
+        date_element = chart_soup.find(name='div', attrs={'class': 'current_date'})
         dt_format = '%A, %B %d, %Y %I:%M %p'
         concat_timestamp = date_element.string + ' ' + time_element.string
         local_report_dt = self.yukon_tz.localize(datetime.strptime(concat_timestamp, dt_format))
@@ -132,7 +143,7 @@ class YukonEnergyClient(BaseClient):
         response = self.request(url=self.current_url)
         if response and response.content:
             current_soup = BeautifulSoup(response.content, 'html.parser')
-            latest_dt = self._datetime_from_current_chart(current_soup)
+            latest_dt = self._datetime_from_chart_soup(current_soup)
 
             # hydro generation
             hydro_legend_element = current_soup.find(name='div', attrs={'class': 'chart_legend load_hydro'})
@@ -152,13 +163,45 @@ class YukonEnergyClient(BaseClient):
             else:  # missing element means zero
                 self._append_generation(result_ts=genmix, fuel='thermal', tz_aware_dt=latest_dt, gen_mw=0)
 
-    def _generation_range(self, genmix):
+    def _hourly_range(self, results):
         """
         Requests historical generation mix data and appends results in pyiso format to the provided list for those
         results which fall between start_at and end_at time range.
-        :param list genmix: The pyiso results list to append results to.
+        :param list results: A list to append pyiso-formatted results to.
         """
-        pass
+        response = self.request(url=self.hourly_url)
+        if response and response.content:
+            hourly_soup = BeautifulSoup(response.content, 'html.parser')
+            javascript_elements = hourly_soup.find_all('script', attrs={'type': 'text/javascript'})
+            hourly_js_content = javascript_elements[1]
+            report_dt = self._datetime_from_chart_soup(hourly_soup)
+
+            # First observation in hourly data always starts 25 hours before the report timestamp.
+            row_dt = report_dt - timedelta(hours=25)
+            js_hourly_items = self.hourly_regex_pattern.findall(hourly_js_content.string)
+            for js_hourly_item in js_hourly_items:
+                # js_hourly_item is in the format: '12:00 AM',41.42,0,0
+                # The elements are: time, hydro, thermal, available hydro
+                js_hr_elements = js_hourly_item.split(',')
+                hr_time = js_hr_elements[0].replace('\'', '')
+                hr_hydro = float(js_hr_elements[1])
+                hr_thermal = float(js_hr_elements[2])
+                hr_load = hr_hydro + hr_thermal
+
+                # If row_dt time doesn't match hr_time, raise and exception so we don't misreport data.
+                if hr_time.zfill(8) == row_dt.strftime('%I:%M %p'):
+                    if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                        if self.options['data'] == 'gen':
+                            self._append_generation(result_ts=results, fuel='hydro', tz_aware_dt=row_dt,
+                                                    gen_mw=hr_hydro)
+                            self._append_generation(result_ts=results, fuel='thermal', tz_aware_dt=row_dt,
+                                                    gen_mw=hr_thermal)
+                        elif self.options['data'] == 'load':
+                            self._append_load(result_ts=results, tz_aware_dt=row_dt, load_mw=hr_load)
+                    row_dt = row_dt + timedelta(hours=1)
+                else:
+                    raise RuntimeError('Yukon hourly report expected to return hour %s but was %s.' %
+                                       (row_dt.strftime('%I:%M %p'), hr_time.zfill(8)))
 
     def _is_valid_date_range(self):
         """
@@ -173,14 +216,6 @@ class YukonEnergyClient(BaseClient):
         else:
             return True
 
-    def _load_range(self, loads):
-        """
-        Requests historical electricity loads and appends results in pyiso format to the provided list for those
-        results which fall between start_at and end_at time range.
-        :param list loads: The pyiso results list to append results to.
-        """
-        pass
-
     def _load_latest(self, loads):
         """
         Requests the latest electricity loads and appends results in pyiso format to the provided list.
@@ -189,7 +224,7 @@ class YukonEnergyClient(BaseClient):
         response = self.request(url=self.current_url)
         if response and response.content:
             current_soup = BeautifulSoup(response.content, 'html.parser')
-            latest_dt = self._datetime_from_current_chart(current_soup)
+            latest_dt = self._datetime_from_chart_soup(current_soup)
             total_load_element = current_soup.find(name='div', attrs={'class': 'total_load'})
             if total_load_element and total_load_element.span:
                 load_str = total_load_element.span.string.replace(' MW (megawatt)', '')

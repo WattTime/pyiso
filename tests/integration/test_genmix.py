@@ -558,3 +558,13 @@ class TestYukonEnergyClientGenMix(TestBaseGenMix):
         for dp in data:
             self.assertEqual(dp['market'], self.MARKET_CHOICES.tenmin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.tenmin)
+
+    def test_date_range(self):
+        # basic test
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_at = now - timedelta(hours=24)
+        data = self._run_test('YUKON', start_at=start_at, end_at=now)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
