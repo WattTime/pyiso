@@ -33,8 +33,12 @@ class YukonEnergyClient(BaseClient):
         self.options['earliest_data_at'] = start_of_hour - timedelta(hours=24)
         self.options['latest_data_at'] = start_of_hour
 
+        if self.options.get('latest', False) and self.options['data'] == 'trade':
+            self.options['start_at'] = start_of_hour
+            self.options['end_at'] = start_of_hour
+
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='gen', **kwargs)
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='gen')
         genmix = []
         if latest:
             self._generation_latest(genmix)
@@ -51,7 +55,7 @@ class YukonEnergyClient(BaseClient):
         return genmix
 
     def get_load(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='load', **kwargs)
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='load')
         loads = []
         if latest:
             self._load_latest(loads)
@@ -68,7 +72,22 @@ class YukonEnergyClient(BaseClient):
         return loads
 
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
+        self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, data='trade')
+        # http://yukonenergy.ca/energy-in-yukon/electricity-101/electricity-library/whats-an-isolated-grid-and-what-does-that-mean-for-me
+        LOGGER.warn('Yukon Energy is an isolated grid. Trade will always be zero.')
+        trades = []
+        hourly_rounded_dt = self.options.get('start_at').replace(minute=0, second=0, microsecond=0)
+        while hourly_rounded_dt <= self.options.get('end_at'):
+            if self.options['start_at'] <= hourly_rounded_dt <= self.options['end_at']:
+                trades.append({
+                    'ba_name': self.NAME,
+                    'timestamp': hourly_rounded_dt,
+                    'freq': self.FREQUENCY_CHOICES.hourly,
+                    'market': self.MARKET_CHOICES.hourly,
+                    'net_exp_MW': 0
+                })
+            hourly_rounded_dt = hourly_rounded_dt + timedelta(hours=1)
+        return trades
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
