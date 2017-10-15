@@ -7,6 +7,15 @@ from pyiso.base import BaseClient
 
 
 class YukonEnergyClient(BaseClient):
+    """
+    Yukon Energy (Canada) publishes a "Current Energy Consumption" page at
+    http://www.yukonenergy.ca/energy-in-yukon/electricity-101/current-energy-consumption which can be parsed for
+    historical generation mix data up to 24 hours into the past.
+
+    Furthermore, Yukon Energy operates an isolated grid. The imports/exports will always be zero and there is no
+    additional external load.
+    """
+
     NAME = 'YUKON'
     TZ_NAME = 'Canada/Yukon'
 
