@@ -1,22 +1,10 @@
-import os
-
 import pytz
 import requests_mock
 from datetime import datetime
 from unittest import TestCase
 from pyiso import client_factory
 from pyiso.base import BaseClient
-
-
-def read_fixture(ba_name, filename):
-    """
-    :param str ba_name: The balancing authority name.
-    :param str filename: The fixture file you wish to load.
-    :return: The file's content.
-    :rtype: str
-    """
-    fixtures_base_path = os.path.join(os.path.dirname(__file__), '../fixtures', ba_name.lower())
-    return open(os.path.join(fixtures_base_path, filename), 'r').read()
+from tests import read_fixture
 
 
 class TestPEIClient(TestCase):
