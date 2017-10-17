@@ -47,7 +47,7 @@ class YukonEnergyClient(TestCase):
     @requests_mock.Mocker()
     def test_get_load_latest_returns_expected(self, mocked_request):
         expected_url = 'http://www.yukonenergy.ca/consumption/chart_current.php?chart=current'
-        expected_response = read_fixture(self.c.NAME, 'current.html')
+        expected_response = read_fixture(self.c.__module__, 'current.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(latest=True)
@@ -59,7 +59,7 @@ class YukonEnergyClient(TestCase):
     @requests_mock.Mocker()
     def test_get_generation_latest_returns_expected(self, mocked_request):
         expected_url = 'http://www.yukonenergy.ca/consumption/chart_current.php?chart=current'
-        expected_response = read_fixture(self.c.NAME, 'current.html')
+        expected_response = read_fixture(self.c.__module__, 'current.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_generation(latest=True)
@@ -77,7 +77,7 @@ class YukonEnergyClient(TestCase):
         start_at = self.tzaware_utcnow - timedelta(hours=12)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
-        expected_response = read_fixture(self.c.NAME, 'hourly.html')
+        expected_response = read_fixture(self.c.__module__, 'hourly.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_generation(start_at=start_at, end_at=end_at)
@@ -98,7 +98,7 @@ class YukonEnergyClient(TestCase):
         start_at = self.tzaware_utcnow - timedelta(hours=12)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
-        expected_response = read_fixture(self.c.NAME, 'hourly.html')
+        expected_response = read_fixture(self.c.__module__, 'hourly.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(start_at=start_at, end_at=end_at)
