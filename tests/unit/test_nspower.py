@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
-from dateutil.parser import parse
 from unittest import TestCase
+
+import pytz
+import requests_mock
+from dateutil.parser import parse
 from freezegun import freeze_time
+
 from pyiso import client_factory
 from pyiso.base import BaseClient
 from tests import read_fixture
-import requests_mock
-import pytz
 
 
 @freeze_time('2017-10-05T11:45:00Z')
@@ -47,7 +49,7 @@ class TestNSPower(TestCase):
         start_at = self.tzaware_utcnow - timedelta(hours=12)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.nspower.ca/system_report/today/currentmix.json'
-        expected_response = read_fixture(self.c.NAME, 'currentmix.json')
+        expected_response = read_fixture(self.c.__module__, 'currentmix.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_generation(start_at=start_at, end_at=end_at)
@@ -66,7 +68,7 @@ class TestNSPower(TestCase):
     @requests_mock.Mocker()
     def test_get_generation_latest_returns_expected(self, mocked_request):
         expected_url = 'http://www.nspower.ca/system_report/today/currentmix.json'
-        expected_response = read_fixture(self.c.NAME, 'currentmix.json')
+        expected_response = read_fixture(self.c.__module__, 'currentmix.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_generation(latest=True)
@@ -97,7 +99,7 @@ class TestNSPower(TestCase):
         start_at = self.tzaware_utcnow - timedelta(hours=hours)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.nspower.ca/system_report/today/currentload.json'
-        expected_response = read_fixture(self.c.NAME, 'currentload.json')
+        expected_response = read_fixture(self.c.__module__, 'currentload.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(start_at=start_at, end_at=end_at)
@@ -113,7 +115,7 @@ class TestNSPower(TestCase):
     @requests_mock.Mocker()
     def test_get_load_latest_returns_expected(self, mocked_request):
         expected_url = 'http://www.nspower.ca/system_report/today/currentload.json'
-        expected_response = read_fixture(self.c.NAME, 'currentload.json')
+        expected_response = read_fixture(self.c.__module__, 'currentload.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(latest=True)
@@ -128,7 +130,7 @@ class TestNSPower(TestCase):
         start_at = self.tzaware_utcnow
         end_at = self.tzaware_utcnow + timedelta(hours=hours)
         expected_url = 'http://www.nspower.ca/system_report/today/forecast.json'
-        expected_response = read_fixture(self.c.NAME, 'forecast.json')
+        expected_response = read_fixture(self.c.__module__, 'forecast.json')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(start_at=start_at, end_at=end_at)
@@ -147,10 +149,10 @@ class TestNSPower(TestCase):
         start_at = self.tzaware_utcnow - timedelta(hours=hours)
         end_at = self.tzaware_utcnow + timedelta(hours=hours)
         expected_historical_url = 'http://www.nspower.ca/system_report/today/currentload.json'
-        expected_historical_response = read_fixture(self.c.NAME, 'currentload.json')
+        expected_historical_response = read_fixture(self.c.__module__, 'currentload.json')
         mocked_request.get(expected_historical_url, content=expected_historical_response.encode('utf-8'))
         expected_forecast_url = 'http://www.nspower.ca/system_report/today/forecast.json'
-        expected_forecast_reponse = read_fixture(self.c.NAME, 'forecast.json')
+        expected_forecast_reponse = read_fixture(self.c.__module__, 'forecast.json')
         mocked_request.get(expected_forecast_url, content=expected_forecast_reponse.encode('utf-8'))
 
         results = self.c.get_load(start_at=start_at, end_at=end_at)
