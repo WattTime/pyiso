@@ -16,7 +16,7 @@ class TestBaseTrade(TestCase):
 
         # set up other expected values
         self.BA_CHOICES = ['ISONE', 'MISO', 'SPP',
-                           'BPA', 'CAISO', 'ERCOT',
+                           'BCH', 'BPA', 'CAISO', 'ERCOT',
                            'PJM', 'NYISO', 'NEVP', 'SPPC']
 
     def _run_net_test(self, ba_name, **kwargs):
@@ -111,6 +111,35 @@ class TestBaseTrade(TestCase):
 
         # method not implemented yet
         self.assertRaises(ValueError, c.get_trade)
+
+
+class TestBCHydroTrade(TestBaseTrade):
+    def test_latest(self):
+        data = self._run_net_test('BCH', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
+
+    def test_date_range(self):
+        today = datetime.today().replace(tzinfo=pytz.utc)
+        start_at = today - timedelta(days=2)
+        end_at = today - timedelta(days=1)
+        data = self._run_net_test('BCH', start_at=start_at, end_at=end_at)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
 
 class TestBPATrade(TestBaseTrade):
