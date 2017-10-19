@@ -40,6 +40,17 @@ class TestBCHydroClient(TestCase):
         self.assertEqual(results[0]['timestamp'], parse('2017-10-16T12:40:00Z'))
         self.assertAlmostEqual(results[0]['net_exp_MW'], 964.22479248)
 
+    def test_get_trade_yesterday_returns_expected(self):
+        xls_io = fixture_path(ba_name=self.c.__module__, filename='data1.xls')
+        self.c.fetch_xls = MagicMock(return_value=pandas.ExcelFile(xls_io))
+
+        results = self.c.get_trade(yesterday=True)
+        self.assertTrue(len(results), 288)  # 24 hours * 12 observations per hour
+        self.assertEqual(results[0]['timestamp'], parse('2017-10-15T07:00:00Z'))
+        self.assertAlmostEqual(results[0]['net_exp_MW'], 662.693040848)
+        self.assertEqual(results[287]['timestamp'], parse('2017-10-16T06:55:00Z'))
+        self.assertAlmostEqual(results[287]['net_exp_MW'], 700.70085144)
+
     def test_get_trade_valid_range_returns_expected(self):
         xls_io = fixture_path(ba_name=self.c.__module__, filename='data1.xls')
         self.c.fetch_xls = MagicMock(return_value=pandas.ExcelFile(xls_io))
