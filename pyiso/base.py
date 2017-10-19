@@ -26,7 +26,7 @@ IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
-                'solarth', 'thermal', 'wind', 'fossil', 'dual']
+                'solarth', 'thermal', 'wind', 'fossil', 'dual', 'ccgt']
 
 
 class BaseClient(object):

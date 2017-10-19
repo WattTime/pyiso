@@ -48,6 +48,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       ISONE                     ISO New England                          ISONE
       MISO                      Midcontinent ISO                         MISO
       NBP                       New Brunswick Power                      NBPower
+      NSP                       Nova Scotia Power                        NSPower
       NEVP                      Nevada Power                             NVEnergy
       NYISO                     New York ISO                             NYISO
       PEI                       Price Edward Island (Canada)             PEI
