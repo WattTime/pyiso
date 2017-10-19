@@ -8,6 +8,13 @@ from pyiso.base import BaseClient
 
 
 class BCHydroClient(BaseClient):
+    """
+    British Columbia Hydro (Canada) has a public transmission flow page available at
+    https://www.bchydro.com/bctc/system_cms/actual_flow/data.aspx
+
+    This client provides five-minute, historical trade data up to 9 days in the past through to the current time
+    (i.e. most recent five minute interval).
+    """
     NAME = 'BCH'
     TZ_NAME = 'Canada/Pacific'
 

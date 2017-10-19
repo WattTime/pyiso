@@ -11,6 +11,10 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``AESO.get_load``         yes         yes                                yes           yes
 ``AESO.get_trade``        yes         no                                 no            no
 ``AESO.get_lmp``          no          no                                 no            no
+``BCH.get_generation``    no          no                                 no            no
+``BCH.get_load``          no          no                                 no            no
+``BCH.get_trade``         yes         yes                                yes           no
+``BCH.get_lmp``           no          no                                 no            no
 ``BPA.get_generation``    yes         yes                                no            no
 ``BPA.get_load``          yes         yes                                no            no
 ``CAISO.get_generation``  yes         yes                                yes           yes
