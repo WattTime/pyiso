@@ -1,0 +1,102 @@
+[
+    {
+        "datetime":  "\/Date(1507114800000)\/",
+        "Base Load":  0
+    },
+    {
+        "datetime":  "\/Date(1507118400000)\/",
+        "Base Load":  986.93
+    },
+    {
+        "datetime":  "\/Date(1507122000000)\/",
+        "Base Load":  995.22
+    },
+    {
+        "datetime":  "\/Date(1507125600000)\/",
+        "Base Load":  998.03
+    },
+    {
+        "datetime":  "\/Date(1507129200000)\/",
+        "Base Load":  988.01
+    },
+    {
+        "datetime":  "\/Date(1507132800000)\/",
+        "Base Load":  974.39
+    },
+    {
+        "datetime":  "\/Date(1507136400000)\/",
+        "Base Load":  957.96
+    },
+    {
+        "datetime":  "\/Date(1507140000000)\/",
+        "Base Load":  953.6
+    },
+    {
+        "datetime":  "\/Date(1507143600000)\/",
+        "Base Load":  971.28
+    },
+    {
+        "datetime":  "\/Date(1507147200000)\/",
+        "Base Load":  982.74
+    },
+    {
+        "datetime":  "\/Date(1507150800000)\/",
+        "Base Load":  973.65
+    },
+    {
+        "datetime":  "\/Date(1507154400000)\/",
+        "Base Load":  997.68
+    },
+    {
+        "datetime":  "\/Date(1507158000000)\/",
+        "Base Load":  949.77
+    },
+    {
+        "datetime":  "\/Date(1507161600000)\/",
+        "Base Load":  877.25
+    },
+    {
+        "datetime":  "\/Date(1507165200000)\/",
+        "Base Load":  792.89
+    },
+    {
+        "datetime":  "\/Date(1507168800000)\/",
+        "Base Load":  720.62
+    },
+    {
+        "datetime":  "\/Date(1507172400000)\/",
+        "Base Load":  647.86
+    },
+    {
+        "datetime":  "\/Date(1507176000000)\/",
+        "Base Load":  613.36
+    },
+    {
+        "datetime":  "\/Date(1507179600000)\/",
+        "Base Load":  588.92
+    },
+    {
+        "datetime":  "\/Date(1507183200000)\/",
+        "Base Load":  575.8
+    },
+    {
+        "datetime":  "\/Date(1507186800000)\/",
+        "Base Load":  582.15
+    },
+    {
+        "datetime":  "\/Date(1507190400000)\/",
+        "Base Load":  627.27
+    },
+    {
+        "datetime":  "\/Date(1507194000000)\/",
+        "Base Load":  751.71
+    },
+    {
+        "datetime":  "\/Date(1507197600000)\/",
+        "Base Load":  863.55
+    },
+    {
+        "datetime":  "\/Date(1507201200000)\/",
+        "Base Load":  892.64
+    }
+]

@@ -323,6 +323,53 @@ class TestNEVPLoad(TestBaseLoad):
         self.assertEqual(len(data), 2*24)
 
 
+class TestNSPowerLoad(TestBaseLoad):
+    def test_null_response_range(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self._run_null_repsonse_test('NSP', start_at=now-timedelta(hours=2), end_at=now+timedelta(hours=2))
+
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('NSP', latest=True)
+
+    def test_latest(self):
+        data = self._run_test('NSP', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+    def test_historical(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_at = now - timedelta(hours=24)
+        data = self._run_test('NSP', start_at=start_at, end_at=now)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test timestamps in range
+        self.assertGreaterEqual(min(timestamps), start_at)
+        self.assertLessEqual(max(timestamps), now)
+
+    def test_forecast(self):
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        end_at = now+timedelta(hours=24)
+        data = self._run_test('NSP', start_at=now, end_at=end_at)
+
+        # test timestamps are not equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)
+
+        # test timestamps in range
+        self.assertGreaterEqual(min(timestamps), now)
+        self.assertLessEqual(max(timestamps), end_at)
+
+
 class TestNYISOLoad(TestBaseLoad):
     def test_null_response_latest(self):
         self._run_null_repsonse_test('NYISO', latest=True)
