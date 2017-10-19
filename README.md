@@ -21,6 +21,7 @@ Upcoming Changes
 * Add NSPower
 * Add AESO
 * Add SASK
+* Update `get_any()` for NYISO to retrieve all relevant periods from a single csv download
 
 Changelog
 ---------

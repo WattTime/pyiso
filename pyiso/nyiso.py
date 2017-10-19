@@ -147,19 +147,25 @@ class NYISOClient(BaseClient):
             dates_list = self.dates()
 
         # fetch and parse all csvs
-        for date in dates_list:
+        date = min(dates_list)
+        while date in dates_list:
             for csv in self.fetch_csvs(date, label):
-
                 try:
                     pieces.append(parser(csv))
                 except AttributeError:
                     pass
 
+
             # if fetch_csvs cannot get the individual days, it gets the whole month
             # Shortcut the loop if any call to fetch_csvs gets all dates in dates_list
             try:
-                if (pieces[-1].index[-1] - timedelta(days=1)).date() > max(dates_list):
+                if (pieces[-1].index[-1].date() - timedelta(days=1)) > max(dates_list):
+                    print('quit cause i finished')
                     break
+                elif  (pieces[-1].index[-1].date() == date):
+                    print('quit cause i ran out of data')
+                    break
+                date = pieces[-1].index[-1].date()
             except IndexError:
                 pass
 
@@ -309,7 +315,13 @@ class NYISOClient(BaseClient):
 
         # set index
         df.index.name = 'timestamp'
-        df.index = self.utcify_index(df.index)
+        temp = []
+        group = df.groupby('Name')
+        for n,ndf in group:
+            ndf.index = self.utcify_index(ndf.index)
+            temp.append(ndf)
+
+        df = pd.concat(temp)
 
         # if latest, throw out 15 min predicted data
         if self.options['latest']:
