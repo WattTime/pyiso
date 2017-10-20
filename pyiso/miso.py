@@ -328,23 +328,3 @@ class MISOClient(BaseClient):
         df['ba_name'] = 'MISO'
 
         return df
-
-    def get_lmp(self, node_id='ILLINOIS.HUB', latest=True, **kwargs):
-        """ ILLINOIS.HUB is central """
-        self.handle_options(latest=latest, **kwargs)
-
-        if self.options['latest']:
-            df = self.get_realtime_lmp(**kwargs)
-
-        else:
-            df = self.get_historical_lmp()
-            df = self.slice_times(df)
-            df.reset_index(inplace=True)
-
-        # strip out unwated nodes
-        if node_id:
-            if not isinstance(node_id, list):
-                node_id = [node_id]
-            reg = re.compile('|'.join(node_id))
-            df = df.ix[df['node_id'].str.contains(reg)]
-        return df.to_dict(orient='records')

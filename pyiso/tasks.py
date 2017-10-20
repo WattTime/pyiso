@@ -54,19 +54,4 @@ def get_trade(ba_name, **kwargs):
     # return
     return data
 
-@shared_task
-def get_lmp(ba_name, node_list, **kwargs):
-    # get data
-    c = client_factory(ba_name)
-    data = c.get_lmp(node_list, **kwargs)
-
-    # log
-    if len(data) == 0:
-        msg = '%s: No lmp data at %s with args %s' % (ba_name, datetime.utcnow().isoformat(),
-                                                    kwargs)
-        logger.warn(msg)
-
-    # return
-    return data
-
 

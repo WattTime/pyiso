@@ -89,9 +89,6 @@ class NSPowerClient(BaseClient):
         # There's not enough information to derive trade as specified by the pyiso BaseClient.
         pass
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def _is_valid_date_range(self):
         """
         Checks whether the start_at and end_at options provided are within the date boundaries for the given

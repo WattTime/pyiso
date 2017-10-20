@@ -37,9 +37,6 @@ Each client returned by ``client_factory`` is derived from :py:class:`BaseClient
 .. automethod:: BaseClient.get_trade
    :noindex:
 
-.. automethod:: BaseClient.get_lmp
-   :noindex:
-
 The lists returned by clients are conveniently structured for import into other data structures like :py:class:`pandas.DataFrame`::
 
    >>> import pandas as pd
