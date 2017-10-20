@@ -34,6 +34,7 @@ BALANCING_AUTHORITIES = {
     'ISONE': {'class': 'ISONEClient', 'module': 'isone'},
     'MISO': {'class': 'MISOClient', 'module': 'miso'},
     'NBP': {'class': 'NBPowerClient', 'module': 'nbpower'},
+    'NLH': {'class': 'NLHydroClient', 'module': 'nlhydro'},
     'NEVP': {'class': 'NVEnergyClient', 'module': 'nvenergy'},
     'NSP': {'class': 'NSPowerClient', 'module': 'nspower'},
     'NYISO': {'class': 'NYISOClient', 'module': 'nyiso'},
