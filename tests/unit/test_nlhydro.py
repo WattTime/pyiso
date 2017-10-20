@@ -17,7 +17,9 @@ class TestNLHydroClient(TestCase):
 
     @requests_mock.Mocker()
     def test_get_load_latest(self, mocked_request):
-        expected_response = read_fixture(self.c.__module__, 'system-information-center.html').encode('utf8')
+        response_str = read_fixture(self.c.__module__, 'system-information-center.html').decode(encoding='utf-8',
+                                                                                                errors='ignore')
+        expected_response = response_str.encode(encoding='utf-8')
         mocked_request.get(self.c.SYSTEM_INFO_URL, content=expected_response)
 
         load_ts = self.c.get_load(latest=True)
