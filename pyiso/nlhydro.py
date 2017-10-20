@@ -7,6 +7,11 @@ from pyiso.base import BaseClient
 
 
 class NLHydroClient(BaseClient):
+    """
+    Client for Newfoundland and Labrador Hydro (Canada) which parses latest system load data from
+    https://www.nlhydro.com/system-information/system-information-center/
+    """
+
     NAME = 'NLH'
     TZ_NAME = 'Canada/Newfoundland'
     SYSTEM_INFO_URL = 'https://www.nlhydro.com/system-information/system-information-center'

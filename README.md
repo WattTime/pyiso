@@ -18,6 +18,7 @@ Upcoming Changes
 * Add EIA
 * Add IESO
 * Add NBPower
+* Add NLHydro
 * Add NSPower
 * Add AESO
 * Add SASK
