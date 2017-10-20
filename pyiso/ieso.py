@@ -135,10 +135,6 @@ class IESOClient(BaseClient):
             LOGGER.warn('No valid options were supplied.')
         return trade_ts
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=None, end_at=None, **kwargs):
-        raise RuntimeError('The IESO does not use locational marginal pricing. See '
-                           'https://www.oeb.ca/oeb/_Documents/MSP/MSP_CMSC_Report_201612.pdf for details.')
-
     def _get_report_range(self, result_ts, report_handler, parser_format, range_start, range_end):
         """
         :param list result_ts: The timeseries which results which data will be appended to.

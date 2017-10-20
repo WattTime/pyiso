@@ -54,9 +54,6 @@ class NBPowerClient(BaseClient):
                           category=UserWarning)
             return None
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def handle_options(self, **kwargs):
         super(NBPowerClient, self).handle_options(**kwargs)
         self.local_start_at = self.options['start_at'].astimezone(self.atlantic_tz) \

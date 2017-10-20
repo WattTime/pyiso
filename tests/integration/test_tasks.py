@@ -216,21 +216,3 @@ class TestTradeTask(TestCase):
     def test_miso_forecast(self):
         self._run_test('MISO', self.forecast_kwargs)
 
-
-class TestLMPTask(TestCase):
-    def setUp(self):
-        self.latest_kwargs = {'latest': True}
-        now = pytz.utc.localize(datetime.utcnow())
-
-    def _run_test(self, ba, node_list, kwargs):
-        expected = client_factory(ba).get_lmp(node_list, **kwargs)
-        received = tasks.get_lmp(ba, node_list, **kwargs)
-        self.assertEqual(len(expected), len(received))
-
-        for i in range(len(expected)):
-            if expected[i]['timestamp'] == received[i]['timestamp']:
-                self.assertEqual(expected[i]['lmp'], received[i]['lmp'])
-                self.assertEqual(expected[i]['lmp_type'], received[i]['lmp_type'])
-
-    def test_run_caiso(self):
-        self._run_test('CAISO', ['SLAP_PGP2-APND'], self.latest_kwargs)
