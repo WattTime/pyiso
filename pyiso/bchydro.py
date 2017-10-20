@@ -51,9 +51,6 @@ class BCHydroClient(BaseClient):
                 LOGGER.warn(msg)
         return trades
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def _actual_flow_data(self):
         """
         Requests the "Actual Flow" Excel and processes the response.
