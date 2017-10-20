@@ -29,9 +29,6 @@ class SaskPowerClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def get_latest_load(self):
         """
         Requests the "Current System Load" JSON from Sask Power's public data feeds and returns it in pyiso load format.

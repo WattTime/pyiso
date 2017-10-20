@@ -261,37 +261,6 @@ class ISONEClient(BaseClient):
 
         return df
 
-    def get_lmp(self, node_id='INTERNALHUB', latest=True, start_at=False, end_at=False, **kwargs):
-        # set args
-        self.handle_options(data='lmp', latest=latest,
-                            start_at=start_at, end_at=end_at, node_id=node_id, **kwargs)
-        # get location id
-        try:
-            locationid = self.locations[node_id.upper()]
-        except KeyError:
-            raise ValueError('No LMP data available for location %s' % node_id)
-
-        # set up storage
-        raw_data = []
-        # collect raw data
-        for endpoint in self.request_endpoints(locationid):
-            # carry out request
-            data = self.fetch_data(endpoint, self.auth)
-
-            # pull out data
-            try:
-                raw_data += self.parse_json_lmp_data(data)
-            except ValueError as e:
-                LOGGER.warn(e)
-                continue
-
-        # parse and slice
-        df = self._parse_json(raw_data)
-        df = self.slice_times(df)
-
-        # return
-        return df.to_dict(orient='record')
-
     def get_morningreport(self, day=None):
         """
         Retrieve the morning report 

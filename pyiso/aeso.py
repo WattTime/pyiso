@@ -62,9 +62,6 @@ class AESOClient(BaseClient):
         else:
             LOGGER.warn('No valid options were supplied.')
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def _get_latest_report(self, request_type):
         """
         Requests the latest AESO Market Report and parses it into one of several pyiso timeseries formats.
