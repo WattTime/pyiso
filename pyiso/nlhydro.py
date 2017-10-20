@@ -36,9 +36,6 @@ class NLHydroClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def get_latest_load(self):
         """
         Requests the "Current Island System Generation" HTML and returns it in pyiso load format.
