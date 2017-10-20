@@ -98,9 +98,6 @@ class YukonEnergyClient(BaseClient):
             hourly_rounded_dt = hourly_rounded_dt + timedelta(hours=1)
         return trades
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     @staticmethod
     def _compile_hourly_regex_pattern():
         """

@@ -53,5 +53,4 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``YUKON.get_generation``  yes         yes                                no            no
 ``YUKON.get_load``        yes         yes                                no            no
 ``YUKON.get_trade``       n/a         n/a                                n/a           n/a
-``YUKON.get_lmp``         no          no                                 no            no
 ======================== ========== =================================== ============== ============
