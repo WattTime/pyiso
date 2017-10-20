@@ -22,17 +22,6 @@ class IntegrationTestPJMClient(TestCase):
         ts, val = self.c.fetch_edata_point('InstantaneousLoad', 'PJM RTO Total', 'MW')
         self.assertEqual(ts.minute % 5, 0)
 
-    def test_get_lmp_datasnapshot(self):
-        start_at = pytz.timezone('US/Eastern').localize(datetime(2015, 1, 1)).astimezone(pytz.utc)
-        end_at = start_at + timedelta(days=1)
-
-        # node 33092371 is COMED
-        data = self.c.get_lmp(start_at=start_at, end_at=end_at, node_id='COMED')
-        timestamps = [d['timestamp'] for d in data]
-
-        self.assertLessEqual(min(timestamps), start_at)
-        self.assertGreaterEqual(max(timestamps), end_at)
-
     def test_fetch_historical_load(self):
         df = self.c.fetch_historical_load(2015)
         self.assertEqual(df['load_MW'][0], 94001.713000000003)

@@ -96,9 +96,6 @@ class TestISONE(TestCase):
         self.assertEqual(len(endpoints), 1)
         self.assertIn('/fiveminutelmp/current/location/123.json', endpoints)
 
-    def test_get_lmp_bad_zone(self):
-        self.assertRaises(ValueError, self.c.get_lmp, 'badzone')
-
     @requests_mock.Mocker()
     def test_get_morningreport(self, mock_request):
         expected_url = 'https://webservices.iso-ne.com/api/v1.1/morningreport/current.json'

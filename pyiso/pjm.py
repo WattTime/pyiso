@@ -494,39 +494,3 @@ class PJMClient(BaseClient):
 
         # return
         return data
-
-    def get_lmp(self, node_id='APS', latest=False, **kwargs):
-        """ Allegheny Power Systems is APS"""
-        self.handle_options(data='lmp', latest=latest, **kwargs)
-
-        # standardize node_id
-        if not isinstance(node_id, list):
-            node_id = [node_id]
-
-        if self.options['market'] == self.MARKET_CHOICES.fivemin:
-            if set(node_id).issubset(self.zonal_aggregate_nodes.keys()):
-                # get high precision LMP
-                (ts, df) = self.fetch_edata_point('ZonalAggregateLmp', None, None)
-                df = self.parse_datasnapshot_df(ts, df)
-            else:
-                df = self.fetch_oasis_data()
-
-        else:
-            # translate names to id numbers
-            node_names = []
-            for node in node_id:
-                if node in self.zonal_aggregate_nodes.keys():
-                    node_names.append(self.zonal_aggregate_nodes[node])
-                else:
-                    node_names.append(node)
-
-            # if getting from dataminer method, setup parameters
-            format_str = '%Y-%m-%dT%H:%M:%SZ'  # "1998-04-01T05:00:00Z"
-            params = {'startDate': self.options['start_at'].strftime(format_str),
-                      'endDate': self.options['end_at'].strftime(format_str),
-                      'pnodeList': node_names}
-            df = self.fetch_dataminer_df(self.options['endpoint'], params=params)
-
-        df = self.slice_times(df)
-
-        return df.to_dict(orient='records')

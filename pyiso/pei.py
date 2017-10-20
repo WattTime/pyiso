@@ -38,9 +38,6 @@ class PEIClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
-        pass
-
     def get_latest_load(self):
         """
         Requests the JSON backing PEI's public "Wind Energy" page (http://www.gov.pe.ca/windenergy/chart.php)

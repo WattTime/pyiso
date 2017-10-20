@@ -116,19 +116,3 @@ class IntegrationTestISONE(TestCase):
         self.assertIn('BeginDate', data['FiveMinLmps']['FiveMinLmp'][0].keys())
         self.assertIn('LmpTotal', data['FiveMinLmps']['FiveMinLmp'][0].keys())
 
-    def test_get_lmp_hist(self):
-        start_at = datetime(2017, 1, 1, 1, 0, 0, 0,
-                            tzinfo=pytz.timezone('US/Eastern')).astimezone(pytz.utc)
-        end_at = start_at + timedelta(minutes=55)
-
-        prices = self.c.get_lmp('NEMASSBOST', latest=False, start_at=start_at, end_at=end_at)
-        self.assertEqual(len(prices), 11)
-        self.assertGreaterEqual(prices[0]['timestamp'], start_at)
-        self.assertLessEqual(prices[0]['timestamp'], start_at + timedelta(minutes=5))
-        self.assertEqual(prices[0]['lmp'], 36.72)
-
-    def test_get_lmp_latest(self):
-        prices = self.c.get_lmp('NEMASSBOST')
-        self.assertEqual(len(prices), 1)
-        self.assertLess(prices[0]['lmp'], 1500)
-        self.assertGreater(prices[0]['lmp'], -300)
