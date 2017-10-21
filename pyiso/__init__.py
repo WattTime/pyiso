@@ -4,7 +4,7 @@ import os.path
 import sys
 from os import environ
 
-__version__ = '0.3.20'
+__version__ = '0.4.0'
 
 
 # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
