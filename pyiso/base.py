@@ -309,7 +309,8 @@ class BaseClient(object):
             # have zipfile
             z = zipfile.ZipFile(filecontent)
         except zipfile.BadZipfile:
-            LOGGER.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
+            LOGGER.error('%s: unzip failure for content beginning:\n%s' % (self.NAME, str(content)[0:100]))
+            LOGGER.info('%s: Faulty unzip content:\n%s' % (self.NAME, content))
             return None
 
         # have unzipped content
