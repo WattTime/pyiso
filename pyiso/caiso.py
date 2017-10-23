@@ -513,7 +513,6 @@ class CAISOClient(BaseClient):
 
         # read data from zip
         # This will be an array of content if successful, and None if unsuccessful
-
         content = self.unzip(response.content)
         if not content:
             return default_return_val
