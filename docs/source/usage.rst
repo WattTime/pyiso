@@ -1,5 +1,5 @@
 Usage
-======
+=====
 
 There are two main ways to use pyiso: via the client objects, or via celery tasks.
 The client approach is preferred for scripted data analysis.
@@ -7,7 +7,7 @@ The task approach enables asynchronous or periodic data collection
 and is in use at the `WattTime Impact API <http://api.watttime.org/>`_.
 
 Clients
---------
+-------
 
 .. py:currentmodule:: pyiso.base
 
@@ -57,7 +57,7 @@ Happy data analysis!
 
 
 Tasks
-------
+-----
 
 If you have a `celery <http://www.celeryproject.org/>`_ environment set up, you can use the tasks provided in the :py:mod:`pyiso.tasks` module.
 There is one task for each of the client's ``get_*`` methods that implements a thin wrapper around that method.

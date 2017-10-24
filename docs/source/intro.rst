@@ -1,12 +1,12 @@
 Introduction
-=============
+============
 
 Pyiso provides Python client libraries for ISO and other power grid data sources.
 It powers the `WattTime Impact API <https://api.watttime.org/>`_,
 among other things.
 
 What's an ISO?
----------------
+--------------
 
 Electricity markets are operated by "balancing authorities,"
 which manage supply and demand for a given service area.
@@ -20,7 +20,7 @@ but choose to do so in a wide variety of unstandardized, inconvenient formats.
 Some smaller balancing authorities provide data too.
 
 What's included
-----------------
+---------------
 
 Pyiso makes it easier to collect data from ISOs and other balancing authorities
 by providing a uniform Python interface to each data stream.
