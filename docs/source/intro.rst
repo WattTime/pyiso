@@ -30,36 +30,36 @@ Specifically, here are the included balancing authorities and their respective d
 
 Note: Some balancing authorities offer data directly and through the EIA client.
 
-============================= ======================================== ============
-balancing authority abbrev.    balancing authority name/region          data source
-============================= ======================================== ============
-      AESO                      Alberta Electricity System Operator      AESO
-      AZPS                      Arizona Public Service                   SVERI
-      BPA                       Bonneville Power Administration (Pac NW) BPA
-      CAISO                     California ISO                           CAISO
-      DEAA                      DECA Arlington Valley (AZ)               SVERI
-      ELE                       El Paso Electric                         SVERI
-      ERCOT                     Texas                                    ERCOT
-      EU                        European Union                           ENTSO
-      GRIF                      Griffith Energy (AZ)                     SVERI
-      HGMA                      Harquahala Generation Maricopa Arizona   SVERI
-      IESO                      Ontario                                  IESO
-      IID                       Imperial Irrigation District (CA)        SVERI
-      ISONE                     ISO New England                          ISONE
-      MISO                      Midcontinent ISO                         MISO
-      NBP                       New Brunswick Power                      NBPower
-      NSP                       Nova Scotia Power                        NSPower
-      NEVP                      Nevada Power                             NVEnergy
-      NYISO                     New York ISO                             NYISO
-      PEI                       Price Edward Island (Canada)             PEI
-      PJM                       Mid-Atlantic                             PJM
-      PNM                       Public Service Co New Mexico             SVERI
-      SASK                      Saskatchewan Power                       SaskPower
-      SPPC                      Sierra Pacific Power (NV)                NVEnergy
-      SRP                       Salt River Project (AZ)                  SVERI
-      TEPC                      Tuscon Electric Power Co                 SVERI
-      WALC                      WAPA Desert Southwest (NV, AZ)           SVERI
-============================= ======================================== ============
+============================= ========================================== ============
+balancing authority abbrev.    balancing authority name/region            data source
+============================= ========================================== ============
+      AESO                      Alberta Electricity System Operator        AESO
+      AZPS                      Arizona Public Service                     SVERI
+      BPA                       Bonneville Power Administration (Pac NW)   BPA
+      CAISO                     California ISO                             CAISO
+      DEAA                      DECA Arlington Valley (AZ)                 SVERI
+      ELE                       El Paso Electric                           SVERI
+      ERCOT                     Texas                                      ERCOT
+      EU                        European Union                             ENTSO
+      GRIF                      Griffith Energy (AZ)                       SVERI
+      HGMA                      Harquahala Generation Maricopa Arizona     SVERI
+      IESO                      Ontario                                    IESO
+      IID                       Imperial Irrigation District (CA)          SVERI
+      ISONE                     ISO New England                            ISONE
+      MISO                      Midcontinent ISO                           MISO
+      NBP                       New Brunswick Power                        NBPower
+      NSP                       Nova Scotia Power                          NSPower
+      NEVP                      Nevada Power                               NVEnergy
+      NYISO                     New York ISO                               NYISO
+      PEI                       Price Edward Island (Canada)               PEI
+      PJM                       Mid-Atlantic                               PJM
+      PNM                       Public Service Co New Mexico               SVERI
+      SASK                      Saskatchewan Power                         SaskPower
+      SPPC                      Sierra Pacific Power (NV)                  NVEnergy
+      SRP                       Salt River Project (AZ)                    SVERI
+      TEPC                      Tuscon Electric Power Co                   SVERI
+      WALC                      WAPA Desert Southwest (NV, AZ)             SVERI
+============================= ========================================== ============
 
 The following BAs are available through the EIA client.
 
