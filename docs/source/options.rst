@@ -20,6 +20,7 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``EIA.get_trade``         yes         yes                                yes           no
 ``ERCOT.get_generation``  yes         no                                 no            no
 ``ERCOT.get_load``        yes         yes                                no            yes
+``EU.get_generation``     yes         yes                                yes           no
 ``EU.get_load``           yes         yes                                no            yes
 ``IESO.get_generation``   yes         yes                                yes           yes
 ``IESO.get_load``         yes         yes                                yes           yes
