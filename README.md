@@ -15,6 +15,7 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 Upcoming Changes
 ----------------
 * Add NLHydro
+* Add YUKON
 
 Changelog
 ---------
