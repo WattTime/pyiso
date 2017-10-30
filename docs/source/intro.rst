@@ -59,6 +59,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       SRP                       Salt River Project (AZ)                  SVERI
       TEPC                      Tuscon Electric Power Co                 SVERI
       WALC                      WAPA Desert Southwest (NV, AZ)           SVERI
+      YUKON                     Yukon Energy (Canada)                    YUKON
 ============================= ======================================== ============
 
 The following BAs are available through the EIA client.

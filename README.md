@@ -14,11 +14,11 @@ User group: https://groups.google.com/forum/#!forum/pyiso-users
 
 Upcoming Changes
 ----------------
-* Add changes here
+* Add YUKON
 
 Changelog
 ---------
-* 0.3.20: Added EIA, IESO, NBPower, NSPower, AESO and SASK authorities, added `ccgt` as fuel type. removed `get_lmp` function.
+* 0.3.20: Added EIA, IESO, NBPower, NSPower, PEI, AESO and SASK authorities, added `ccgt` as fuel type. removed `get_lmp` function.
 * 0.3.19: Fix bug with `Biomass/Fossil` fuel type for BPA
 * 0.3.18: Fix bug with PJM date parsing
 * 0.3.17: Fix bug with `Black Liquor` fuel type for PJM
