@@ -217,6 +217,11 @@ class BaseClient(object):
         return cleaned_vals
 
     def fetch_xls(self, url):
+        """
+        :param url: The URL of the .xls file to request.
+        :return: The .xls document's content as a pandas object.
+        :rtype: pandas.io.excel.ExcelFile
+        """
         # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
         context = ssl.create_default_context(cafile=certifi.where())
         socket = urlopen(url, context=context)

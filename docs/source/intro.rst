@@ -35,6 +35,7 @@ balancing authority abbrev.    balancing authority name/region            data s
 ============================= ========================================== ============
       AESO                      Alberta Electricity System Operator        AESO
       AZPS                      Arizona Public Service                     SVERI
+      BCH                       British Columbia Hydro                     BCH
       BPA                       Bonneville Power Administration (Pac NW)   BPA
       CAISO                     California ISO                             CAISO
       DEAA                      DECA Arlington Valley (AZ)                 SVERI
