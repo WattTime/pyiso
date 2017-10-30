@@ -20,6 +20,7 @@ LOGGER.setLevel(LOG_LEVEL)
 BALANCING_AUTHORITIES = {
     'AESO': {'class': 'AESOClient', 'module': 'aeso'},
     'AZPS': {'class': 'SVERIClient', 'module': 'sveri'},
+    'BCH': {'class': 'BCHydroClient', 'module': 'bchydro'},
     'BPA': {'class': 'BPAClient', 'module': 'bpa'},
     'CAISO': {'class': 'CAISOClient', 'module': 'caiso'},
     'DEAA': {'class': 'SVERIClient', 'module': 'sveri'},
