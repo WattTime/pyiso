@@ -8,125 +8,224 @@ from io import StringIO
 from datetime import datetime, timedelta
 import pytz
 from os import environ
+from lxml import objectify
+import re
 
 
 class EUClient(BaseClient):
+    """
+    EU Client
+
+    EU Now uses a RESTful interface, https://transparency.entsoe.eu/api
+    This uses a Security Token rather than a username/password combination.
+    You need to register on the Transparency site to get a token.  Instructions
+    are in the REST manual:
+    https://transparency.entsoe.eu/content/static_content/Static%20content/web%20api/Guide.html
+    Readable names for resources now use an alphanumeric code, e.g. A71 for the
+    generation forecast series.  Those in use at the moment are:
+
+    A65 = Total Load
+    A69 = Generation Forecast (Wind/Solar)
+    A71 = Generation Forecast By Type
+    A73 = Generation Actual
+    A74 = Generation Actual (Wind/Solar)
+    A75 = Generation Actual by Type
+
+    Within these are codes for the type of report.  E.g.
+
+    A01 = Day ahead hourly
+    A16 = Realised
+    """
     NAME = 'EU'
     TZ_NAME = 'UTC'
-    base_url = 'https://transparency.entsoe.eu/'
-    export_endpoint = 'load-domain/r2/totalLoadR2/export'
+    base_url = 'https://transparency.entsoe.eu/api'
 
     CONTROL_AREAS = {
         'AL': {'country': 'Albania', 'Code': 'CTA|AL',
-            'ENTSOe_ID': 'CTY|10YAL-KESH-----5!CTA|10YAL-KESH-----5'},
+            'ENTSOe_ID': '10YAL-KESH-----5',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'AT': {'country': 'Austria', 'Code': 'CTA|AT',
-            'ENTSOe_ID': 'CTY|10YAT-APG------L!CTA|10YAT-APG------L'},
+            'ENTSOe_ID': '10YAT-APG------L',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
+        'BY': {'country': 'Belarus', 'Code': 'CTA|BY',
+            'ENSTOe_ID': '10Y1001A1001S51S',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'BE': {'country': 'Belgium', 'Code': 'CTA|BE',
-            'ENTSOe_ID': 'CTY|10YBE----------2!CTA|10YBE----------2'},
+            'ENTSOe_ID': '10YBE----------2',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'BA': {'country': 'Bosnia and Herz. ', 'Code': 'CTA|BA',
-            'ENTSOe_ID': 'CTY|10YBA-JPCC-----D!CTA|10YBA-JPCC-----D'},
+            'ENTSOe_ID': '10YBA-JPCC-----D',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'BG': {'country': 'Bulgaria', 'Code': 'CTA|BG',
-            'ENTSOe_ID': 'CTY|10YCA-BULGARIA-R!CTA|10YCA-BULGARIA-R'},
+            'ENTSOe_ID': '10YCA-BULGARIA-R',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'HR': {'country': 'Croatia', 'Code': 'CTA|HR',
-            'ENTSOe_ID': 'CTY|10YHR-HEP------M!CTA|10YHR-HEP------M'},
+            'ENTSOe_ID': '10YHR-HEP------M',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'CY': {'country': 'Cyprus', 'Code': 'CTA|CY',
-            'ENTSOe_ID': 'CTY|10YCY-1001A0003J!CTA|10YCY-1001A0003J'},
+            'ENTSOe_ID': '10YCY-1001A0003J',
+            'gen_freq': '30m', 'gen_market': 'RT5M'},
         'CZ': {'country': 'Czech Republic', 'Code': 'CTA|CZ',
-            'ENTSOe_ID': 'CTY|10YCZ-CEPS-----N!CTA|10YCZ-CEPS-----N'},
+            'ENTSOe_ID': '10YCZ-CEPS-----N',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'PL-CZ': {'country': 'Czech Republic', 'Code': 'CTA|PL-CZ',
-            'ENTSOe_ID': 'CTY|10YCZ-CEPS-----N!CTA|10YDOM-1001A082L'},
+            'ENTSOe_ID': '10YDOM-1001A082L',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'DK': {'country': 'Denmark', 'Code': 'CTA|DK',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A65H!CTA|10Y1001A1001A796'},
+            'ENTSOe_ID': '10Y1001A1001A796',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'EE': {'country': 'Estonia', 'Code': 'CTA|EE',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A39I!CTA|10Y1001A1001A39I'},
+            'ENTSOe_ID': '10Y1001A1001A39I',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'MK': {'country': 'FYR Macedonia', 'Code': 'CTA|MK',
-            'ENTSOe_ID': 'CTY|10YMK-MEPSO----8!CTA|10YMK-MEPSO----8'},
+            'ENTSOe_ID': '10YMK-MEPSO----8',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'FI': {'country': 'Finland', 'Code': 'CTA|FI',
-            'ENTSOe_ID': 'CTY|10YFI-1--------U!CTA|10YFI-1--------U'},
+            'ENTSOe_ID': '10YFI-1--------U',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'FR': {'country': 'France', 'Code': 'CTA|FR',
-            'ENTSOe_ID': 'CTY|10YFR-RTE------C!CTA|10YFR-RTE------C'},
+            'ENTSOe_ID': '10YFR-RTE------C',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'DE(50HzT)': {'country': 'Germany', 'Code': 'CTA|DE(50HzT)',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A83F!CTA|10YDE-VE-------2'},
+            'ENTSOe_ID': '10YDE-VE-------2',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'DE(Amprion)': {'country': 'Germany', 'Code': 'CTA|DE(Amprion)',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A83F!CTA|10YDE-RWENET---I'},
+            'ENTSOe_ID': '10YDE-RWENET---I',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'DE(TenneT GER)': {'country': 'Germany', 'Code': 'CTA|DE(TenneT GER)',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A83F!CTA|10YDE-EON------1&'},
+            'ENTSOe_ID': '10YDE-EON------1',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'DE(TransnetBW)': {'country': 'Germany', 'Code': 'CTA|DE(TransnetBW)',
-            'ENTSOe_ID': 'CTY|10Y1001A1001A83F!CTA|10YDE-ENBW-----N'},
+            'ENTSOe_ID': '10YDE-ENBW-----N',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'GR': {'country': 'Greece', 'Code': 'CTA|GR',
-            'ENTSOe_ID': 'CTY|10YGR-HTSO-----Y!CTA|10YGR-HTSO-----Y'},
+            'ENTSOe_ID': '10YGR-HTSO-----Y',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'HU': {'country': 'Hungary', 'Code': 'CTA|HU',
-            'ENTSOe_ID': 'CTY|10YHU-MAVIR----U!CTA|10YHU-MAVIR----U'},
+            'ENTSOe_ID': '10YHU-MAVIR----U',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'IE': {'country': 'Ireland', 'Code': 'CTA|IE',
-            'ENTSOe_ID': 'CTY|10YIE-1001A00010!CTA|10YIE-1001A00010'},
+            'ENTSOe_ID': '10YIE-1001A00010',
+            'gen_freq': '30m', 'gen_market': 'RT5M'},
         'IT': {'country': 'Italy', 'Code': 'CTA|IT',
-            'ENTSOe_ID': 'CTY|10YIT-GRTN-----B!CTA|10YIT-GRTN-----B'},
+            'ENTSOe_ID': '10YIT-GRTN-----B',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'LV': {'country': 'Latvia', 'Code': 'CTA|LV',
-            'ENTSOe_ID': 'CTY|10YLV-1001A00074!CTA|10YLV-1001A00074'},
+            'ENTSOe_ID': '10YLV-1001A00074',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'LT': {'country': 'Lithuania', 'Code': 'CTA|LT',
-            'ENTSOe_ID': 'CTY|10YLT-1001A0008Q!CTA|10YLT-1001A0008Q'},
+            'ENTSOe_ID': '10YLT-1001A0008Q',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'LU': {'country': 'Luxembourg', 'Code': 'CTA|LU',
-            'ENTSOe_ID': 'CTY|10YLU-CEGEDEL-NQ!CTA|10YLU-CEGEDEL-NQ'},
+            'ENTSOe_ID': '10YLU-CEGEDEL-NQ',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'MT': {'country': 'Malta', 'Code': 'CTA|MT',
-            'ENTSOe_ID': 'CTY|MT!CTA|Not+delivered+MT'},
+            'ENTSOe_ID': '10Y1001A1001A93C',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'MD': {'country': 'Moldavia', 'Code': 'CTA|MD',
-            'ENTSOe_ID': 'CTY|MD!CTA|Not+delivered+MD'},
+            'ENTSOe_ID': '10Y1001A1001A990',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'ME': {'country': 'Montenegro', 'Code': 'CTA|ME',
-            'ENTSOe_ID': 'CTY|10YCS-CG-TSO---S!CTA|10YCS-CG-TSO---S'},
+            'ENTSOe_ID': '10YCS-CG-TSO---S',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'NL': {'country': 'Netherlands', 'Code': 'CTA|NL',
-            'ENTSOe_ID': 'CTY|10YNL----------L!CTA|10YNL----------L'},
+            'ENTSOe_ID': '10YNL----------L',
+            'gen_freq': '15m', 'gen_market': 'RTPD'},
         'NO': {'country': 'Norway', 'Code': 'CTA|NO',
-            'ENTSOe_ID': 'CTY|10YNO-0--------C!CTA|10YNO-0--------C'},
+            'ENTSOe_ID': '10YNO-0--------C',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'PL': {'country': 'Poland', 'Code': 'CTA|PL',
-            'ENTSOe_ID': 'CTY|10YPL-AREA-----S!CTA|10YPL-AREA-----S'},
+            'ENTSOe_ID': '10YPL-AREA-----S',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'PT': {'country': 'Portugal', 'Code': 'CTA|PT',
-            'ENTSOe_ID': 'CTY|10YPT-REN------W!CTA|10YPT-REN------W'},
+            'ENTSOe_ID': '10YPT-REN------W',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'RO': {'country': 'Romania', 'Code': 'CTA|RO',
-            'ENTSOe_ID': 'CTY|10YRO-TEL------P!CTA|10YRO-TEL------P'},
+            'ENTSOe_ID': '10YRO-TEL------P',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'RU': {'country': 'Russia', 'Code': 'CTA|RU',
-            'ENTSOe_ID': 'CTY|10YRO-TEL------P!CTA|10YRO-TEL------P'},
+            'ENTSOe_ID': '10YRO-TEL------P',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'RU-KGD': {'country': 'Russia', 'Code': 'CTA|RU-KGD',
-            'ENTSOe_ID': 'CTY|RU!CTA|10Y1001A1001A50U'},
+            'ENTSOe_ID': '10Y1001A1001A50U',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'RS': {'country': 'Serbia', 'Code': 'CTA|RS',
-            'ENTSOe_ID': 'CTY|10YCS-SERBIATSOV!CTA|10YCS-SERBIATSOV'},
+            'ENTSOe_ID': '10YCS-SERBIATSOV',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'SK': {'country': 'Slovakia', 'Code': 'CTA|SK',
-            'ENTSOe_ID': 'CTY|10YSK-SEPS-----K!CTA|10YSK-SEPS-----K'},
+            'ENTSOe_ID': '10YSK-SEPS-----K',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'SI': {'country': 'Slovenia', 'Code': 'CTA|SI',
-            'ENTSOe_ID': 'CTY|10YSI-ELES-----O!CTA|10YSI-ELES-----O'},
+            'ENTSOe_ID': '10YSI-ELES-----O',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'ES': {'country': 'Spain', 'Code': 'CTA|ES',
-            'ENTSOe_ID': 'CTY|10YES-REE------0!CTA|10YES-REE------0'},
+            'ENTSOe_ID': '10YES-REE------0',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'SE': {'country': 'Sweden', 'Code': 'CTA|SE',
-            'ENTSOe_ID': 'CTY|10YSE-1--------K!CTA|10YSE-1--------K'},
+            'ENTSOe_ID': '10YSE-1--------K',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'CH': {'country': 'Switzerland', 'Code': 'CTA|CH',
-            'ENTSOe_ID': 'CTY|10YCH-SWISSGRIDZ!CTA|10YCH-SWISSGRIDZ'},
+            'ENTSOe_ID': '10YCH-SWISSGRIDZ',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'TR': {'country': 'Turkey', 'Code': 'CTA|TR',
-            'ENTSOe_ID': 'CTY|TR!CTA|10YTR-TEIAS----W'},
+            'ENTSOe_ID': '10YTR-TEIAS----W',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'UA': {'country': 'Ukraine', 'Code': 'CTA|UA',
-            'ENTSOe_ID': 'CTY|UA!CTA|10Y1001A1001A869'},
+            'ENTSOe_ID': '10Y1001A1001A869',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'UA-WEPS': {'country': 'Ukraine', 'Code': 'CTA|UA-WEPS',
-            'ENTSOe_ID': 'CTY|UA!CTA|10YUA-WEPS-----0'},
+            'ENTSOe_ID': '10YUA-WEPS-----0',
+            'gen_freq': '1hr', 'gen_market': 'RTHR'},
+        'UA-UNK': {'country': 'Ukraine', 'Code': 'CTA|UA-UNK',
+           'ENTSOe_ID': '10Y1001C--000182',
+           'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'NIE': {'country': 'United Kingdom', 'Code': 'CTA|NIE',
-            'ENTSOe_ID': 'CTY|GB!CTA|10Y1001A1001A016'},
+            'ENTSOe_ID': '10Y1001A1001A016',
+            'gen_freq': '30m', 'gen_market': 'RT5M'},
         'National Grid': {'country': 'United Kingdom', 'Code': 'CTA|National Grid',
-            'ENTSOe_ID': 'CTY|GB!CTA|10YGB----------A'},
+            'ENTSOe_ID': '10YGB----------A',
+            'gen_freq': '30m', 'gen_market': 'RT5M'},
         }
+
+    fuels = {
+        'B01': 'biomass',    # Biomass
+        'B02': 'coal',       # Brown coal/Lignite
+        'B03': 'fossil',     # Coal derived gas
+        'B04': 'natgas',     # Natural gas
+        'B05': 'coal',       # Hard coal/Anthracite
+        'B06': 'oil',        # Oil
+        'B07': 'oil',        # Shale Oil
+        'B08': 'fossil',     # Peat
+        'B09': 'geo',        # Geothermal
+        'B10': 'hydro',      # Hydro - Pumped Storage
+        'B11': 'hydro',      # Hydro Run-of-river and poundage
+        'B12': 'hydro',      # Hydro Water Reservoir
+        'B13': 'renewable',  # Marine
+        'B14': 'nuclear',    # Nuclear
+        'B15': 'renewable',  # Other renewable
+        'B16': 'solar',      # Solar
+        'B17': 'refuse',     # Waste
+        'B18': 'wind',       # Wind Offshore
+        'B19': 'wind',       # Wind Onshore
+        'B20': 'other'       # Other
+    }
+
 
     def get_load(self, control_area=None, latest=False, start_at=None, end_at=None,
                  forecast=False, **kwargs):
         self.handle_options(data='load', start_at=start_at, end_at=end_at, forecast=forecast,
                             latest=latest, control_area=control_area, **kwargs)
 
-        pieces = []
-        for date in self.dates():
-            payload = self.construct_payload(date)
-            url = self.base_url + self.export_endpoint
-            response = self.fetch_entsoe(url, payload)
-            day_df = self.parse_load_response(response)
-            pieces.append(day_df)
+        response = self.fetch_entsoe()
+        return self.parse_response(response)
 
-        df = pd.concat(pieces)
-        sliced = self.slice_times(df)
-        return self.serialize_faster(sliced)
+    def get_generation(self, control_area=None, latest=False, yesterday=False, start_at=False, 
+                       end_at=False, forecast=False, **kwargs):
+        self.handle_options(data='gen', start_at=start_at, end_at=end_at, yesterday=yesterday, 
+                            latest=latest, control_area=control_area, forecast=False, **kwargs)
+
+        response = self.fetch_entsoe()
+        return self.parse_response(response)
 
     def handle_options(self, **kwargs):
         # regular handle options
@@ -138,116 +237,112 @@ class EUClient(BaseClient):
                                 end_at=datetime.now(pytz.utc))
 
         # workaround for base.handle_options setting forecast to false if end_at too far in past
-        if kwargs['forecast']:
+        if 'forecast' in kwargs and kwargs['forecast']:
             self.options['forecast'] = True
 
-    def auth(self):
-        if not getattr(self, 'session', None):
-            self.session = requests.Session()
+    def fetch_entsoe(self):
+        payload = {
+            'securityToken': environ['ENTSOe_SECURITY_TOKEN']
+        }
 
-        payload = {'username': environ['ENTSOe_USERNAME'],
-                   'password': environ['ENTSOe_PASSWORD'],
-                   'url': '/dashboard/show'}
+        format_str = "%Y%m%d%H00"
+        date_from = self.options['start_at'].strftime(format_str)
+        date_to = self.options['end_at'].strftime(format_str)
 
-        # Fake an ajax login to get the cookie
-        r = self.session.post(self.base_url + 'login', params=payload,
-                              headers={'X-Ajax-call': 'true'})
+        TSO_ID = self.get_tso_id()
 
-        msg = r.text
-        if msg == 'ok':
-            return True
-        elif msg == 'non_exists_user_or_bad_password':
-            # TODO throw error
-            return 'Wrong email or password'
-        elif msg == 'not_human':
-            return 'This account is not allowed to access web portal'
-        elif msg == 'suspended_use':
-            return 'User is suspended'
+        if self.options['data'] == 'load':
+            domainType = 'outBiddingZone_Domain'
+            documentType = 'A65'
+        elif self.options['data'] == 'gen':
+            domainType = 'in_Domain'
+            if self.options['forecast']:
+                documentType = 'A71'
+            else:
+                documentType = 'A75'
+
+        if (self.options['forecast']):
+            processType = 'A01'
         else:
-            return 'Unknown error:' + str(msg)
+            processType = 'A16'
 
-    def fetch_entsoe(self, url, payload, count=0):
-        if not getattr(self, 'session', None):
-            self.auth()
+        payload.update({
+          domainType: TSO_ID,
+          'documentType': documentType,
+          'processType': processType,
+          'periodStart': date_from,
+          'periodEnd': date_to
+        })
 
-        r = self.request(url, params=payload)
-        # TODO error checking
-        if len(r.text) == 0:
-            if count > 3:  # try 3 times to get response
-                LOGGER.warn('Request failed, no response found after %i attempts' % count)
-                return False
-            # throttled
-            time.sleep(5)
-            return self.fetch_entsoe(url, payload, count + 1)
-        if 'UNKNOWN_EXCEPTION' in r.text:
-            LOGGER.warn('UNKNOWN EXCEPTION')
-            return False
-        return r.text
+        r = self.request(self.base_url, params=payload)
+        # For some reason lxml gets pernikity about the XML with a header.
+        return r.text.encode('ascii')
 
-    def construct_payload(self, date):
-        # format date
-        format_str = '%d.%m.%Y'
-        date_str = date.strftime(format_str) + ' 00:00|UTC|DAY'
+    def parse_response(self, response):
+        """
+        Take the XML repsonse, pull out the required components
+        and return a list of dicts containing the data requested
+        """
+        data = []
+        xmldoc = objectify.fromstring(response)
+        for ts in xmldoc.TimeSeries:
+            for period in ts.Period:
+                initialOffset = self.utcify(period.timeInterval.start.text)
+                resolution = self.parse_resolution(period.resolution.text)
+                if self.options['latest']:
+                  points = [ period.Point[-1] ]
+                else:
+                  points = period.Point
+                for point in points:
+                    if int(point.quantity.text) == 0:
+                      continue
+                    timestamp = initialOffset + resolution * point.position
+                    datapoint = {
+                        'ba_name': self.options['control_area'],
+                        'market': 'RTHR',
+                        'timestamp': timestamp,
+                    }
+                    if (self.options['forecast']):
+                        datapoint['market'] = 'DAM'
+                    if self.options['data'] == 'gen':
+                      datapoint['market'] = self.CONTROL_AREAS[self.options['control_area']]['gen_market']
+                      datapoint['freq'] = self.CONTROL_AREAS[self.options['control_area']]['gen_freq']
+                      datapoint['gen_MW'] = int(point.quantity.text)
+                      datapoint['fuel_name'] = self.fuels[ts.MktPSRType.psrType.text]
+                    elif self.options['data'] == 'load':
+                      datapoint['load_MW'] = int(point.quantity.text)
+                    data.append(datapoint)
+        return data
 
+
+    def parse_resolution(self, resolution):
+        """
+        Resolutions are given as ISO8601 durations.
+        While the number of these seen is only a handful
+        this method tries to handle all possible values
+        """
+        pattern = """^P
+                  ((?P<year>[0-9.]+)Y)?
+                  ((?P<month>[0-9.]+)M)?
+                  ((?P<day>[0-9.]+)D)?
+                  (T
+                  ((?P<hour>[0-9.]+)H)?
+                  ((?P<minute>[0-9.]+)M)?
+                  ((?P<second>[0-9.]+)S)?
+                  )?$"""
+        matched = re.match(pattern, resolution, re.X).groupdict(0)
+        days = float(matched['year']) * 365 + float(matched['month']) * 30 + float(matched['day']);
+
+        return timedelta(days=days, hours=float(matched['hour']),
+               minutes=float(matched['minute']), seconds=float(matched['second']))
+
+    def get_tso_id(self):
         # TSO ID from control area code
         try:
-            TSO_ID = self.CONTROL_AREAS[self.options['control_area']]['ENTSOe_ID']
+            return self.CONTROL_AREAS[self.options['control_area']]['ENTSOe_ID']
         except KeyError:
             msg = 'Control area code not found for %s. Options are %s' % (self.options['control_area'],
                                                                           sorted(self.CONTROL_AREAS.keys()))
             raise ValueError(msg)
 
-        payload = {
-            'name': '',
-            'defaultValue': 'false',
-            'viewType': 'TABLE',
-            'areaType': 'CTA',
-            'atch': 'false',
-            'dateTime.dateTime': date_str,
-            'biddingZone.values': TSO_ID,
-            'dateTime.timezone': 'UTC',
-            'dateTime.timezone_input': 'UTC',
-            'exportType': 'CSV',
-            'dataItem': 'ALL',
-            'timeRange': 'DEFAULT',
-        }
-        return payload
 
-    def parse_load_response(self, response):
-        df = pd.read_csv(StringIO(response))
-
-        # get START_TIME_UTC as tz-aware datetime
-        df['START_TIME_UTC'], df['END_TIME_UTC'] = zip(
-            *df['Time (UTC)'].apply(lambda x: x.split('-')))
-
-        # Why do these methods only work on Index and not Series?
-        df.set_index(df.START_TIME_UTC, inplace=True)
-        df.index = pd.to_datetime(df.index, utc=True, format='%d.%m.%Y %H:%M ')
-        df.index.set_names('timestamp', inplace=True)
-
-        # find column name and choose which to return and which to drop
-        (forecast_load_col, ) = [c for c in df.columns if 'Day-ahead Total Load Forecast [MW]' in c]
-        (actual_load_col, ) = [c for c in df.columns if 'Actual Total Load [MW]' in c]
-        if self.options['forecast']:
-            load_col = forecast_load_col
-            drop_load_col = actual_load_col
-        else:
-            load_col = actual_load_col
-            drop_load_col = forecast_load_col
-
-        # rename columns for list of dicts
-        rename_d = {load_col: 'load_MW'}
-        df.rename(columns=rename_d, inplace=True)
-        drop_col = ['Time (UTC)', 'END_TIME_UTC', 'START_TIME_UTC', drop_load_col]
-        df.drop(drop_col, axis=1, inplace=True)
-
-        # drop nan rows
-        df.replace('-', np.nan, inplace=True)
-        df.dropna(subset=['load_MW'], inplace=True)
-
-        # Add columns
-        df['ba_name'] = self.options['control_area']
-        df['freq'] = '1hr'
-        df['market'] = 'RTHR'  # not necessarily appropriate terminology
-
-        return df

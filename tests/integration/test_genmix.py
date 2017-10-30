@@ -565,3 +565,29 @@ class TestSVERIGenMix(TestBaseGenMix):
         expected_fuels = ['solar', 'natgas', 'renewable', 'fossil', 'hydro', 'wind', 'coal', 'nuclear']
         for expfuel in expected_fuels:
             self.assertIn(expfuel, fuels)
+
+
+class TestYukonEnergyClientGenMix(TestBaseGenMix):
+    def test_null_response_latest(self):
+        self._run_null_response_test('YUKON', latest=True)
+
+    def test_latest(self):
+        data = self._run_test('YUKON', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.tenmin)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.tenmin)
+
+    def test_date_range(self):
+        # basic test
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_at = now - timedelta(hours=24)
+        data = self._run_test('YUKON', start_at=start_at, end_at=now)
+
+        # test timestamps are different
+        timestamps = [d['timestamp'] for d in data]
+        self.assertGreater(len(set(timestamps)), 1)

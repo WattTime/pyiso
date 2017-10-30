@@ -45,6 +45,7 @@ BALANCING_AUTHORITIES = {
     'SRP': {'class': 'SVERIClient', 'module': 'sveri'},
     'TEPC': {'class': 'SVERIClient', 'module': 'sveri'},
     'WALC': {'class': 'SVERIClient', 'module': 'sveri'},
+    'YUKON': {'class': 'YukonEnergyClient', 'module': 'yukon'},
 }
 
 
