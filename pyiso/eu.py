@@ -276,7 +276,7 @@ class EUClient(BaseClient):
 
         r = self.request(self.base_url, params=payload)
         # For some reason lxml gets pernikity about the XML with a header.
-        return r.text.decode('utf-8').encode('ascii')
+        return r.text.encode('ascii')
 
     def parse_response(self, response):
         """
