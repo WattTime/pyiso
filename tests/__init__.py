@@ -23,5 +23,7 @@ def read_fixture(ba_name, filename, as_bytes=False):
     mode = 'rb' if as_bytes else 'r'
     fixture_file = open(file_path, mode=mode)
     data = fixture_file.read()
+    if hasattr(data, 'decode'):
+        data = getattr(data, 'decode')(encoding='utf-8', errors='replace')
     fixture_file.close()
     return data

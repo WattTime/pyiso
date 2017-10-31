@@ -34,6 +34,10 @@ method                   ``latest``   ``start_at`` and ``end_at`` pair   ``yeste
 ``MISO.get_generation``   yes         yes                                no            yes
 ``MISO.get_load``         yes         yes                                no            yes
 ``MISO.get_trade``        no          yes                                no            yes
+``MISO.get_lmp``          yes         yes                                no            yes
+``NLH.get_generation``    no          no                                 no            no
+``NLH.get_load``          yes         no                                 no            no
+``NLH.get_trade``         no          no                                 no            no
 ``NPB.get_generation``    no          no                                 no            no
 ``NPB.get_load``          yes         yes                                no            yes
 ``NPB.get_trade``         yes         no                                 no            no
