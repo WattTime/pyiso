@@ -49,6 +49,7 @@ balancing authority abbrev.    balancing authority name/region          data sou
       ISONE                     ISO New England                          ISONE
       MISO                      Midcontinent ISO                         MISO
       NBP                       New Brunswick Power                      NBPower
+      NLH                       Newfoundland and Labrador (Canada)       NLHydro
       NSP                       Nova Scotia Power                        NSPower
       NEVP                      Nevada Power                             NVEnergy
       NYISO                     New York ISO                             NYISO

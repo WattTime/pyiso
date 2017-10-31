@@ -323,6 +323,23 @@ class TestNEVPLoad(TestBaseLoad):
         self.assertEqual(len(data), 2*24)
 
 
+class TestNLHydroLoad(TestBaseLoad):
+    def test_null_response_latest(self):
+        self._run_null_repsonse_test('NLH', latest=True)
+
+    def test_latest(self):
+        data = self._run_test('NLH', latest=True)
+
+        # test all timestamps are equal
+        timestamps = [d['timestamp'] for d in data]
+        self.assertEqual(len(set(timestamps)), 1)
+
+        # test flags
+        for dp in data:
+            self.assertEqual(dp['market'], self.MARKET_CHOICES.hourly)
+            self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.hourly)
+
+
 class TestNSPowerLoad(TestBaseLoad):
     def test_null_response_range(self):
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
