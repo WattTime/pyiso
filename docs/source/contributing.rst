@@ -1,5 +1,5 @@
 Contributing
-=============
+============
 
 Right now, pyiso only has interfaces for collecting a small subset of the interesting electricity data that the ISOs provide.
 You can help by adding more!
@@ -8,7 +8,7 @@ if you have questions about any of this.
 
 
 For developers
----------------
+--------------
 
 When you're ready to get started coding:
 
@@ -23,7 +23,7 @@ When you're ready to get started coding:
 
 
 For data users
----------------
+--------------
 
 Found a bug, or know of a data source that you think pyiso should include?
 Please add an issue to `github <https://github.com/WattTime/pyiso/issues>`_.
@@ -59,7 +59,7 @@ Releasing via twine:
    twine upload dist/pyiso-VERSION.tar.gz
 
 Legal things
----------------
+------------
 
 Because we use pyiso as the base for our other software products, we ask that contributors sign the following Contributor License Agreement.  If you have any questions, or concerns, please drop us a line on Github.
 

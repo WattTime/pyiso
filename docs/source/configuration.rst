@@ -1,5 +1,5 @@
 Configuration
-==============
+=============
 
 
 Accounts
@@ -26,7 +26,7 @@ All other ISOs allow unauthenticated users to collect data, so no other credenti
 
 
 Logging and debug
-------------------
+-----------------
 
 By default, logging occurs at the INFO level. If you want to change this, you can set the `LOG_LEVEL` environment variable to the `integer associated with the desired log level <https://docs.python.org/2/library/logging.html#logging-levels>`_. For instance, ERROR is 40 and DEBUG is 10.
 
