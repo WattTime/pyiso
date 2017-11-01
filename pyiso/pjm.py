@@ -43,6 +43,7 @@ class PJMClient(BaseClient):
         'Multiple Fuels': 'thermal',
         'Hydro': 'hydro',
         'Black Liquor': 'other', # Is this the right mapping? What about 'thermal'? 'other'?
+        'Storage': 'other', # Seems to be new
     }
 
     def time_as_of(self, content):
