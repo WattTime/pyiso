@@ -41,7 +41,9 @@ setup(
     description='Python client libraries for ISO and other power grid data sources.',
     long_description=long_description,
     author='Anna Schneider',
-    author_email='anna@watttime.org',
+    author_email='dev@watttime.org',
+    maintainer='WattTime Corporation',
+    maintainer_email='dev@watttime.org',
     url='https://github.com/WattTime/pyiso',
     license='Apache',
     classifiers=[
