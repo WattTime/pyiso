@@ -1,31 +1,24 @@
-import os
-from io import StringIO
-
-import requests_mock
-
-from pyiso import client_factory
+from datetime import date, datetime, timedelta
 from unittest import TestCase, skip
+
 import pandas as pd
 import pytz
-from datetime import date, datetime, timedelta
+import requests_mock
 from bs4 import BeautifulSoup
 
-fixtures_base_path = os.path.join(os.path.dirname(__file__), '../fixtures/caiso')
-
-
-def read_fixture(filename):
-    return open(os.path.join(fixtures_base_path, filename), 'r').read()
+from pyiso import client_factory
+from tests import read_fixture
 
 
 class TestCAISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('CAISO')
-        self.ren_report_tsv = read_fixture('ren_report.csv')
-        self.sld_fcst_xml = read_fixture('sld_forecast.xml')
-        self.ene_slrs_xml = read_fixture('ene_slrs.xml')
-        self.sld_ren_fcst_xml = read_fixture('sld_ren_forecast.xml')
-        self.systemconditions_html = read_fixture('systemconditions.html')
-        self.todays_outlook_renewables = read_fixture('todays_outlook_renewables.html')
+        self.ren_report_tsv = read_fixture(self.c.__module__, 'ren_report.csv')
+        self.sld_fcst_xml = read_fixture(self.c.__module__, 'sld_forecast.xml')
+        self.ene_slrs_xml = read_fixture(self.c.__module__, 'ene_slrs.xml')
+        self.sld_ren_fcst_xml = read_fixture(self.c.__module__, 'sld_ren_forecast.xml')
+        self.systemconditions_html = read_fixture(self.c.__module__, 'systemconditions.html')
+        self.todays_outlook_renewables = read_fixture(self.c.__module__, 'todays_outlook_renewables.html')
 
     def test_parse_ren_report_top(self):
         # top half
