@@ -2,7 +2,7 @@ pyiso
 ============
 
 [![Build Status](https://travis-ci.org/WattTime/pyiso.svg?branch=master)](https://travis-ci.org/WattTime/pyiso)
-[![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.png?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
+[![Coverage Status](https://coveralls.io/repos/WattTime/pyiso/badge.svg?branch=master)](https://coveralls.io/r/WattTime/pyiso?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyiso.svg)](https://badge.fury.io/py/pyiso)
 
 pyiso provides Python client libraries for [ISO](https://www.epsa.org/industry/primer/?fa=rto) and other power grid data sources.
@@ -12,9 +12,15 @@ Documentation: https://pyiso.readthedocs.io/
 
 User group: https://groups.google.com/forum/#!forum/pyiso-users
 
+Upcoming Changes
+----------------
+* Add changes here
 
 Changelog
 ---------
+* 0.4.0: Added BCH (trade-only), EIA, IESO, NBPower, NSPower, AESO, PEI, SASK, NLHydro and YUKON authorities. Added `ccgt` as fuel type. Removed
+         `get_lmp` function (backward-incompatible change).
+* 0.3.19: Fix bug with `Biomass/Fossil` fuel type for BPA
 * 0.3.18: Fix bug with PJM date parsing
 * 0.3.17: Fix bug with `Black Liquor` fuel type for PJM
 * 0.3.16: Implement ISONE get_morningreport and get_sevendayforecast

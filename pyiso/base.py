@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from dateutil.parser import parse as dateutil_parse
 from datetime import datetime, timedelta
@@ -25,7 +26,7 @@ IntervalChoices = namedtuple('IntervalChoices', ['hourly', 'fivemin', 'tenmin', 
 FUEL_CHOICES = ['biogas', 'biomass', 'coal', 'geo', 'hydro',
                 'natgas', 'nonwind', 'nuclear', 'oil', 'other',
                 'refuse', 'renewable', 'smhydro', 'solar', 'solarpv',
-                'solarth', 'thermal', 'wind', 'fossil', 'dual']
+                'solarth', 'thermal', 'wind', 'fossil', 'dual', 'ccgt']
 
 
 class BaseClient(object):
@@ -42,9 +43,7 @@ class BaseClient(object):
     # name
     NAME = ''
 
-    TIMEOUT_SECONDS = 20
-
-    def __init__(self, timeout_seconds=20):
+    def __init__(self, timeout_seconds=30):
         # will hold query options
         self.options = {}
 
@@ -117,25 +116,12 @@ class BaseClient(object):
 
     def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         """
-        Scrape and parse location marginal price data.
-        To request a specific LMP node, include kwarg `node_id`.
-
-        :param bool latest: If True, only get LMP at the one most recent available time point.
-           Available for all regions.
-        :param bool yesterday: If True, get LMP for every time point yesterday.
-           Not available for all regions.
-        :param datetime start_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be greater than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :param datetime end_at: If the datetime is naive, it is assummed to be in the timezone of the Balancing Authority. The timestamp of all returned data points will be less than or equal to this value.
-           If using, must provide both ``start_at`` and ``end_at`` parameters.
-           Not available for all regions.
-        :return: List of dicts, each with keys ``[ba_name, timestamp, freq, market, lmp, lmp_type]``.
-           Timestamps are in UTC.
-        :rtype: list
+        Locational Marginal Price (LMP) is no longer considered a useful measure in reducing
+        carbon emissions.  As such the get_lmp function has been removed.  Please see
+        http://watttime.org/lmp for details.
 
         """
-        raise NotImplementedError('Derived classes must implement the get_lmp method.')
+        raise NotImplementedError('The get_lmp function is no longer supported as part of pyISO. See http://watttime.org/lmp.')
 
     def handle_options(self, **kwargs):
         """
@@ -231,6 +217,11 @@ class BaseClient(object):
         return cleaned_vals
 
     def fetch_xls(self, url):
+        """
+        :param url: The URL of the .xls file to request.
+        :return: The .xls document's content as a pandas object.
+        :rtype: pandas.io.excel.ExcelFile
+        """
         # follow http://stackoverflow.com/questions/27835619/ssl-certificate-verify-failed-error
         context = ssl.create_default_context(cafile=certifi.where())
         socket = urlopen(url, context=context)
@@ -297,6 +288,13 @@ class BaseClient(object):
             # non-throttle error
             LOGGER.error('%s: request failure with code %s for %s, %s' % (self.NAME, response.status_code, url, kwargs))
 
+        if os.environ.get('VERBOSE_REQUESTS') == 'verbose':
+            LOGGER.info(mode)
+            LOGGER.info(url)
+            LOGGER.info(kwargs)
+            LOGGER.info(response.status_code)
+            print(response.text)
+
         return response
 
     def unzip(self, content):
@@ -316,7 +314,8 @@ class BaseClient(object):
             # have zipfile
             z = zipfile.ZipFile(filecontent)
         except zipfile.BadZipfile:
-            LOGGER.error('%s: unzip failure for content:\n%s' % (self.NAME, content))
+            LOGGER.error('%s: unzip failure for content beginning:\n%s' % (self.NAME, str(content)[0:100]))
+            LOGGER.debug('%s: Faulty unzip content:\n%s' % (self.NAME, content))
             return None
 
         # have unzipped content
@@ -360,6 +359,7 @@ class BaseClient(object):
                     filelike = StringIO(filelike)
 
             # read csv
+            kwargs['engine'] = 'python'
             df = pd.read_csv(filelike, **kwargs)
 
         # do xls

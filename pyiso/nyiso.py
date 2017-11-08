@@ -108,36 +108,6 @@ class NYISOClient(BaseClient):
         # serialize and return
         return self.serialize_faster(df, extras=extras)
 
-    def get_lmp(self, node_id='CENTRL', latest=False, start_at=False, end_at=False, **kwargs):
-        # node CENTRL is relatively central and seems to have low congestion costs
-        if node_id and not isinstance(node_id, list):
-            node_id = [node_id]
-        self.handle_options(data='lmp', latest=latest, node_id=node_id,
-                            start_at=start_at, end_at=end_at, **kwargs)
-
-        # get data
-        if self.options['forecast'] or self.options.get('market', None) == self.MARKET_CHOICES.dam:
-            # always include today
-            dates_list = self.dates() + [self.local_now().date()]
-
-            # get data
-            df = self.get_any('damlbmp', self.parse_lmp, dates_list=dates_list)
-            extras = {
-                'ba_name': self.NAME,
-                'freq': self.FREQUENCY_CHOICES.hourly,
-                'market': self.MARKET_CHOICES.dam,
-            }
-        else:
-            # get data
-            df = self.get_any('realtime', self.parse_lmp)
-            extras = {
-                'ba_name': self.NAME,
-                'freq': self.FREQUENCY_CHOICES.fivemin,
-                'market': self.MARKET_CHOICES.fivemin,
-            }
-        # serialize and return
-        return self.serialize_faster(df, extras=extras)
-
     def get_any(self, label, parser, dates_list=None):
         # set up storage
         pieces = []

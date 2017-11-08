@@ -33,7 +33,15 @@ Submodules
     :members:
     :undoc-members:
 
+.. automodule:: pyiso.eia_esod
+    :members:
+    :undoc-members:
+
 .. automodule:: pyiso.ercot
+    :members:
+    :undoc-members:
+
+.. automodule:: pyiso.ieso
     :members:
     :undoc-members:
 
@@ -52,4 +60,3 @@ Submodules
 .. automodule:: pyiso.spp
     :members:
     :undoc-members:
-

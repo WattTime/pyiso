@@ -32,7 +32,6 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
-.coveragerc
 .tox
 nosetests.xml
 htmlcov/*
@@ -47,6 +46,7 @@ htmlcov/*
 
 # database files
 *.csv
+!/tests/**/*.csv
 *.dump
 *.sqlite
 
@@ -56,6 +56,4 @@ htmlcov
 # Certificate key files
 *.pem
 
-
-
-
+.DS_Store

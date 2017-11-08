@@ -20,7 +20,6 @@ class SPPClient(BaseClient):
                 'WASTE': 'refuse',
                 'WIND': 'wind',
             }
-
         else:
             return {
                 'COAL': 'coal',
