@@ -424,7 +424,10 @@ class CAISOClient(BaseClient):
             offset = 0
 
         # create list of combined datetimes
-        dts = [datetime.combine(date, time(hour=(h+offset))) for h in hours]
+
+        # TODO: add failing test for this daylight savings time bug
+
+        dts = [datetime.combine(date, time(hour=(int(h)+offset))) for h in hours]
 
         # set list as index
         df.index = dts
@@ -453,13 +456,22 @@ class CAISOClient(BaseClient):
                 continue
 
             # process both halves of page
+
+            print(this_date)
+
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
                                       nrows=24, header=header,
                                       delimiter='\t+')
 
                 # combine date with hours to index
-                indexed = self.set_dt_index(df, this_date, df['Hour'])
+
+                # TODO: add a failing test for this fix and verify that data isn't missing
+                
+                try:
+                    indexed = self.set_dt_index(df, this_date, df['Hour'])
+                except:
+                    continue
 
                 # original header is fuel names
                 indexed.rename(columns=self.fuels, inplace=True)
