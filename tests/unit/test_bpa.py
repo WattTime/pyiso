@@ -91,8 +91,7 @@ class TestBPABase(TestCase):
         # parse xls
         df = c.parse_to_df(xd, mode='xls', sheet_names=xd.sheet_names, skiprows=18,
                            index_col=0, parse_dates=True,
-                           parse_cols=[0, 2, 4, 5], header_names=['Wind', 'Hydro', 'Thermal']
-                           )
+                           usecols=[0, 2, 4, 5], header_names=['Wind', 'Hydro', 'Thermal'])
         self.assertEqual(list(df.columns), ['Wind', 'Hydro', 'Thermal'])
         self.assertGreater(len(df), 0)
         self.assertEqual(df.iloc[0].name, datetime(2014, 1, 1))
