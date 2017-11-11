@@ -73,11 +73,11 @@ class YukonEnergyClient(TestCase):
         self.assertAlmostEqual(results[1]['gen_MW'], 0)
 
     @requests_mock.Mocker()
-    def test_get_generation_valid_date_range_returns_expected(self, mocked_request):
+    def test_get_generation_valid_date_range_during_dst_returns_expected(self, mocked_request):
         start_at = self.tzaware_utcnow - timedelta(hours=12)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
-        expected_response = read_fixture(self.c.__module__, 'hourly.html')
+        expected_response = read_fixture(self.c.__module__, 'hourly_2017-10-11.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_generation(start_at=start_at, end_at=end_at)
@@ -94,11 +94,11 @@ class YukonEnergyClient(TestCase):
         self.assertAlmostEqual(results[21]['gen_MW'], 0)
 
     @requests_mock.Mocker()
-    def test_get_load_valid_date_range_returns_expected(self, mocked_request):
+    def test_get_load_valid_date_range_during_dst_returns_expected(self, mocked_request):
         start_at = self.tzaware_utcnow - timedelta(hours=12)
         end_at = self.tzaware_utcnow
         expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
-        expected_response = read_fixture(self.c.__module__, 'hourly.html')
+        expected_response = read_fixture(self.c.__module__, 'hourly_2017-10-11.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = self.c.get_load(start_at=start_at, end_at=end_at)
