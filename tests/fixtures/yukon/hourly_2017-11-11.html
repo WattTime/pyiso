@@ -1,0 +1,68 @@
+<html>
+	<head>
+		<title>Consumption in the past 24 hours | Yukon Energy</title>
+		
+		<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+		<script type="text/javascript">
+			google.load('visualization', '1.0', {packages:['corechart']});
+			google.setOnLoadCallback(drawChart);
+			function drawChart() {
+				
+				var data = new google.visualization.DataTable();
+				
+				data.addColumn('string', 'date');
+				data.addColumn('number', 'hydro usage');
+				data.addColumn('number', 'thermal usage');
+				
+				data.addColumn('number', 'available hydro');data.addRow(['4:00 AM',55.08,0,0]);					data.addRow(['5:00 AM',55.5,0,0]);					data.addRow(['6:00 AM',58.62,0,0]);					data.addRow(['7:00 AM',64.22,0,0]);					data.addRow(['8:00 AM',71,0,0]);					data.addRow(['9:00 AM',73.17,0,0]);					data.addRow(['10:00 AM',72.1,0,0]);					data.addRow(['11:00 AM',71.45,0,0]);					data.addRow(['12:00 PM',70.58,0,0]);					data.addRow(['1:00 PM',69.34,0,0]);					data.addRow(['2:00 PM',68.22,0,0]);					data.addRow(['3:00 PM',68.01,0,0]);					data.addRow(['4:00 PM',68.15,0,0]);					data.addRow(['5:00 PM',70.15,0,0]);					data.addRow(['6:00 PM',72.42,0,0]);					data.addRow(['7:00 PM',70.93,0,0]);					data.addRow(['8:00 PM',69.06,0,0]);					data.addRow(['9:00 PM',66.81,0,0]);					data.addRow(['10:00 PM',64.36,0,0]);					data.addRow(['11:00 PM',60.83,0,0]);					data.addRow(['12:00 AM',57.36,0,0]);					data.addRow(['1:00 AM',54.6,0,0]);					data.addRow(['2:00 AM',52.84,0,0]);					data.addRow(['3:00 AM',52.27,0,0]);					data.addRow(['4:00 AM',51.73,0,0]);				
+				
+				var options = {
+					width:		510,
+					height:		270,
+					chartArea:	{ left:55, top:5, width:430, height:140},
+					fontSize:	12,
+					colors:		['#0076AB','#DB9700'],
+					seriesType:	'bars',
+					isStacked:	true,
+					bar:		{ groupWidth: '80%' },
+					vAxis:	{
+								textStyle: { color: '#9d9d9d' },
+								viewWindow: { min: 0, max: 90 },ticks: [0,10,20,30,40,50,60,70,80,90],								gridlines: { color: '#eeeeee' }
+							},
+					hAxis:	{
+								textStyle: { color: '#9d9d9d' }
+							},
+					legend:	{
+								position: 'bottom',
+								textStyle: { fontSize: 14, color: '#9d9d9d' }
+							},
+					series: {	2: {
+									targetAxisIndex: 1,
+									type:		"area",
+									color:		"#3AAACF",
+									lineWidth:	0,
+									curveType:	'function'
+								}
+							}
+				};
+
+				//var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+				var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));
+				chart.draw(data, options);
+			}
+		</script>
+		
+		<link rel="stylesheet" type="text/css" media="screen" href="/consumption/chart.css" />
+	</head>
+	<body>
+		<h1>Consumption in the past 24 hours</h1>
+		<div class="consumption_date">
+			<div class="current_time">4:00 am</div>
+			<div class="current_date">Saturday, November 11, 2017</div>
+			<div style="clear:both;"></div>
+		</div>
+		<h2>Hourly load consumption in MWh (megawatt hours)</h2>
+
+		<div id="chart_div"></div>
+	</body>
+</html>

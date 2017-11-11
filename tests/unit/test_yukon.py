@@ -121,6 +121,52 @@ class YukonEnergyClient(TestCase):
         self.assertEqual(results[10]['timestamp'], parse('2017-10-11T09:00:00Z'))
         self.assertAlmostEqual(results[10]['load_MW'], 38.94)
 
+    @freeze_time('2017-11-11T12:40:00Z')
+    @requests_mock.Mocker()
+    def test_get_generation_valid_date_range_standard_time_returns_expected(self, mocked_request):
+        frozen_client = client_factory('YUKON')
+        frozen_utcnow = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_at = frozen_utcnow - timedelta(hours=12)
+        end_at = frozen_utcnow
+        expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
+        expected_response = read_fixture(frozen_client.__module__, 'hourly_2017-11-11.html')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = frozen_client.get_generation(start_at=start_at, end_at=end_at)
+
+        expected_length = 24  # 2 fuels * 12 hours
+        self.assertEqual(len(results), expected_length)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-11-11T01:00:00Z'))
+        self.assertEqual(results[0]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(results[0]['gen_MW'], 70.15)
+        self.assertEqual(results[23]['timestamp'], parse('2017-11-11T12:00:00Z'))
+        self.assertEqual(results[23]['fuel_name'], 'thermal')
+        self.assertAlmostEqual(results[23]['gen_MW'], 0)
+
+    @freeze_time('2017-11-11T12:40:00Z')
+    @requests_mock.Mocker()
+    def test_get_load_valid_date_range_standard_time_returns_expected(self, mocked_request):
+        frozen_client = client_factory('YUKON')
+        frozen_utcnow = datetime.utcnow().replace(tzinfo=pytz.utc)
+        start_at = frozen_utcnow - timedelta(hours=12)
+        end_at = frozen_utcnow
+        expected_url = 'http://www.yukonenergy.ca/consumption/chart.php?chart=hourly'
+        expected_response = read_fixture(frozen_client.__module__, 'hourly_2017-11-11.html')
+        mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
+
+        results = frozen_client.get_load(start_at=start_at, end_at=end_at)
+
+        expected_length = 12
+        self.assertEqual(len(results), expected_length)
+
+        # Spot check values at the start and end of the results
+        self.assertEqual(results[0]['timestamp'], parse('2017-11-11T01:00:00Z'))
+        self.assertAlmostEqual(results[0]['load_MW'], 70.15)
+        self.assertEqual(results[11]['timestamp'], parse('2017-11-11T12:00:00Z'))
+        self.assertAlmostEqual(results[11]['load_MW'], 51.73)
+
     def test_get_trade_latest_returns_zero(self):
         results = self.c.get_trade(latest=True)
         self.assertEqual(len(results), 1)
