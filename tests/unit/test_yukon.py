@@ -48,7 +48,7 @@ class YukonEnergyClient(TestCase):
     def test_get_load_latest_returns_expected(self, mocked_request):
         frozen_client = client_factory('YUKON')
         expected_url = 'http://www.yukonenergy.ca/consumption/chart_current.php?chart=current'
-        expected_response = read_fixture(frozen_client.__module__, 'current.html')
+        expected_response = read_fixture(frozen_client.__module__, 'current_2017-10-11.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = frozen_client.get_load(latest=True)
@@ -62,7 +62,7 @@ class YukonEnergyClient(TestCase):
     def test_get_generation_latest_returns_expected(self, mocked_request):
         frozen_client = client_factory('YUKON')
         expected_url = 'http://www.yukonenergy.ca/consumption/chart_current.php?chart=current'
-        expected_response = read_fixture(frozen_client.__module__, 'current.html')
+        expected_response = read_fixture(frozen_client.__module__, 'current_2017-10-11.html')
         mocked_request.get(expected_url, content=expected_response.encode('utf-8'))
 
         results = frozen_client.get_generation(latest=True)
