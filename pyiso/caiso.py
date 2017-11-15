@@ -1,12 +1,14 @@
-from datetime import datetime, timedelta, time
-from pyiso.base import BaseClient
-from pyiso import LOGGER
 import copy
 import re
-from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, time
 from io import BytesIO, StringIO
+
 import pandas as pd
 import pytz
+from bs4 import BeautifulSoup
+
+from pyiso import LOGGER
+from pyiso.base import BaseClient
 
 
 class CAISOClient(BaseClient):
@@ -424,9 +426,7 @@ class CAISOClient(BaseClient):
             offset = 0
 
         # create list of combined datetimes
-
         # TODO: add failing test for this daylight savings time bug
-
         dts = [datetime.combine(date, time(hour=(int(h)+offset))) for h in hours]
 
         # set list as index
@@ -446,6 +446,7 @@ class CAISOClient(BaseClient):
         this_date = self.options['start_at'].date()
         while this_date <= self.options['end_at'].date():
             # set up request
+            # FIXME: If start_at is UTC and not the same date as California, this will generate the wrong date.
             url_file = this_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
             url = self.base_url_gen + url_file
 
