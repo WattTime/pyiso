@@ -5,6 +5,7 @@ import pandas as pd
 import pytz
 import requests_mock
 from bs4 import BeautifulSoup
+from dateutil.parser import parse
 
 from pyiso import client_factory
 from tests import read_fixture
@@ -193,3 +194,43 @@ class TestCAISOBase(TestCase):
         start = ts - timedelta(hours=2)
         df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts, lmp_only=False)
         self.assertIsInstance(df, pd.DataFrame)
+
+    @requests_mock.Mocker()
+    def test_get_generation_dst_end(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20171105_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20171105_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-11-05T00:00:00-07:00')
+        end_at = parse('2017-11-05T23:59:59-08:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], parse('2017-11-05T08:00:00Z'))  # '2017-11-05T01:00:00-07:00'
+        self.assertAlmostEqual(generation[0]['geo'], 928)
+        # Should we expect the Hour 1 value twice, since there are only 24 rows in a 25 hour day?
+        self.assertEqual(generation[9]['timestamp'], parse('2017-11-05T09:00:00Z'))  # '2017-11-05T01:00:00-08:00'
+        self.assertAlmostEqual(generation[0]['geo'], 928)
+        self.assertEqual(generation[18]['timestamp'], parse('2017-11-05T10:00:00Z'))  # '2017-11-05T02:00:00-08:00'
+        self.assertAlmostEqual(generation[0]['geo'], 929)
+
+
+    @requests_mock.Mocker()
+    def test_get_generation_dst_start(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20170312_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20170312_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-03-12T00:00:00-08:00')
+        end_at = parse('2017-03-12T23:59:59-07:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], parse('2017-03-12T08:00:00Z'))  # '2017-03-12T01:00:00-08:00'
+        self.assertAlmostEqual(generation[0]['geo'], 935)
+        self.assertEqual(generation[9]['timestamp'], parse('2017-03-12T09:00:00Z'))  # '2017-03-12T03:00:00-07:00'
+        self.assertAlmostEqual(generation[0]['geo'], 935)
+        self.assertEqual(generation[18]['timestamp'], parse('2017-03-12T10:00:00Z'))  # '2017-03-12T04:00:00-07:00'
+        self.assertAlmostEqual(generation[0]['geo'], 936)
