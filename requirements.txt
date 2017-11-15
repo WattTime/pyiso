@@ -14,6 +14,6 @@ python-dateutil
 pytz
 requests-cache
 requests-mock
-requests==2.9.1
+requests
 Sphinx==1.2.2
 xlrd
