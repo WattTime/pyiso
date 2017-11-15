@@ -24,9 +24,9 @@ install:
 script: nosetests --with-coverage --cover-package=pyiso ./tests/unit/
 deploy:
   provider: pypi
-  user: Anna.Schneider
+  user: WattTime
   password:
-    secure: SHHMXoR9TEeWyarMLSoPEP1MFCOawTAgFTaBuLAMu7nGVk0+HbwD78MiAd6k7LaSYj+huL8/B6JKWgY36b2liS33EzJUkaMtS9vt/RzTZUJix/rJepZ4d+6e+rAr+DL/ulCUGot8ILK6vO0S1BzlcQYyXJsc01LzngFDcVWY6sA=
+    secure: "Jiezhw/tS1ZOatEflgSlCB7cXp+gv5AGorflKIMAJF6O3wqGNh+Y+fcfwkUoGD2ODewnKS0fU8W/58EoX8vu+jRX84aIUIZcOdND5nflMz2kdjbglujKx4vt3DAR7eWRdk5UL69+Ts0GOwTGcj+fCHOud9eNiKXCGkxStrtfhr0="
   on:
     tags: true
     repo: WattTime/pyiso
