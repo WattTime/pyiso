@@ -443,10 +443,10 @@ class CAISOClient(BaseClient):
         parsed_data = []
 
         # collect data
+        # FIXME: Since start_at is UTC not CAISO's local offset, this loops incorrectly and fetch the wrong date URL.
         this_date = self.options['start_at'].date()
         while this_date <= self.options['end_at'].date():
             # set up request
-            # FIXME: If start_at is UTC and not the same date as California, this will generate the wrong date.
             url_file = this_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
             url = self.base_url_gen + url_file
 
@@ -460,6 +460,7 @@ class CAISOClient(BaseClient):
 
             print(this_date)
 
+            # TODO: Why skip the NUCLEAR, THERMAL, and HYDRO data in rows 31-54 of the .txt file?
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
                                       nrows=24, header=header,
