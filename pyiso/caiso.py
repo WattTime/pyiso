@@ -468,7 +468,7 @@ class CAISOClient(BaseClient):
                 # combine date with hours to index
 
                 # TODO: add a failing test for this fix and verify that data isn't missing
-                
+
                 try:
                     indexed = self.set_dt_index(df, this_date, df['Hour'])
                 except:
