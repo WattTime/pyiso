@@ -68,6 +68,10 @@ class CAISOClient(BaseClient):
         BaseClient.MARKET_CHOICES.hourly: 'PRC_AS',
     }
 
+    def __init__(self):
+        super(CAISOClient, self).__init__()
+        self.ca_tz = pytz.timezone(self.TZ_NAME)
+
     def handle_options(self, **kwargs):
         # regular handle options
         super(CAISOClient, self).handle_options(**kwargs)
@@ -443,22 +447,22 @@ class CAISOClient(BaseClient):
         parsed_data = []
 
         # collect data
-        # FIXME: Since start_at is UTC not CAISO's local offset, this loops incorrectly and fetch the wrong date URL.
-        this_date = self.options['start_at'].date()
-        while this_date <= self.options['end_at'].date():
+        request_date = self.options['start_at'].date()
+        local_end_at = self.options['end_at'].astimezone(self.ca_tz).date()
+        while request_date <= local_end_at:
             # set up request
-            url_file = this_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
+            url_file = request_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
             url = self.base_url_gen + url_file
 
             # carry out request
             response = self.request(url)
             if not response:
-                this_date += timedelta(days=1)
+                request_date += timedelta(days=1)
                 continue
 
             # process both halves of page
 
-            print(this_date)
+            print(request_date)
 
             # TODO: Why skip the NUCLEAR, THERMAL, and HYDRO data in rows 31-54 of the .txt file?
             for header in [1, 27]:
@@ -471,7 +475,7 @@ class CAISOClient(BaseClient):
                 # TODO: add a failing test for this fix and verify that data isn't missing
 
                 try:
-                    indexed = self.set_dt_index(df, this_date, df['Hour'])
+                    indexed = self.set_dt_index(df, request_date, df['Hour'])
                 except:
                     continue
 
@@ -497,7 +501,7 @@ class CAISOClient(BaseClient):
                                               'freq': self.FREQUENCY_CHOICES.hourly})
 
             # finish day
-            this_date += timedelta(days=1)
+            request_date += timedelta(days=1)
 
         # return
         return parsed_data
