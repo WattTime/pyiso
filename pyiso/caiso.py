@@ -464,7 +464,6 @@ class CAISOClient(BaseClient):
 
             print(request_date)
 
-            # TODO: Why skip the NUCLEAR, THERMAL, and HYDRO data in rows 31-54 of the .txt file?
             for header in [1, 27]:
                 df = self.parse_to_df(response.text,
                                       nrows=24, header=header,
