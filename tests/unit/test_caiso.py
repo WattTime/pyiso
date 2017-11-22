@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 from unittest import TestCase, skip
-
+from pandas import Timestamp
 import pandas as pd
 import pytz
 import requests_mock
@@ -207,12 +207,10 @@ class TestCAISOBase(TestCase):
                                            # FIXME: Non-base kwargs are required to route to _generation_historical()
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
-        self.assertEqual(generation[0]['timestamp'], parse('2017-03-12T08:00:00Z'))  # '2017-03-12T01:00:00-08:00'
-        self.assertAlmostEqual(generation[0]['geo'], 935)
-        self.assertEqual(generation[9]['timestamp'], parse('2017-03-12T09:00:00Z'))  # '2017-03-12T03:00:00-07:00'
-        self.assertAlmostEqual(generation[0]['geo'], 935)
-        self.assertEqual(generation[18]['timestamp'], parse('2017-03-12T10:00:00Z'))  # '2017-03-12T04:00:00-07:00'
-        self.assertAlmostEqual(generation[0]['geo'], 936)
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-03-12T08:00:00Z'))  # '2017-03-12T00:00:00-08:00'
+        self.assertEqual(generation[9]['timestamp'], Timestamp('2017-03-12T09:00:00Z'))  # '2017-03-12T01:00:00-08:00'
+        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-03-12T10:00:00Z'))  # '2017-03-12T03:00:00-07:00'
+        self.assertEqual(generation[27]['timestamp'], Timestamp('2017-03-12T11:00:00Z'))  # '2017-03-12T04:00:00-07:00'
 
     @requests_mock.Mocker()
     def test_get_generation_dst(self, mock_request):
@@ -226,10 +224,12 @@ class TestCAISOBase(TestCase):
                                            # FIXME: Non-base kwargs are required to route to _generation_historical()
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
-        self.assertEqual(generation[0]['timestamp'], parse('2017-11-04T08:00:00Z'))  # '2017-11-04T01:00:00-07:00'
-        self.assertAlmostEqual(generation[0]['geo'], 912)
-        self.assertEqual(generation[9]['timestamp'], parse('2017-11-05T07:00:00Z'))  # '2017-11-04T23:00:00-08:00'
-        self.assertAlmostEqual(generation[216]['thermal'], 6650)
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-04T07:00:00Z'))  # '2017-11-04T00:00:00-07:00'
+        self.assertEqual(generation[0]['fuel_name'], 'solarth')
+        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-05T06:00:00Z'))  # '2017-11-04T23:00:00-07:00'
+        self.assertEqual(generation[239]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(generation[239]['gen_MW'], 2426)
 
     @requests_mock.Mocker()
     def test_get_generation_dst_end(self, mock_request):
@@ -243,13 +243,11 @@ class TestCAISOBase(TestCase):
                                            # FIXME: Non-base kwargs are required to route to _generation_historical()
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
-        self.assertEqual(generation[0]['timestamp'], parse('2017-11-05T08:00:00Z'))  # '2017-11-05T01:00:00-07:00'
-        self.assertAlmostEqual(generation[0]['geo'], 928)
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-05T07:00:00Z'))  # '2017-11-05T00:00:00-07:00'
         # Should we expect the Hour 1 value twice, since there are only 24 rows in a 25 hour day?
-        self.assertEqual(generation[9]['timestamp'], parse('2017-11-05T09:00:00Z'))  # '2017-11-05T01:00:00-08:00'
-        self.assertAlmostEqual(generation[0]['geo'], 928)
-        self.assertEqual(generation[18]['timestamp'], parse('2017-11-05T10:00:00Z'))  # '2017-11-05T02:00:00-08:00'
-        self.assertAlmostEqual(generation[0]['geo'], 929)
+        self.assertEqual(generation[9]['timestamp'], Timestamp('2017-11-05T08:00:00Z'))  # '2017-11-05T01:00:00-07:00'
+        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-11-05T09:00:00Z'))  # '2017-11-05T01:00:00-08:00'
+        self.assertEqual(generation[27]['timestamp'], Timestamp('2017-11-05T10:00:00Z'))  # '2017-11-05T02:00:00-08:00'
 
     @requests_mock.Mocker()
     def test_get_generation_standard_time(self, mock_request):
@@ -263,7 +261,9 @@ class TestCAISOBase(TestCase):
                                            # FIXME: Non-base kwargs are required to route to _generation_historical()
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
-        self.assertEqual(generation[0]['timestamp'], parse('2017-11-06T08:00:00Z'))  # '2017-11-06T01:00:00-08:00'
-        self.assertAlmostEqual(generation[0]['geo'], 923)
-        self.assertEqual(generation[216]['timestamp'], parse('2017-11-07T07:00:00Z'))  # '2017-11-06T23:00:00-08:00'
-        self.assertAlmostEqual(generation[216]['thermal'], 10221)
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-06T08:00:00Z'))  # '2017-11-06T00:00:00-08:00'
+        self.assertEqual(generation[0]['fuel_name'], 'solarth')
+        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-07T07:00:00Z'))  # '2017-11-06T23:00:00-08:00'
+        self.assertEqual(generation[239]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(generation[239]['gen_MW'], 1969)
