@@ -1,9 +1,9 @@
-from datetime import timedelta, datetime
-from unittest import TestCase
-
 import pytz
 import requests_mock
-from dateutil.parser import parse
+
+from datetime import timedelta, datetime
+from pandas import Timestamp
+from unittest import TestCase
 from freezegun import freeze_time
 
 from pyiso import client_factory
@@ -53,7 +53,7 @@ class YukonEnergyClient(TestCase):
         results = self.c.get_load(latest=True)
 
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-11T10:40:00.000Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-11T10:40:00.000Z'))
         self.assertAlmostEqual(results[0]['load_MW'], 38.74)
 
     @requests_mock.Mocker()
@@ -65,10 +65,10 @@ class YukonEnergyClient(TestCase):
         results = self.c.get_generation(latest=True)
 
         self.assertEqual(len(results), 2)
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-11T10:40:00.000Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-11T10:40:00.000Z'))
         self.assertEqual(results[0]['fuel_name'], 'hydro')
         self.assertAlmostEqual(results[0]['gen_MW'], 38.74)
-        self.assertEqual(results[1]['timestamp'], parse('2017-10-11T10:40:00.000Z'))
+        self.assertEqual(results[1]['timestamp'], Timestamp('2017-10-11T10:40:00.000Z'))
         self.assertEqual(results[1]['fuel_name'], 'thermal')
         self.assertAlmostEqual(results[1]['gen_MW'], 0)
 
@@ -86,10 +86,10 @@ class YukonEnergyClient(TestCase):
         self.assertEqual(len(results), expected_length)
 
         # Spot check values at the start and end of the results
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-10T23:00:00Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-10T23:00:00Z'))
         self.assertEqual(results[0]['fuel_name'], 'hydro')
         self.assertAlmostEqual(results[0]['gen_MW'], 51.36)
-        self.assertEqual(results[21]['timestamp'], parse('2017-10-11T09:00:00Z'))
+        self.assertEqual(results[21]['timestamp'], Timestamp('2017-10-11T09:00:00Z'))
         self.assertEqual(results[21]['fuel_name'], 'thermal')
         self.assertAlmostEqual(results[21]['gen_MW'], 0)
 
@@ -107,15 +107,15 @@ class YukonEnergyClient(TestCase):
         self.assertEqual(len(results), expected_length)
 
         # Spot check values at the start and end of the results
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-10T23:00:00Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-10T23:00:00Z'))
         self.assertAlmostEqual(results[0]['load_MW'], 51.36)
-        self.assertEqual(results[10]['timestamp'], parse('2017-10-11T09:00:00Z'))
+        self.assertEqual(results[10]['timestamp'], Timestamp('2017-10-11T09:00:00Z'))
         self.assertAlmostEqual(results[10]['load_MW'], 38.94)
 
     def test_get_trade_latest_returns_zero(self):
         results = self.c.get_trade(latest=True)
         self.assertEqual(len(results), 1)
-        self.assertTrue(results[0]['timestamp'], parse('2017-10-11T10:00:00Z'))
+        self.assertTrue(results[0]['timestamp'], Timestamp('2017-10-11T10:00:00Z'))
         self.assertEqual(results[0]['net_exp_MW'], 0)
 
     def test_get_trade_date_range_retuns_zeros(self):
@@ -125,7 +125,7 @@ class YukonEnergyClient(TestCase):
         results = self.c.get_trade(start_at=start_at, end_at=end_at)
 
         self.assertEqual(len(results), 12)
-        self.assertTrue(results[0]['timestamp'], parse('2017-10-11T10:00:00Z'))
-        self.assertTrue(results[11]['timestamp'], parse('2017-10-10T23:00:00Z'))
+        self.assertTrue(results[0]['timestamp'], Timestamp('2017-10-11T10:00:00Z'))
+        self.assertTrue(results[11]['timestamp'], Timestamp('2017-10-10T23:00:00Z'))
         for result in results:
             self.assertEqual(result['net_exp_MW'], 0)
