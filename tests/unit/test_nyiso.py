@@ -13,7 +13,7 @@ class TestNYISOBase(TestCase):
         self.load_csv = read_fixture(ba_name='nyiso', filename='load.csv')
         self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
         self.trade_csv = read_fixture(ba_name='nyiso', filename='trade.csv')
-        self.genmix_csv = read_fixture(ba_name='nyiso', filename='genmix.csv')
+        self.rtfuelmix_csv = read_fixture(ba_name='nyiso', filename='20171122rtfuelmix.csv')
         self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
@@ -56,17 +56,12 @@ class TestNYISOBase(TestCase):
 
     def test_parse_genmix(self):
         self.c.options = {'data': 'dummy'}
-        df = self.c.parse_genmix(self.genmix_csv.encode('utf-8'))
+        df = self.c.parse_genmix(self.rtfuelmix_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
-            self.assertEqual(idx.date(), date(2016, 1, 19))
-
+            self.assertIn(idx.date(), [date(2017, 11, 22), date(2017, 11, 23)])
             self.assertLess(row['gen_MW'], 5500)
-            self.assertGreater(row['gen_MW'], 100)
             self.assertIn(row['fuel_name'], self.c.fuel_names.values())
-
-        # should have 3 timestamps with 7 fuels
-        self.assertEqual(len(df), 3*len(self.c.fuel_names))
 
         self.assertEqual(df.index.name, 'timestamp')
 

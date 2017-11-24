@@ -268,7 +268,7 @@ class NYISOClient(BaseClient):
                                    axis=1)
 
         # assemble final
-        final_df = pd.DataFrame({'gen_MW': df['Gen MWh'], 'fuel_name': df['fuel_name']})
+        final_df = pd.DataFrame({'gen_MW': df['Gen MW'], 'fuel_name': df['fuel_name']})
 
         # return
         return final_df
