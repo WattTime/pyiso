@@ -4,22 +4,21 @@ from pyiso import client_factory
 from unittest import TestCase
 from datetime import date
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/nyiso')
+from tests import read_fixture
 
 
 class TestNYISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('NYISO')
-
-        self.load_csv = open(FIXTURES_DIR + '/load.csv').read().encode('utf8')
-        self.load_forecast_csv = open(FIXTURES_DIR + '/load_forecast.csv').read().encode('utf8')
-        self.trade_csv = open(FIXTURES_DIR + '/trade.csv').read().encode('utf8')
-        self.genmix_csv = open(FIXTURES_DIR + '/genmix.csv').read().encode('utf8')
-        self.lmp_csv = open(FIXTURES_DIR + '/lmp.csv').read().encode('utf8')
+        self.load_csv = read_fixture(ba_name='nyiso', filename='load.csv')
+        self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
+        self.trade_csv = read_fixture(ba_name='nyiso', filename='trade.csv')
+        self.genmix_csv = read_fixture(ba_name='nyiso', filename='genmix.csv')
+        self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
         self.c.options = {'data': 'dummy'}
-        data = self.c.parse_load_rtm(self.load_csv)
+        data = self.c.parse_load_rtm(self.load_csv.encode('utf-8'))
         for idx, row in data.iterrows():
             self.assertEqual(idx.date(), date(2014, 9, 10))
             self.assertGreater(row['load_MW'], 15700)
@@ -30,7 +29,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_load_forecast(self):
         self.c.options = {'data': 'dummy'}
-        data = self.c.parse_load_forecast(self.load_forecast_csv)
+        data = self.c.parse_load_forecast(self.load_forecast_csv.encode('utf-8'))
         for idx, row in data.iterrows():
             self.assertGreaterEqual(idx.date(), date(2015, 11, 22))
             self.assertLessEqual(idx.date(), date(2015, 11, 28))
@@ -42,7 +41,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_trade(self):
         self.c.options = {'data': 'dummy'}
-        df = self.c.parse_trade(self.trade_csv)
+        df = self.c.parse_trade(self.trade_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2014, 9, 10))
@@ -57,7 +56,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_genmix(self):
         self.c.options = {'data': 'dummy'}
-        df = self.c.parse_genmix(self.genmix_csv)
+        df = self.c.parse_genmix(self.genmix_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2016, 1, 19))
@@ -73,7 +72,7 @@ class TestNYISOBase(TestCase):
 
     def test_parse_lmp(self):
         self.c.options = {'data': 'lmp', 'node_id': ['LONGIL'], 'latest': True}
-        df = self.c.parse_lmp(self.lmp_csv)
+        df = self.c.parse_lmp(self.lmp_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
             self.assertEqual(idx.date(), date(2016, 2, 18))
