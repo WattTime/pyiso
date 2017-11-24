@@ -1,10 +1,9 @@
 import os
-from datetime import datetime
-from unittest import TestCase
-import pytz
 import requests_mock
+from pandas import Timestamp
 from pyiso import client_factory
 from pyiso.base import BaseClient
+from unittest import TestCase
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures')
 
@@ -24,6 +23,5 @@ class TestSASK(TestCase):
         load_ts = self.c.get_load(latest=True)
 
         self.assertEqual(len(load_ts), 1)
-        self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=23, hour=2, minute=1,
-                                                                     second=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-07-23T02:01:00.000Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 2712)
