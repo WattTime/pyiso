@@ -210,7 +210,7 @@ class TestCAISOBase(TestCase):
         self.assertEqual(generation[0]['timestamp'], Timestamp('2017-03-12T08:00:00Z'))  # '2017-03-12T00:00:00-08:00'
         self.assertEqual(generation[9]['timestamp'], Timestamp('2017-03-12T09:00:00Z'))  # '2017-03-12T01:00:00-08:00'
         self.assertEqual(generation[18]['timestamp'], Timestamp('2017-03-12T10:00:00Z'))  # '2017-03-12T03:00:00-07:00'
-        self.assertEqual(generation[27]['timestamp'], Timestamp('2017-03-12T11:00:00Z'))  # '2017-03-12T04:00:00-07:00'
+        self.assertEqual(generation[229]['timestamp'], Timestamp('2017-03-13T06:00:00Z'))  # '2017-03-12T23:00:00-07:00'
 
     @requests_mock.Mocker()
     def test_get_generation_dst(self, mock_request):
@@ -244,10 +244,10 @@ class TestCAISOBase(TestCase):
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
         self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-05T07:00:00Z'))  # '2017-11-05T00:00:00-07:00'
-        # Should we expect the Hour 1 value twice, since there are only 24 rows in a 25 hour day?
         self.assertEqual(generation[9]['timestamp'], Timestamp('2017-11-05T08:00:00Z'))  # '2017-11-05T01:00:00-07:00'
-        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-11-05T09:00:00Z'))  # '2017-11-05T01:00:00-08:00'
-        self.assertEqual(generation[27]['timestamp'], Timestamp('2017-11-05T10:00:00Z'))  # '2017-11-05T02:00:00-08:00'
+        # "Hour 1" appears only once in 25 hour day. The 01:00-08:00 hour is skipped, leaving a gap in UTC timeseries.
+        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-11-05T010:00:00Z'))  # '2017-11-05T02:00:00-08:00'
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-06T07:00:00Z'))  # '2017-11-05T23:00:00-08:00'
 
     @requests_mock.Mocker()
     def test_get_generation_standard_time(self, mock_request):

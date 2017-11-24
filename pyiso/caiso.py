@@ -460,22 +460,27 @@ class CAISOClient(BaseClient):
                 request_date += timedelta(days=1)
                 continue
 
-            # process both halves of page
+            dst_error_text = 'The supplied DateTime represents an invalid time.  For example, when the clock is ' \
+                             'adjusted forward, any time in the period that is skipped is invalid.'
+            header_idx = 1
+            for part in [1, 2]:  # process both halves of page (i.e. two parts)
+                num_data_rows = 24
 
-            print(request_date)
+                # The day transitioning to daylight saving time adds extra erroneous lines of text.
+                if part == 1 and dst_error_text in response.text:
+                    num_data_rows = 29
 
-            for header in [1, 27]:
-                df = self.parse_to_df(response.text,
-                                      nrows=24, header=header,
-                                      delimiter='\t+')
+                df = self.parse_to_df(response.text, nrows=num_data_rows, header=header_idx, delimiter='\t+')
+
+                # The day transitioning to daylight saving time has errors in part two of the file that need removal.
+                if part == 2:
+                    df = df[df.THERMAL.map(str) != '#VALUE!']
 
                 # combine date with hours to index
-
-                # TODO: add a failing test for this fix and verify that data isn't missing
-
                 try:
                     indexed = self.set_dt_index(df, request_date, df['Hour'])
-                except:
+                except Exception as e:
+                    LOGGER.error(e)
                     continue
 
                 # original header is fuel names
@@ -498,6 +503,10 @@ class CAISOClient(BaseClient):
                                       extras={'ba_name': self.NAME,
                                               'market': self.MARKET_CHOICES.hourly,
                                               'freq': self.FREQUENCY_CHOICES.hourly})
+
+                # If processing the first part, set the header index for second part.
+                if part == 1:
+                    header_idx = num_data_rows + 3
 
             # finish day
             request_date += timedelta(days=1)
