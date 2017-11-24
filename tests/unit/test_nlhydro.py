@@ -1,8 +1,6 @@
-from unittest import TestCase
-
 import requests_mock
-from dateutil.parser import parse
-
+from unittest import TestCase
+from pandas import Timestamp
 from pyiso import client_factory
 from pyiso.base import BaseClient
 from tests import read_fixture
@@ -23,5 +21,5 @@ class TestNLHydroClient(TestCase):
 
         load_ts = self.c.get_load(latest=True)
         self.assertEqual(len(load_ts), 1)
-        self.assertEqual(load_ts[0].get('timestamp', None), parse('2017-10-20T01:45:00Z'))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-10-20T01:45:00Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 773)
