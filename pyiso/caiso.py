@@ -430,7 +430,6 @@ class CAISOClient(BaseClient):
             offset = 0
 
         # create list of combined datetimes
-        # TODO: add failing test for this daylight savings time bug
         dts = [datetime.combine(date, time(hour=(int(h)+offset))) for h in hours]
 
         # set list as index
@@ -439,7 +438,6 @@ class CAISOClient(BaseClient):
         # utcify
         df.index = self.utcify_index(df.index)
 
-        # return
         return df
 
     def _generation_historical(self):
