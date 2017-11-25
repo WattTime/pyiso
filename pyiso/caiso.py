@@ -445,7 +445,7 @@ class CAISOClient(BaseClient):
         parsed_data = []
 
         # collect data
-        request_date = self.options['start_at'].date()
+        request_date = self.options['start_at'].astimezone(self.ca_tz).date()
         local_end_at = self.options['end_at'].astimezone(self.ca_tz).date()
         while request_date <= local_end_at:
             # set up request
