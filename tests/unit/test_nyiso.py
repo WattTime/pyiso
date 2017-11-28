@@ -13,7 +13,6 @@ class TestNYISOBase(TestCase):
         self.load_csv = read_fixture(ba_name='nyiso', filename='load.csv')
         self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
         self.trade_csv = read_fixture(ba_name='nyiso', filename='trade.csv')
-        self.rtfuelmix_csv = read_fixture(ba_name='nyiso', filename='20171122rtfuelmix.csv')
         self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
@@ -56,13 +55,27 @@ class TestNYISOBase(TestCase):
 
     def test_parse_genmix(self):
         self.c.options = {'data': 'dummy'}
-        df = self.c.parse_genmix(self.rtfuelmix_csv.encode('utf-8'))
+        rtfuelmix_csv = read_fixture(ba_name='nyiso', filename='20171122rtfuelmix.csv')
+        df = self.c.parse_genmix(rtfuelmix_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
             self.assertIn(idx.date(), [date(2017, 11, 22), date(2017, 11, 23)])
             self.assertLess(row['gen_MW'], 5500)
             self.assertIn(row['fuel_name'], self.c.fuel_names.values())
+        self.assertEqual(df.index.name, 'timestamp')
 
+    def test_parse_legacy_genmix(self):
+        """
+        Tests that legacy generation mix data format can still be parsed if someone requests a historical time range.
+        """
+        self.c.options = {'data': 'dummy'}
+        legacy_ftfuelmix_csv = read_fixture(ba_name='nyiso', filename='20160119rtfuelmix.csv')
+        df = self.c.parse_genmix(legacy_ftfuelmix_csv.encode('utf-8'))
+
+        for idx, row in df.iterrows():
+            self.assertIn(idx.date(), [date(2016, 1, 19), date(2016, 1, 20)])
+            self.assertLess(row['gen_MW'], 5500)
+            self.assertIn(row['fuel_name'], self.c.fuel_names.values())
         self.assertEqual(df.index.name, 'timestamp')
 
     def test_parse_lmp(self):

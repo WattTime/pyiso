@@ -268,7 +268,11 @@ class NYISOClient(BaseClient):
                                    axis=1)
 
         # assemble final
-        final_df = pd.DataFrame({'gen_MW': df['Gen MW'], 'fuel_name': df['fuel_name']})
+        try:
+            final_df = pd.DataFrame({'gen_MW': df['Gen MW'], 'fuel_name': df['fuel_name']})
+        except KeyError:
+            LOGGER.info('Falling back to legacy rtfuelmix column header names.')
+            final_df = pd.DataFrame({'gen_MW': df['Gen MWh'], 'fuel_name': df['fuel_name']})
 
         # return
         return final_df
