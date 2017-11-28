@@ -10,20 +10,18 @@ from tests import read_fixture
 class TestNYISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('NYISO')
-        self.load_csv = read_fixture(ba_name='nyiso', filename='load.csv')
         self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
         self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
         self.c.options = {'data': 'dummy'}
-        data = self.c.parse_load_rtm(self.load_csv.encode('utf-8'))
-        for idx, row in data.iterrows():
-            self.assertEqual(idx.date(), date(2014, 9, 10))
-            self.assertGreater(row['load_MW'], 15700)
-            self.assertLess(row['load_MW'], 16100)
-
-        # should have 4 dps, even though file has 5 (last one has no data)
-        self.assertEqual(len(data), 4)
+        actual_load_csv = read_fixture(ba_name='nyiso', filename='20171122pal.csv')
+        df = self.c.parse_load_rtm(actual_load_csv.encode('utf-8'))
+        for idx, row in df.iterrows():
+            self.assertIn(idx.date(), [date(2017, 11, 22), date(2017, 11, 23)])
+            self.assertGreater(row['load_MW'], 13000)
+            self.assertLess(row['load_MW'], 22000)
+        self.assertEqual(df.index.name, 'timestamp')
 
     def test_parse_load_forecast(self):
         self.c.options = {'data': 'dummy'}
