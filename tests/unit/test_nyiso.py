@@ -1,5 +1,3 @@
-import os
-
 from pyiso import client_factory
 from unittest import TestCase
 from datetime import date
@@ -10,7 +8,6 @@ from tests import read_fixture
 class TestNYISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('NYISO')
-        self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
         self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
@@ -25,13 +22,13 @@ class TestNYISOBase(TestCase):
 
     def test_parse_load_forecast(self):
         self.c.options = {'data': 'dummy'}
-        data = self.c.parse_load_forecast(self.load_forecast_csv.encode('utf-8'))
+        load_forecast_csv = read_fixture(ba_name='nyiso', filename='20171122isolf.csv')
+        data = self.c.parse_load_forecast(load_forecast_csv.encode('utf-8'))
         for idx, row in data.iterrows():
-            self.assertGreaterEqual(idx.date(), date(2015, 11, 22))
-            self.assertLessEqual(idx.date(), date(2015, 11, 28))
+            self.assertGreaterEqual(idx.date(), date(2017, 11, 22))
+            self.assertLessEqual(idx.date(), date(2017, 11, 28))
             self.assertGreater(row['load_MW'], 12000)
-            self.assertLess(row['load_MW'], 20200)
-
+            self.assertLess(row['load_MW'], 22000)
         # should have 6 days of hourly data
         self.assertEqual(len(data), 24*6)
 
