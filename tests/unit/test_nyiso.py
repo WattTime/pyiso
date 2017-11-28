@@ -12,7 +12,6 @@ class TestNYISOBase(TestCase):
         self.c = client_factory('NYISO')
         self.load_csv = read_fixture(ba_name='nyiso', filename='load.csv')
         self.load_forecast_csv = read_fixture(ba_name='nyiso', filename='load_forecast.csv')
-        self.trade_csv = read_fixture(ba_name='nyiso', filename='trade.csv')
         self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
@@ -40,17 +39,13 @@ class TestNYISOBase(TestCase):
 
     def test_parse_trade(self):
         self.c.options = {'data': 'dummy'}
-        df = self.c.parse_trade(self.trade_csv.encode('utf-8'))
+        external_limits_flows_csv = read_fixture(ba_name='nyiso', filename='20171122ExternalLimitsFlows.csv')
+        df = self.c.parse_trade(external_limits_flows_csv.encode('utf-8'))
 
         for idx, row in df.iterrows():
-            self.assertEqual(idx.date(), date(2014, 9, 10))
-
+            self.assertIn(idx.date(), [date(2017, 11, 22), date(2017, 11, 23)])
             self.assertLess(row['net_exp_MW'], -1400)
             self.assertGreater(row['net_exp_MW'], -6300)
-
-        # should have 3 timestamps
-        self.assertEqual(len(df), 3)
-
         self.assertEqual(df.index.name, 'timestamp')
 
     def test_parse_genmix(self):
