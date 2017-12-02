@@ -146,10 +146,8 @@ class TestCAISOLoad(TestBaseLoad):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1),
-                              tol_min=1)
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=now-timedelta(days=2), end_at=now-timedelta(days=1), tol_min=1)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -168,10 +166,8 @@ class TestCAISOLoad(TestBaseLoad):
 #
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('CAISO', start_at=today+timedelta(hours=4),
-                              end_at=today+timedelta(days=2),
-                              tol_min=4*60)
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        data = self._run_test('CAISO', start_at=now+timedelta(hours=4), end_at=now+timedelta(days=2), tol_min=4*60)
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
