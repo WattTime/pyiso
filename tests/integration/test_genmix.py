@@ -114,13 +114,7 @@ class TestMISOGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
-    # @freezegun.freeze_time('2016-05-17 06:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_forecast(self):  # , mocker):
-        # url = ('https://www.misoenergy.org/Library/Repository/Market%20Reports/'
-        #        '20160517_da_ex.xls')
-        # mocker.get(url, content=open('responses/20160517_da_ex.xls', 'r').read())
-        # mocker.get(url.replace('0517', '0518'), status_code=404)
         # basic test
         today = datetime.now(pytz.utc)
         data = self._run_test('MISO', start_at=today+timedelta(hours=2),
@@ -436,35 +430,22 @@ class TestNYISOGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NYISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+        today = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('NYISO', start_at=today-timedelta(days=2), end_at=today-timedelta(days=1))
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    # @freezegun.freeze_time('2016-05-18 12:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
-    def test_date_range_farpast(self):  # , mocker):
-        # for n in range(28, 30+1):
-        #     mocker.get(
-        #         'http://mis.nyiso.com/public/csv/rtfuelmix/201604%srtfuelmix.csv' % n,
-        #         text='Too far back',
-        #         status_code=404)
-        # mocker.get(
-        #     'http://mis.nyiso.com/public/csv/rtfuelmix/20160401rtfuelmix_csv.zip',
-        #     content=open('responses/20160401rtfuelmix.csv.zip', 'rb').read())
-
+    def test_date_range_far_past(self):
         # basic test
-        today = datetime.now(pytz.utc)
-        data = self._run_test('NYISO', start_at=today-timedelta(days=20),
-                              end_at=today-timedelta(days=18))
+        today = pytz.utc.localize(datetime.utcnow())
+        data = self._run_test('NYISO', start_at=today-timedelta(days=20), end_at=today-timedelta(days=18))
 
         # test timestamps are different 5-min for 2 days for 7 fuels
-        # subtract one hour's worth for DST
+        # subtract one hour's worth (5-min for 7 fuels) due to DST
         timestamps = [d['timestamp'] for d in data]
-        self.assertGreaterEqual(len(timestamps), 12*24*2*7-12)
+        self.assertGreaterEqual(len(timestamps), (12*24*2*7)-(12*7))
 
 
 class TestNEVPGenMix(TestBaseGenMix):
