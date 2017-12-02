@@ -157,13 +157,6 @@ class TestCAISOLoad(TestBaseLoad):
         # basic test
         self._run_test('CAISO', start_at='2016-05-01', end_at='2016-05-03')
 
-#     @freezegun.freeze_time('2015-05-20 14:30', tz_offset=0, tick=True)
-#     @requests_mock.mock()
-#     def test_forecast(self, mocker):
-#         url = 'http://oasis.caiso.com/oasisapi/SingleZip'
-#         with open('responses/SLD_FCST.zip', 'rb') as ffile:
-#             mocker.get(url, content=ffile.read())
-#
     def test_forecast(self):
         # basic test
         now = datetime.utcnow().replace(tzinfo=pytz.utc)
