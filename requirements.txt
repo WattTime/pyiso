@@ -10,10 +10,10 @@ nose-timer
 nose==1.3.1
 pandas>=0.18,<0.21
 parameterized
-python-dateutil==2.2
+python-dateutil
 pytz
 requests-cache
 requests-mock
-requests==2.9.1
+requests
 Sphinx==1.2.2
 xlrd
