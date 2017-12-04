@@ -225,11 +225,7 @@ class TestCAISOBase(TestCase):
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
         self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-04T07:00:00Z'))  # '2017-11-04T00:00:00-07:00'
-        self.assertEqual(generation[0]['fuel_name'], 'solarth')
-        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
         self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-05T06:00:00Z'))  # '2017-11-04T23:00:00-07:00'
-        self.assertEqual(generation[239]['fuel_name'], 'hydro')
-        self.assertAlmostEqual(generation[239]['gen_MW'], 2426)
 
     @requests_mock.Mocker()
     def test_get_generation_dst_end(self, mock_request):
@@ -262,8 +258,4 @@ class TestCAISOBase(TestCase):
                                            market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
 
         self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-06T08:00:00Z'))  # '2017-11-06T00:00:00-08:00'
-        self.assertEqual(generation[0]['fuel_name'], 'solarth')
-        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
         self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-07T07:00:00Z'))  # '2017-11-06T23:00:00-08:00'
-        self.assertEqual(generation[239]['fuel_name'], 'hydro')
-        self.assertAlmostEqual(generation[239]['gen_MW'], 1969)
