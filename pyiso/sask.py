@@ -1,9 +1,8 @@
 import json
+import pytz
 import warnings
 from datetime import datetime
-
-import pytz
-
+from pandas import Timestamp
 from pyiso.base import BaseClient
 
 
@@ -43,7 +42,7 @@ class SaskPowerClient(BaseClient):
         current_sysload = float(sysload_json.get('currentSysLoad', None))
         return [{
             'ba_name': self.NAME,
-            'timestamp': last_updated.astimezone(pytz.utc),
+            'timestamp': Timestamp(last_updated.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'load_MW': current_sysload

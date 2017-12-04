@@ -1,18 +1,19 @@
 import os
-from collections import namedtuple
-from dateutil.parser import parse as dateutil_parse
-from datetime import datetime, timedelta
-import pytz
-import requests
-import pandas as pd
+import ssl
 import zipfile
+from collections import namedtuple
+from datetime import datetime, timedelta
 from io import StringIO, BytesIO
 from time import sleep
-from pyiso import LOGGER
-from pytz import AmbiguousTimeError
-import ssl
-import certifi
 
+import certifi
+import pandas as pd
+import pytz
+import requests
+from dateutil.parser import parse as dateutil_parse
+from pytz import AmbiguousTimeError
+
+from pyiso import LOGGER
 
 try:
     from urllib2 import urlopen
@@ -428,8 +429,8 @@ class BaseClient(object):
                 LOGGER.debug(e)
                 try:
                     aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
-                except AmbiguousTimeError as ate_two:
-                    LOGGER.warn('Second DatetimeIndex localization fallback, assuming DST transition day. ' + e.message)
+                except AmbiguousTimeError:
+                    LOGGER.warn('Second DatetimeIndex localization fallback, assuming DST transition day.')
                     dst_active_list = self._dst_active_hours_for_transition_day(local_dt_index=local_index)
                     aware_local_index = local_index.tz_localize(tz_name, ambiguous=dst_active_list)
             except TypeError as e:

@@ -6,7 +6,7 @@ from io import BytesIO
 import pytz
 from bs4 import BeautifulSoup
 from pandas import read_csv
-
+from pandas import Timestamp
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -98,7 +98,7 @@ class NBPowerClient(BaseClient):
         nbload = float(nbload_td.string)
         load_ts = [{
             'ba_name': self.NAME,
-            'timestamp': report_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(report_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'load_MW': nbload
@@ -126,7 +126,7 @@ class NBPowerClient(BaseClient):
 
         trade_ts = [{
             'ba_name': self.NAME,
-            'timestamp': report_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(report_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': nb_trade
@@ -156,7 +156,7 @@ class NBPowerClient(BaseClient):
                 if self._local_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
                     load_ts.append({
                         'ba_name': self.NAME,
-                        'timestamp': row.timestamp.to_pydatetime().astimezone(pytz.utc),
+                        'timestamp': row.timestamp.tz_convert(tz=pytz.utc),
                         'freq': self.FREQUENCY_CHOICES.hourly,
                         'market': self.MARKET_CHOICES.dam,
                         'load_MW': row.load

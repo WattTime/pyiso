@@ -1,8 +1,8 @@
-import pandas
 import pytz
+from pandas import ExcelFile
+from pandas import Timestamp
 from unittest import TestCase
 from datetime import datetime, timedelta
-from dateutil.parser import parse
 from freezegun import freeze_time
 from mock import MagicMock
 from pyiso import client_factory
@@ -33,33 +33,33 @@ class TestBCHydroClient(TestCase):
 
     def test_get_trade_latest_returns_expected(self):
         xls_io = fixture_path(ba_name=self.c.__module__, filename='data1.xls')
-        self.c.fetch_xls = MagicMock(return_value=pandas.ExcelFile(xls_io))
+        self.c.fetch_xls = MagicMock(return_value=ExcelFile(xls_io))
 
         results = self.c.get_trade(latest=True)
         self.assertTrue(len(results), 1)
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-16T12:40:00Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-16T12:40:00Z'))
         self.assertAlmostEqual(results[0]['net_exp_MW'], 964.22479248)
 
     def test_get_trade_yesterday_returns_expected(self):
         xls_io = fixture_path(ba_name=self.c.__module__, filename='data1.xls')
-        self.c.fetch_xls = MagicMock(return_value=pandas.ExcelFile(xls_io))
+        self.c.fetch_xls = MagicMock(return_value=ExcelFile(xls_io))
 
         results = self.c.get_trade(yesterday=True)
         self.assertTrue(len(results), 288)  # 24 hours * 12 observations per hour
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-15T07:00:00Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-15T07:00:00Z'))
         self.assertAlmostEqual(results[0]['net_exp_MW'], 662.693040848)
-        self.assertEqual(results[287]['timestamp'], parse('2017-10-16T06:55:00Z'))
+        self.assertEqual(results[287]['timestamp'], Timestamp('2017-10-16T06:55:00Z'))
         self.assertAlmostEqual(results[287]['net_exp_MW'], 700.70085144)
 
     def test_get_trade_valid_range_returns_expected(self):
         xls_io = fixture_path(ba_name=self.c.__module__, filename='data1.xls')
-        self.c.fetch_xls = MagicMock(return_value=pandas.ExcelFile(xls_io))
+        self.c.fetch_xls = MagicMock(return_value=ExcelFile(xls_io))
         start_at = self.tzaware_utcnow - timedelta(days=3)
         end_at = self.tzaware_utcnow - timedelta(days=1)
 
         results = self.c.get_trade(start_at=start_at, end_at=end_at)
         self.assertTrue(len(results), 576)  # 48 hours * 12 observations per hour
-        self.assertEqual(results[0]['timestamp'], parse('2017-10-13T12:45:00Z'))
+        self.assertEqual(results[0]['timestamp'], Timestamp('2017-10-13T12:45:00Z'))
         self.assertAlmostEqual(results[0]['net_exp_MW'], 1072.920944214)
-        self.assertEqual(results[575]['timestamp'], parse('2017-10-15T12:40:00Z'))
+        self.assertEqual(results[575]['timestamp'], Timestamp('2017-10-15T12:40:00Z'))
         self.assertAlmostEqual(results[575]['net_exp_MW'], 506.151199341)

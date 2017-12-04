@@ -2,6 +2,7 @@ import re
 import pytz
 from datetime import timedelta, datetime
 from bs4 import BeautifulSoup
+from pandas import Timestamp
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -90,7 +91,7 @@ class YukonEnergyClient(BaseClient):
             if self.options['start_at'] <= hourly_rounded_dt <= self.options['end_at']:
                 trades.append({
                     'ba_name': self.NAME,
-                    'timestamp': hourly_rounded_dt,
+                    'timestamp': Timestamp(hourly_rounded_dt),
                     'freq': self.FREQUENCY_CHOICES.hourly,
                     'market': self.MARKET_CHOICES.hourly,
                     'net_exp_MW': 0
@@ -122,7 +123,7 @@ class YukonEnergyClient(BaseClient):
         market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': freq,
             'market': market,
             'fuel_name': fuel,
@@ -141,7 +142,7 @@ class YukonEnergyClient(BaseClient):
         market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': freq,
             'market': market,
             'load_MW': load_mw

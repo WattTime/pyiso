@@ -5,6 +5,7 @@ from unittest import TestCase
 import pytz
 import requests_mock
 from freezegun import freeze_time
+from pandas import Timestamp
 
 from pyiso import client_factory
 from pyiso.base import BaseClient
@@ -27,8 +28,7 @@ class TestNBPowerClient(TestCase):
         load_ts = self.nbpower_client.get_load(latest=True)
 
         self.assertEqual(len(load_ts), 1)
-        self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=1, minute=57,
-                                                                     second=29, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-07-17T01:57:29.000Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 1150)
 
     @requests_mock.Mocker()
@@ -43,8 +43,7 @@ class TestNBPowerClient(TestCase):
         load_ts = self.nbpower_client.get_load(start_at=start_at, end_at=end_at)
 
         self.assertEqual(len(load_ts), 1)
-        self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=1, minute=57,
-                                                                     second=29, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-07-17T01:57:29.000Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 1150)
 
     @requests_mock.Mocker()
@@ -64,17 +63,13 @@ class TestNBPowerClient(TestCase):
 
         self.assertEqual(len(load_ts), 4)  # latest + 3 forecasts.
         # The first forecast is in the past, so the first timestamp should be from the latest report.
-        self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=1, minute=57,
-                                                                     second=29, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-07-17T01:57:29.000Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 1150)
-        self.assertEqual(load_ts[1].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=2, minute=0,
-                                                                     second=0, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[1].get('timestamp', None), Timestamp('2017-07-17T02:00:00.000Z'))
         self.assertEqual(load_ts[1].get('load_MW', None), 1160)
-        self.assertEqual(load_ts[2].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=3, minute=0,
-                                                                     second=0, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[2].get('timestamp', None), Timestamp('2017-07-17T03:00:00.000Z'))
         self.assertEqual(load_ts[2].get('load_MW', None), 1129)
-        self.assertEqual(load_ts[3].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=4, minute=0,
-                                                                     second=0, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[3].get('timestamp', None), Timestamp('2017-07-17T04:00:00.000Z'))
         self.assertEqual(load_ts[3].get('load_MW', None), 1089)
 
     @requests_mock.Mocker()
@@ -85,6 +80,5 @@ class TestNBPowerClient(TestCase):
         trade_ts = self.nbpower_client.get_trade(latest=True)
 
         self.assertEqual(len(trade_ts), 1)
-        self.assertEqual(trade_ts[0].get('timestamp', None), datetime(year=2017, month=7, day=17, hour=1, minute=57,
-                                                                      second=29, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(trade_ts[0].get('timestamp', None), Timestamp('2017-07-17T01:57:29.000Z'))
         self.assertEqual(trade_ts[0].get('net_exp_MW', None), 183)

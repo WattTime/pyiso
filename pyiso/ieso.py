@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import pytz
 from lxml import objectify
+from pandas import Timestamp
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
@@ -254,7 +255,7 @@ class BaseIesoReportHandler(object):
         """
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.frequency(),
             'market': self.market(),
             'fuel_name': IESOClient.fuels[fuel],
@@ -271,7 +272,7 @@ class BaseIesoReportHandler(object):
         """
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.frequency(),
             'market': self.market(),
             'load_MW': load_mw
@@ -288,7 +289,7 @@ class BaseIesoReportHandler(object):
         """
         result_ts.append({
             'ba_name': IESOClient.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.frequency(),
             'market': self.market(),
             'net_exp_MW': net_exp_mw

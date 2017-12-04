@@ -1,8 +1,7 @@
-from datetime import timedelta
-
-import pandas
 import pytz
-
+from datetime import timedelta
+from pandas import DataFrame
+from pandas import Timestamp
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -62,7 +61,7 @@ class BCHydroClient(BaseClient):
             actual_flow_df = data.parse('Sheet1')
             return actual_flow_df
         else:
-            return pandas.DataFrame()
+            return DataFrame()
 
     def _is_valid_date_range(self):
         """
@@ -119,7 +118,7 @@ class BCHydroClient(BaseClient):
         """
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': net_exp_mw

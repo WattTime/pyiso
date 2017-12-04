@@ -1,7 +1,6 @@
-import pytz
 import requests_mock
-from datetime import datetime
 from unittest import TestCase
+from pandas import Timestamp
 from pyiso import client_factory
 from pyiso.base import BaseClient
 from tests import read_fixture
@@ -22,16 +21,14 @@ class TestPEIClient(TestCase):
         load_ts = self.c.get_load(latest=True)
 
         self.assertEqual(len(load_ts), 1)
-        self.assertEqual(load_ts[0].get('timestamp', None), datetime(year=2017, month=9, day=25, hour=10, minute=1,
-                                                                     second=1, microsecond=0, tzinfo=pytz.utc))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-09-25T10:01:01.000Z'))
         self.assertEqual(load_ts[0].get('load_MW', None), 150.56)
 
     @requests_mock.Mocker()
     def test_get_generation_success(self, mock_request):
         expected_response = read_fixture(self.c.NAME, 'chart-values.json').encode('utf8')
         mock_request.get('http://www.gov.pe.ca/windenergy/chart-values.php', content=expected_response)
-        expected_timestamp = datetime(year=2017, month=9, day=25, hour=10, minute=1, second=1, microsecond=0,
-                                      tzinfo=pytz.utc)
+        expected_timestamp = Timestamp('2017-09-25T10:01:01.000Z')
 
         load_ts = self.c.get_generation(latest=True)
 
