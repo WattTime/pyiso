@@ -1,31 +1,25 @@
-import os
-from io import StringIO
-
-import requests_mock
-
-from pyiso import client_factory
+from datetime import date, datetime, timedelta
 from unittest import TestCase, skip
+from pandas import Timestamp
 import pandas as pd
 import pytz
-from datetime import date, datetime, timedelta
+import requests_mock
 from bs4 import BeautifulSoup
+from dateutil.parser import parse
 
-fixtures_base_path = os.path.join(os.path.dirname(__file__), '../fixtures/caiso')
-
-
-def read_fixture(filename):
-    return open(os.path.join(fixtures_base_path, filename), 'r').read()
+from pyiso import client_factory
+from tests import read_fixture
 
 
 class TestCAISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('CAISO')
-        self.ren_report_tsv = read_fixture('ren_report.csv')
-        self.sld_fcst_xml = read_fixture('sld_forecast.xml')
-        self.ene_slrs_xml = read_fixture('ene_slrs.xml')
-        self.sld_ren_fcst_xml = read_fixture('sld_ren_forecast.xml')
-        self.systemconditions_html = read_fixture('systemconditions.html')
-        self.todays_outlook_renewables = read_fixture('todays_outlook_renewables.html')
+        self.ren_report_tsv = read_fixture(self.c.__module__, 'ren_report.csv')
+        self.sld_fcst_xml = read_fixture(self.c.__module__, 'sld_forecast.xml')
+        self.ene_slrs_xml = read_fixture(self.c.__module__, 'ene_slrs.xml')
+        self.sld_ren_fcst_xml = read_fixture(self.c.__module__, 'sld_ren_forecast.xml')
+        self.systemconditions_html = read_fixture(self.c.__module__, 'systemconditions.html')
+        self.todays_outlook_renewables = read_fixture(self.c.__module__, 'todays_outlook_renewables.html')
 
     def test_parse_ren_report_top(self):
         # top half
@@ -200,3 +194,76 @@ class TestCAISOBase(TestCase):
         start = ts - timedelta(hours=2)
         df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts, lmp_only=False)
         self.assertIsInstance(df, pd.DataFrame)
+
+    @requests_mock.Mocker()
+    def test_get_generation_dst_start(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20170312_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20170312_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-03-12T00:00:00-08:00')
+        end_at = parse('2017-03-12T23:59:59-07:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-03-12T08:00:00Z'))  # '2017-03-12T00:00:00-08:00'
+        self.assertEqual(generation[9]['timestamp'], Timestamp('2017-03-12T09:00:00Z'))  # '2017-03-12T01:00:00-08:00'
+        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-03-12T10:00:00Z'))  # '2017-03-12T03:00:00-07:00'
+        self.assertEqual(generation[229]['timestamp'], Timestamp('2017-03-13T06:00:00Z'))  # '2017-03-12T23:00:00-07:00'
+
+    @requests_mock.Mocker()
+    def test_get_generation_dst(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20171104_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20171104_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-11-04T00:00:00-07:00')
+        end_at = parse('2017-11-04T23:59:59-07:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-04T07:00:00Z'))  # '2017-11-04T00:00:00-07:00'
+        self.assertEqual(generation[0]['fuel_name'], 'solarth')
+        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-05T06:00:00Z'))  # '2017-11-04T23:00:00-07:00'
+        self.assertEqual(generation[239]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(generation[239]['gen_MW'], 2426)
+
+    @requests_mock.Mocker()
+    def test_get_generation_dst_end(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20171105_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20171105_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-11-05T00:00:00-07:00')
+        end_at = parse('2017-11-05T23:59:59-08:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-05T07:00:00Z'))  # '2017-11-05T00:00:00-07:00'
+        self.assertEqual(generation[9]['timestamp'], Timestamp('2017-11-05T08:00:00Z'))  # '2017-11-05T01:00:00-07:00'
+        # "Hour 1" appears only once in 25 hour day. The 01:00-08:00 hour is skipped, leaving a gap in UTC timeseries.
+        self.assertEqual(generation[18]['timestamp'], Timestamp('2017-11-05T010:00:00Z'))  # '2017-11-05T02:00:00-08:00'
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-06T07:00:00Z'))  # '2017-11-05T23:00:00-08:00'
+
+    @requests_mock.Mocker()
+    def test_get_generation_standard_time(self, mock_request):
+        expected_url = 'http://content.caiso.com/green/renewrpt/20171106_DailyRenewablesWatch.txt'
+        expected_response = read_fixture(self.c.__module__, '20171106_DailyRenewablesWatch.txt').encode('utf-8')
+        mock_request.get(expected_url, content=expected_response)
+
+        start_at = parse('2017-11-06T00:00:00-08:00')
+        end_at = parse('2017-11-06T23:59:59-08:00')
+        generation = self.c.get_generation(start_at=start_at, end_at=end_at,
+                                           # FIXME: Non-base kwargs are required to route to _generation_historical()
+                                           market=self.c.MARKET_CHOICES.hourly, freq=self.c.FREQUENCY_CHOICES.hourly)
+
+        self.assertEqual(generation[0]['timestamp'], Timestamp('2017-11-06T08:00:00Z'))  # '2017-11-06T00:00:00-08:00'
+        self.assertEqual(generation[0]['fuel_name'], 'solarth')
+        self.assertAlmostEqual(generation[0]['gen_MW'], 0)
+        self.assertEqual(generation[239]['timestamp'], Timestamp('2017-11-07T07:00:00Z'))  # '2017-11-06T23:00:00-08:00'
+        self.assertEqual(generation[239]['fuel_name'], 'hydro')
+        self.assertAlmostEqual(generation[239]['gen_MW'], 1969)

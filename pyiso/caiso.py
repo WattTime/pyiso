@@ -1,12 +1,14 @@
-from datetime import datetime, timedelta, time
-from pyiso.base import BaseClient
-from pyiso import LOGGER
 import copy
 import re
-from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, time
 from io import BytesIO, StringIO
+
 import pandas as pd
 import pytz
+from bs4 import BeautifulSoup
+
+from pyiso import LOGGER
+from pyiso.base import BaseClient
 
 
 class CAISOClient(BaseClient):
@@ -65,6 +67,10 @@ class CAISOClient(BaseClient):
         BaseClient.MARKET_CHOICES.dam: 'PRC_AS',
         BaseClient.MARKET_CHOICES.hourly: 'PRC_AS',
     }
+
+    def __init__(self):
+        super(CAISOClient, self).__init__()
+        self.ca_tz = pytz.timezone(self.TZ_NAME)
 
     def handle_options(self, **kwargs):
         # regular handle options
@@ -424,7 +430,7 @@ class CAISOClient(BaseClient):
             offset = 0
 
         # create list of combined datetimes
-        dts = [datetime.combine(date, time(hour=(h+offset))) for h in hours]
+        dts = [datetime.combine(date, time(hour=(int(h)+offset))) for h in hours]
 
         # set list as index
         df.index = dts
@@ -432,7 +438,6 @@ class CAISOClient(BaseClient):
         # utcify
         df.index = self.utcify_index(df.index)
 
-        # return
         return df
 
     def _generation_historical(self):
@@ -440,26 +445,41 @@ class CAISOClient(BaseClient):
         parsed_data = []
 
         # collect data
-        this_date = self.options['start_at'].date()
-        while this_date <= self.options['end_at'].date():
+        request_date = self.options['start_at'].astimezone(self.ca_tz).date()
+        local_end_at = self.options['end_at'].astimezone(self.ca_tz).date()
+        while request_date <= local_end_at:
             # set up request
-            url_file = this_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
+            url_file = request_date.strftime('%Y%m%d_DailyRenewablesWatch.txt')
             url = self.base_url_gen + url_file
 
             # carry out request
             response = self.request(url)
             if not response:
-                this_date += timedelta(days=1)
+                request_date += timedelta(days=1)
                 continue
 
-            # process both halves of page
-            for header in [1, 27]:
-                df = self.parse_to_df(response.text,
-                                      nrows=24, header=header,
-                                      delimiter='\t+')
+            dst_error_text = 'The supplied DateTime represents an invalid time.  For example, when the clock is ' \
+                             'adjusted forward, any time in the period that is skipped is invalid.'
+            header_idx = 1
+            for part in [1, 2]:  # process both halves of page (i.e. two parts)
+                num_data_rows = 24
+
+                # The day transitioning to daylight saving time adds extra erroneous lines of text.
+                if part == 1 and dst_error_text in response.text:
+                    num_data_rows = 29
+
+                df = self.parse_to_df(response.text, nrows=num_data_rows, header=header_idx, delimiter='\t+')
+
+                # The day transitioning to daylight saving time has errors in part two of the file that need removal.
+                if part == 2:
+                    df = df[df.THERMAL.map(str) != '#VALUE!']
 
                 # combine date with hours to index
-                indexed = self.set_dt_index(df, this_date, df['Hour'])
+                try:
+                    indexed = self.set_dt_index(df, request_date, df['Hour'])
+                except Exception as e:
+                    LOGGER.error(e)
+                    continue
 
                 # original header is fuel names
                 indexed.rename(columns=self.fuels, inplace=True)
@@ -482,8 +502,12 @@ class CAISOClient(BaseClient):
                                               'market': self.MARKET_CHOICES.hourly,
                                               'freq': self.FREQUENCY_CHOICES.hourly})
 
+                # If processing the first part, set the header index for second part.
+                if part == 1:
+                    header_idx = num_data_rows + 3
+
             # finish day
-            this_date += timedelta(days=1)
+            request_date += timedelta(days=1)
 
         # return
         return parsed_data
