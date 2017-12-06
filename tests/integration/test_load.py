@@ -513,13 +513,6 @@ class TestSPPCLoad(TestBaseLoad):
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-#     @freezegun.freeze_time('2015-05-20 11:30', tz_offset=0, tick=True)
-#     @requests_mock.mock()
-#     def test_date_range_farpast(self, mocker):
-#         url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
-#                'Monthly_Ties_and_Loads_L_from_04_01_2015_to_04_30_2015_.html')
-#         with open('responses/SPPC_load_farpast.htm', 'r') as ffile:
-#             mocker.get(url, content=ffile.read())
     def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
