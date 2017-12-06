@@ -7,7 +7,7 @@ import pytz
 class TestGenerationTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
-        now = pytz.utc.localize(datetime.utcnow())
+        now = datetime.now(pytz.utc)
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20),
                                 'end_at': now + timedelta(days=1)}
         self.past_kwargs = {'start_at': now - timedelta(days=1),
@@ -77,7 +77,7 @@ class TestGenerationTask(TestCase):
 class TestLoadTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
-        now = pytz.utc.localize(datetime.utcnow())
+        now = datetime.now(pytz.utc)
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
         self.past_kwargs = {'start_at': now - timedelta(days=1),
                             'end_at': now - timedelta(hours=1)}
@@ -163,7 +163,7 @@ class TestLoadTask(TestCase):
 class TestTradeTask(TestCase):
     def setUp(self):
         self.latest_kwargs = {'latest': True}
-        now = pytz.utc.localize(datetime.utcnow())
+        now = datetime.now(pytz.utc)
         self.forecast_kwargs = {'start_at': now + timedelta(minutes=20), 'end_at': now + timedelta(days=1)}
         self.past_kwargs = {'start_at': now - timedelta(days=1),
                             'end_at': now - timedelta(hours=1)}
