@@ -505,9 +505,8 @@ class TestSPPCLoad(TestBaseLoad):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('SPPC', start_at=today-timedelta(days=1),
-                              end_at=today)
+        now = datetime.now(pytz.utc)
+        data = self._run_test('SPPC', start_at=now-timedelta(days=1), end_at=now)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -515,9 +514,8 @@ class TestSPPCLoad(TestBaseLoad):
 
     def test_date_range_farpast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('SPPC', start_at=today-timedelta(days=35),
-                              end_at=today-timedelta(days=33))
+        now = datetime.now(pytz.utc)
+        data = self._run_test('SPPC', start_at=now-timedelta(days=35), end_at=now-timedelta(days=33))
 
     def test_date_range_strings(self):
         # basic test
