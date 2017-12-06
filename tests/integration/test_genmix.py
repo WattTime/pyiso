@@ -479,32 +479,12 @@ class TestSVERIGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
         self._run_null_response_test(self.bas[0], latest=True)
 
-    # @freezegun.freeze_time('2016-05-20 12:10', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_latest_all(self):  # , mocker):
         for ba in self.bas:
-            # Open both response files and setup mocking
-            # with open('responses/' + ba + '_1-4_latest.txt', 'r') as ffile:
-            #     resp1 = ffile.read()
-            # with open('responses/' + ba + '_5-8_latest.txt', 'r') as ffile:
-            #     resp2 = ffile.read()
-            # mocker.get(self.client.BASE_URL, [{'content': resp1}, {'content': resp2}])
-
-            # run tests
             self._test_latest(ba)
 
-    # @freezegun.freeze_time('2016-05-20 09:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
-            # Open both response files and setup mocking
-            # with open('responses/' + ba + '_1-4.txt', 'r') as ffile:
-            #     resp1 = ffile.read()
-            # with open('responses/' + ba + '_5-8.txt', 'r') as ffile:
-            #     resp2 = ffile.read()
-            # mocker.get(self.client.BASE_URL, [{'content': resp1}, {'content': resp2}])
-
-            # run tests
             self._test_date_range(ba)
 
     def _test_latest(self, ba):
