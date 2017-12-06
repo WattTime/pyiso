@@ -146,7 +146,7 @@ class TestSPPGenMix(TestBaseGenMix):
 
     def test_date_range_hr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
                               market=self.MARKET_CHOICES.hourly)
@@ -211,7 +211,7 @@ class TestBPAGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
 
@@ -221,7 +221,7 @@ class TestBPAGenMix(TestBaseGenMix):
 
     def test_date_range_farpast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
 
@@ -236,7 +236,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_date_range_rthr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
                               end_at=today-timedelta(days=2), market=self.MARKET_CHOICES.hourly)
 
@@ -258,7 +258,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_date_range_dahr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('CAISO',
                               start_at=today-timedelta(days=3, hours=3),
                               end_at=today-timedelta(days=3, hours=1),
@@ -320,7 +320,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_forecast(self):
         # basic test
-        now = pytz.utc.localize(datetime.utcnow())
+        now = datetime.now(pytz.utc)
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
                               end_at=now+timedelta(hours=12))
 
@@ -382,7 +382,7 @@ class TestPJMGenMix(TestBaseGenMix):
 
     def test_date_range_fails(self):
         # only latest data
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         self.assertRaises(ValueError, self._run_test, 'PJM',
                           start_at=today-timedelta(days=2),
                           end_at=today-timedelta(days=1))
@@ -402,7 +402,7 @@ class TestNSPowerGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('NSP', start_at=today-timedelta(days=1),
                               end_at=today)
 
@@ -430,7 +430,7 @@ class TestNYISOGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = pytz.utc.localize(datetime.utcnow())
+        today = datetime.now(pytz.utc)
         data = self._run_test('NYISO', start_at=today-timedelta(days=2), end_at=today-timedelta(days=1))
 
         # test timestamps are different
@@ -439,7 +439,7 @@ class TestNYISOGenMix(TestBaseGenMix):
 
     def test_date_range_far_past(self):
         # basic test
-        today = pytz.utc.localize(datetime.utcnow())
+        today = datetime.now(pytz.utc)
         data = self._run_test('NYISO', start_at=today-timedelta(days=20), end_at=today-timedelta(days=18))
 
         # test timestamps are different 5-min for 2 days for 7 fuels
@@ -508,7 +508,7 @@ class TestSVERIGenMix(TestBaseGenMix):
 
     def _test_date_range(self, ba):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test(ba, start_at=today - timedelta(days=3),
                               end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
 
@@ -545,7 +545,7 @@ class TestYukonEnergyClientGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        now = datetime.now(pytz.utc)
         start_at = now - timedelta(hours=24)
         data = self._run_test('YUKON', start_at=start_at, end_at=now)
 
