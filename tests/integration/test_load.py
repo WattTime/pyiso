@@ -284,9 +284,8 @@ class TestNEVPLoad(TestBaseLoad):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NEVP', start_at=today-timedelta(days=1),
-                              end_at=today)
+        now = datetime.now(pytz.utc)
+        data = self._run_test('NEVP', start_at=now-timedelta(days=1), end_at=now)
 
         # test all timestamps are equal
         timestamps = [d['timestamp'] for d in data]
@@ -298,9 +297,8 @@ class TestNEVPLoad(TestBaseLoad):
 
     def test_date_range_farpast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NEVP', start_at=today-timedelta(days=35),
-                              end_at=today-timedelta(days=33))
+        today = datetime.now(pytz.utc)
+        data = self._run_test('NEVP', start_at=today-timedelta(days=35), end_at=today-timedelta(days=33))
         self.assertEqual(len(data), 2*24)
 
 
