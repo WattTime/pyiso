@@ -2,6 +2,7 @@ import json
 import warnings
 import pytz
 from datetime import datetime
+from pandas import Timestamp
 from pyiso.base import BaseClient
 
 
@@ -56,7 +57,7 @@ class PEIClient(BaseClient):
             total_on_island_load = float(sysload_json.get('data1', None))
             loads.append({
                 'ba_name': self.NAME,
-                'timestamp': last_updated.astimezone(pytz.utc),
+                'timestamp': Timestamp(last_updated.astimezone(pytz.utc)),
                 'freq': self.FREQUENCY_CHOICES.tenmin,
                 'market': self.MARKET_CHOICES.tenmin,
                 'load_MW': total_on_island_load
@@ -91,7 +92,7 @@ class PEIClient(BaseClient):
     def _append_generation(self, generation_ts, utc_dt, fuel_name, gen_mw):
         generation_ts.append({
             'ba_name': self.NAME,
-            'timestamp': utc_dt,
+            'timestamp': Timestamp(utc_dt),
             'freq': self.FREQUENCY_CHOICES.tenmin,
             'market': self.MARKET_CHOICES.tenmin,
             'fuel_name': fuel_name,

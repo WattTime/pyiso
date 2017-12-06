@@ -1,6 +1,9 @@
-import pandas
 import pytz
-from datetime import timedelta, datetime
+from pandas import DataFrame
+from pandas import read_json
+from pandas import Timestamp
+from datetime import datetime
+from datetime import timedelta
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -113,12 +116,12 @@ class NSPowerClient(BaseClient):
         response = self.request(url=generation_url)
         if response and response.content:
             json = response.content.decode('utf-8')
-            currentmix_df = pandas.read_json(json)
+            currentmix_df = read_json(json)
             currentmix_df['datetime'] = self._json_serialized_dates_to_timestamps(currentmix_df['datetime'])
             currentmix_df.set_index('datetime', inplace=True, drop=True)
             return currentmix_df
         else:
-            return pandas.DataFrame()
+            return DataFrame()
 
     def _current_load_dataframe(self):
         """
@@ -131,13 +134,13 @@ class NSPowerClient(BaseClient):
         response = self.request(url=currentload_url)
         if response and response.content:
             json = response.content.decode('utf-8')
-            currentload_df = pandas.read_json(json)
+            currentload_df = read_json(json)
             currentload_df.drop(currentload_df.head(1).index, inplace=True)  # First row is always 0; drop it.
             currentload_df['datetime'] = self._json_serialized_dates_to_timestamps(currentload_df['datetime'])
             currentload_df.set_index('datetime', inplace=True, drop=True)
             return currentload_df
         else:
-            return pandas.DataFrame()
+            return DataFrame()
 
     def _generation_latest(self, genmix):
         """
@@ -176,7 +179,7 @@ class NSPowerClient(BaseClient):
         """
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.hourly,
             'market': self.MARKET_CHOICES.hourly,
             'fuel_name': self.fuels[fuel],
@@ -193,7 +196,7 @@ class NSPowerClient(BaseClient):
         """
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.hourly,
             'market': self.MARKET_CHOICES.hourly,
             'load_MW': load_mw
@@ -210,12 +213,12 @@ class NSPowerClient(BaseClient):
         response = self.request(url=load_forecast_url)
         if response and response.content:
             json = response.content.decode('utf-8')
-            forecastload_df = pandas.read_json(json)
+            forecastload_df = read_json(json)
             forecastload_df['datetime'] = self._json_serialized_dates_to_timestamps(forecastload_df['datetime'])
             forecastload_df.set_index('datetime', inplace=True, drop=True)
             return forecastload_df
         else:
-            return pandas.DataFrame()
+            return DataFrame()
 
     def _json_serialized_dates_to_timestamps(self, serialized_datetimes):
         """

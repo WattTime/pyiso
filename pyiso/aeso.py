@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from io import BytesIO
 
 import pytz
-from pandas import DataFrame, read_csv
+from pandas import DataFrame
+from pandas import read_csv
+from pandas import Timestamp
 
 from pyiso import LOGGER
 from pyiso.base import BaseClient
@@ -122,7 +124,7 @@ class AESOClient(BaseClient):
                 if load_mw and start_at <= row_local_dt <= end_at and row_local_dt.date() >= iter_date:
                     load_ts.append({
                         'ba_name': self.NAME,
-                        'timestamp': row_local_dt.astimezone(pytz.utc),
+                        'timestamp': Timestamp(row_local_dt.astimezone(pytz.utc)),
                         'freq': self.FREQUENCY_CHOICES.hourly,
                         'market': market,
                         'load_MW': load_mw
@@ -173,7 +175,7 @@ class AESOClient(BaseClient):
         for idx, row in fuels_df.iterrows():
             generation_ts.append({
                 'ba_name': self.NAME,
-                'timestamp': local_dt.astimezone(pytz.utc),
+                'timestamp': Timestamp(local_dt.astimezone(pytz.utc)),
                 'freq': self.FREQUENCY_CHOICES.fivemin,
                 'market': self.MARKET_CHOICES.fivemin,
                 'fuel_name': row.label,
@@ -196,7 +198,7 @@ class AESOClient(BaseClient):
 
         trade_ts = [{
             'ba_name': self.NAME,
-            'timestamp': local_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(local_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'net_exp_MW': net_actual_interchange
@@ -217,7 +219,7 @@ class AESOClient(BaseClient):
 
         load_ts = [{
             'ba_name': self.NAME,
-            'timestamp': local_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(local_dt.astimezone(pytz.utc)),
             'freq': self.FREQUENCY_CHOICES.fivemin,
             'market': self.MARKET_CHOICES.fivemin,
             'load_MW': alberta_internal_load

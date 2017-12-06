@@ -1,0 +1,59 @@
+03/12/17			Hourly Breakdown of Renewable Resources (MW)														
+	Hour		GEOTHERMAL	BIOMASS		BIOGAS		SMALL HYDRO	WIND TOTAL	SOLAR PV	SOLAR THERMAL						
+	1		935		213		182		417		1590		0		0		
+	2		935		212		182		413		1355		0		0		
+	3		"The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.
+Parameter name: dateTime"		"The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.
+Parameter name: dateTime"		"The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.
+Parameter name: dateTime"		"The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.
+Parameter name: dateTime"		0		0		"The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.
+Parameter name: dateTime"		
+	4		936		212		180		414		1186		0		0		
+	5		937		214		178		456		1339		0		0		
+	6		938		215		170		458		1097		0		0		
+	7		939		215		170		459		866		0		0		
+	8		940		217		173		455		851		635		0		
+	9		930		219		179		423		650		3598		145		
+	10		876		219		180		389		397		5751		447		
+	11		789		220		181		399		258		6479		474		
+	12		889		219		181		400		310		7499		294		
+	13		937		217		178		388		357		7424		474		
+	14		935		217		177		387		379		7063		469		
+	15		934		216		177		389		313		7366		392		
+	16		932		217		177		390		261		8157		238		
+	17		931		216		178		453		230		7024		262		
+	18		931		218		178		457		170		4687		190		
+	19		933		220		179		474		160		971		27		
+	20		933		218		182		471		346		0		0		
+	21		932		216		182		474		593		0		0		
+	22		933		214		182		506		590		0		0		
+	23		933		214		182		507		604		0		0		
+	24		934		213		182		491		573		0		0		
+																	
+																	
+			Hourly Breakdown of Total Production by Resource Type (MW)														
+	Hour		RENEWABLES	NUCLEAR		THERMAL		IMPORTS		HYDRO							
+	1		2920		2282		3575		6685		4435						
+	2		2684		2283		7525		6594		0						
+	3		0		0		#VALUE!		#VALUE!		0						
+	4		2514		2283		2903		6488		4462						
+	5		2669		2281		2926		6306		4236						
+	6		2421		2280		2919		6663		4370						
+	7		2649		2281		2557		7319		4504						
+	8		3271		2282		2634		7204		4144						
+	9		6145		2283		2210		5070		3933						
+	10		8260		2284		1876		3592		3541						
+	11		8801		2284		1800		3221		3442						
+	12		9792		2283		1767		2346		3465						
+	13		9976		2283		1739		2302		3440						
+	14		9627		2283		2010		2612		3487						
+	15		9786		2283		2369		2562		3557						
+	16		10371		2281		2548		2595		3600						
+	17		9295		2280		3257		3294		3868						
+	18		6833		2282		4582		5261		4306						
+	19		2964		2282		7143		7437		4828						
+	20		1678		2280		9166		8386		4773						
+	21		1923		2281		8907		8522		4604						
+	22		1918		2283		7979		8256		4575						
+	23		1932		2283		6799		7693		4560						
+	24		1902		2283		5478		7323		4362						

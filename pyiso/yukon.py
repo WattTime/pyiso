@@ -2,6 +2,7 @@ import re
 import pytz
 from datetime import timedelta, datetime
 from bs4 import BeautifulSoup
+from pandas import Timestamp
 from pyiso import LOGGER
 from pyiso.base import BaseClient
 
@@ -90,7 +91,7 @@ class YukonEnergyClient(BaseClient):
             if self.options['start_at'] <= hourly_rounded_dt <= self.options['end_at']:
                 trades.append({
                     'ba_name': self.NAME,
-                    'timestamp': hourly_rounded_dt,
+                    'timestamp': Timestamp(hourly_rounded_dt),
                     'freq': self.FREQUENCY_CHOICES.hourly,
                     'market': self.MARKET_CHOICES.hourly,
                     'net_exp_MW': 0
@@ -122,7 +123,7 @@ class YukonEnergyClient(BaseClient):
         market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': freq,
             'market': market,
             'fuel_name': fuel,
@@ -141,7 +142,7 @@ class YukonEnergyClient(BaseClient):
         market = self.MARKET_CHOICES.tenmin if self.options.get('latest', False) else self.MARKET_CHOICES.hourly
         result_ts.append({
             'ba_name': self.NAME,
-            'timestamp': tz_aware_dt.astimezone(pytz.utc),
+            'timestamp': Timestamp(tz_aware_dt.astimezone(pytz.utc)),
             'freq': freq,
             'market': market,
             'load_MW': load_mw
@@ -159,6 +160,30 @@ class YukonEnergyClient(BaseClient):
         concat_timestamp = date_element.string + ' ' + time_element.string
         local_report_dt = self.yukon_tz.localize(datetime.strptime(concat_timestamp, dt_format))
         return local_report_dt
+
+    def _first_historical_report_datetime(self, first_hour, report_dt):
+        """
+        The first hour of the historical report is 25 hours before the report datetime during daylight savings time
+        and 24 hours before the report datetime duirng standard time. This returns the datetime for the historical
+        report's first observation.
+        :param str first_hour: The report's first ambiguous hour string (e.g. '5:00 AM').
+        :param datetime report_dt: The datetime that the report was generated.
+        :return: The timezone-aware datetime for the historical report's first observation.
+        :rtype: datetime
+        """
+        hours_prior = 24
+        attempts = 0
+        while attempts <= 1:
+            row_dt = report_dt - timedelta(hours=hours_prior)
+            if first_hour.zfill(8) == row_dt.strftime('%I:%M %p'):
+                return row_dt
+            else:
+                hours_prior += 1
+                attempts += 1
+        # If row_dt time doesn't match first_hour either 24 or 25 hours in the passt, raise and exception so we don't
+        # misreport data.
+        raise RuntimeError('Expected the first hour %s to be 24 or 25 hours before the report datetime %s.' %
+                           (first_hour.zfill(8), row_dt.strftime('%I:%M %p')))
 
     def _generation_latest(self, genmix):
         """
@@ -201,32 +226,26 @@ class YukonEnergyClient(BaseClient):
             hourly_js_content = javascript_elements[1]
             report_dt = self._datetime_from_chart_soup(hourly_soup)
 
-            # First observation in hourly data always starts 25 hours before the report timestamp.
-            row_dt = report_dt - timedelta(hours=25)
+            # js_hourly_item is in the format: '12:00 AM',41.42,0,0
+            # The elements are time, hydro, thermal, available hydro
             js_hourly_items = self.hourly_regex_pattern.findall(hourly_js_content.string)
+            first_hour = js_hourly_items[0].split(',')[0].replace('\'', '')
+            row_dt = self._first_historical_report_datetime(first_hour=first_hour, report_dt=report_dt)
             for js_hourly_item in js_hourly_items:
-                # js_hourly_item is in the format: '12:00 AM',41.42,0,0
-                # The elements are: time, hydro, thermal, available hydro
                 js_hr_elements = js_hourly_item.split(',')
-                hr_time = js_hr_elements[0].replace('\'', '')
                 hr_hydro = float(js_hr_elements[1])
                 hr_thermal = float(js_hr_elements[2])
                 hr_load = hr_hydro + hr_thermal
 
-                # If row_dt time doesn't match hr_time, raise and exception so we don't misreport data.
-                if hr_time.zfill(8) == row_dt.strftime('%I:%M %p'):
-                    if self.options['start_at'] <= row_dt <= self.options['end_at']:
-                        if self.options['data'] == 'gen':
-                            self._append_generation(result_ts=results, fuel='hydro', tz_aware_dt=row_dt,
-                                                    gen_mw=hr_hydro)
-                            self._append_generation(result_ts=results, fuel='thermal', tz_aware_dt=row_dt,
-                                                    gen_mw=hr_thermal)
-                        elif self.options['data'] == 'load':
-                            self._append_load(result_ts=results, tz_aware_dt=row_dt, load_mw=hr_load)
-                    row_dt = row_dt + timedelta(hours=1)
-                else:
-                    raise RuntimeError('Yukon hourly report expected to return hour %s but was %s.' %
-                                       (row_dt.strftime('%I:%M %p'), hr_time.zfill(8)))
+                if self.options['start_at'] <= row_dt <= self.options['end_at']:
+                    if self.options['data'] == 'gen':
+                        self._append_generation(result_ts=results, fuel='hydro', tz_aware_dt=row_dt,
+                                                gen_mw=hr_hydro)
+                        self._append_generation(result_ts=results, fuel='thermal', tz_aware_dt=row_dt,
+                                                gen_mw=hr_thermal)
+                    elif self.options['data'] == 'load':
+                        self._append_load(result_ts=results, tz_aware_dt=row_dt, load_mw=hr_load)
+                row_dt = row_dt + timedelta(hours=1)
 
     def _is_valid_date_range(self):
         """

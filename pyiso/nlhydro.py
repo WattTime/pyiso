@@ -4,6 +4,7 @@ import pytz
 from datetime import datetime
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
+from pandas import Timestamp
 
 
 class NLHydroClient(BaseClient):
@@ -55,7 +56,7 @@ class NLHydroClient(BaseClient):
 
             return [{
                 'ba_name': self.NAME,
-                'timestamp': last_updated.astimezone(pytz.utc),
+                'timestamp': Timestamp(last_updated.astimezone(pytz.utc)),
                 'freq': self.FREQUENCY_CHOICES.hourly,
                 'market': self.MARKET_CHOICES.hourly,
                 'load_MW': current_island_gen

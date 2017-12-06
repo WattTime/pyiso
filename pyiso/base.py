@@ -1,18 +1,19 @@
 import os
-from collections import namedtuple
-from dateutil.parser import parse as dateutil_parse
-from datetime import datetime, timedelta
-import pytz
-import requests
-import pandas as pd
+import ssl
 import zipfile
+from collections import namedtuple
+from datetime import datetime, timedelta
 from io import StringIO, BytesIO
 from time import sleep
-from pyiso import LOGGER
-from pytz import AmbiguousTimeError
-import ssl
-import certifi
 
+import certifi
+import pandas as pd
+import pytz
+import requests
+from dateutil.parser import parse as dateutil_parse
+from pytz import AmbiguousTimeError
+
+from pyiso import LOGGER
 
 try:
     from urllib2 import urlopen
@@ -426,7 +427,12 @@ class BaseClient(object):
                 aware_local_index = local_index.tz_localize(tz_name)
             except AmbiguousTimeError as e:
                 LOGGER.debug(e)
-                aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
+                try:
+                    aware_local_index = local_index.tz_localize(tz_name, ambiguous='infer')
+                except AmbiguousTimeError:
+                    LOGGER.warn('Second DatetimeIndex localization fallback, assuming DST transition day.')
+                    dst_active_list = self._dst_active_hours_for_transition_day(local_dt_index=local_index)
+                    aware_local_index = local_index.tz_localize(tz_name, ambiguous=dst_active_list)
             except TypeError as e:
                 # already aware
                 LOGGER.debug(e)
@@ -516,3 +522,33 @@ class BaseClient(object):
 
         # return
         return dates
+
+    def _dst_active_hours_for_transition_day(self, local_dt_index):
+        """
+        When attempting to localize a timezone-naive list of dates, the daylight savings status may be ambigous. This
+        method is meant as a fallback when the ambiguous='infer' datetime handling in pandas fails. It assumes
+        that the datetime index is a daylight saving transition day.
+
+        :param pandas.DatetimeIndex local_dt_index: A list of timezone-naive DatetimeIndex values.
+        :return: A list of bool values indicating whether daylight savings time is active for the list provided.
+            This returned list of boolean value is useful for passing to pandas 'ambiguous' kwarg.
+        :rtype: list
+        """
+        dst_active_list = []
+        hour_idx = local_dt_index.hour
+        if len(hour_idx) > 3:
+            starting_timestamp = local_dt_index[0]
+            starting_month = starting_timestamp.month
+            starting_hour = starting_timestamp.hour
+
+            if starting_month == 3 and starting_hour == 0:
+                dst_active_list = [h > 1 for h in hour_idx]
+            elif starting_month == 11 and starting_hour == 0:
+                dst_active_list = [h < 2 for h in hour_idx]
+            elif 3 < starting_month < 11:
+                dst_active_list = [True for h in hour_idx]
+            elif starting_month < 3 or starting_month > 11:
+                dst_active_list = [False for h in hour_idx]
+            else:
+                LOGGER.warn("Uanble to infer fallback DST status for ambiguous DatetimeIndex values.")
+        return dst_active_list
