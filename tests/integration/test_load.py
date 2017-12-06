@@ -296,14 +296,6 @@ class TestNEVPLoad(TestBaseLoad):
         # basic test
         self._run_test('NEVP', start_at='2016-05-01', end_at='2016-05-03')
 
-#     @libfaketime.fake_time('2016-05-20 14:45')
-#     @requests_mock.mock()
-#     def test_date_range_farpast(self, mocker):
-#         url = ('http://www.oasis.oati.com/NEVP/NEVPdocs/inetloading/'
-#                'Monthly_Ties_and_Loads_L_from_04_01_2016_to_04_30_2016_.html')
-#         with open('responses/NEVP_load_farpast.htm', 'r') as ffile:
-#             mocker.get(url, content=ffile.read())
-#
     def test_date_range_farpast(self):
         # basic test
         today = datetime.today().replace(tzinfo=pytz.utc)
