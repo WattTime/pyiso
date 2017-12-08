@@ -114,13 +114,7 @@ class TestMISOGenMix(TestBaseGenMix):
         timestamps = [d['timestamp'] for d in data]
         self.assertEqual(len(set(timestamps)), 1)
 
-    # @freezegun.freeze_time('2016-05-17 06:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_forecast(self):  # , mocker):
-        # url = ('https://www.misoenergy.org/Library/Repository/Market%20Reports/'
-        #        '20160517_da_ex.xls')
-        # mocker.get(url, content=open('responses/20160517_da_ex.xls', 'r').read())
-        # mocker.get(url.replace('0517', '0518'), status_code=404)
         # basic test
         today = datetime.now(pytz.utc)
         data = self._run_test('MISO', start_at=today+timedelta(hours=2),
@@ -152,7 +146,7 @@ class TestSPPGenMix(TestBaseGenMix):
 
     def test_date_range_hr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('SPP', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1),
                               market=self.MARKET_CHOICES.hourly)
@@ -217,7 +211,7 @@ class TestBPAGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=2),
                               end_at=today-timedelta(days=1))
 
@@ -227,7 +221,7 @@ class TestBPAGenMix(TestBaseGenMix):
 
     def test_date_range_farpast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('BPA', start_at=today-timedelta(days=20),
                               end_at=today-timedelta(days=10))
 
@@ -242,7 +236,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_date_range_rthr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('CAISO', start_at=today-timedelta(days=3),
                               end_at=today-timedelta(days=2), market=self.MARKET_CHOICES.hourly)
 
@@ -264,7 +258,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_date_range_dahr(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('CAISO',
                               start_at=today-timedelta(days=3, hours=3),
                               end_at=today-timedelta(days=3, hours=1),
@@ -326,7 +320,7 @@ class TestCAISOGenMix(TestBaseGenMix):
 
     def test_forecast(self):
         # basic test
-        now = pytz.utc.localize(datetime.utcnow())
+        now = datetime.now(pytz.utc)
         data = self._run_test('CAISO', start_at=now+timedelta(hours=2),
                               end_at=now+timedelta(hours=12))
 
@@ -388,7 +382,7 @@ class TestPJMGenMix(TestBaseGenMix):
 
     def test_date_range_fails(self):
         # only latest data
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         self.assertRaises(ValueError, self._run_test, 'PJM',
                           start_at=today-timedelta(days=2),
                           end_at=today-timedelta(days=1))
@@ -408,7 +402,7 @@ class TestNSPowerGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test('NSP', start_at=today-timedelta(days=1),
                               end_at=today)
 
@@ -436,35 +430,22 @@ class TestNYISOGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        data = self._run_test('NYISO', start_at=today-timedelta(days=2),
-                              end_at=today-timedelta(days=1))
+        today = datetime.now(pytz.utc)
+        data = self._run_test('NYISO', start_at=today-timedelta(days=2), end_at=today-timedelta(days=1))
 
         # test timestamps are different
         timestamps = [d['timestamp'] for d in data]
         self.assertGreater(len(set(timestamps)), 1)
 
-    # @freezegun.freeze_time('2016-05-18 12:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
-    def test_date_range_farpast(self):  # , mocker):
-        # for n in range(28, 30+1):
-        #     mocker.get(
-        #         'http://mis.nyiso.com/public/csv/rtfuelmix/201604%srtfuelmix.csv' % n,
-        #         text='Too far back',
-        #         status_code=404)
-        # mocker.get(
-        #     'http://mis.nyiso.com/public/csv/rtfuelmix/20160401rtfuelmix_csv.zip',
-        #     content=open('responses/20160401rtfuelmix.csv.zip', 'rb').read())
-
+    def test_date_range_far_past(self):
         # basic test
         today = datetime.now(pytz.utc)
-        data = self._run_test('NYISO', start_at=today-timedelta(days=20),
-                              end_at=today-timedelta(days=18))
+        data = self._run_test('NYISO', start_at=today-timedelta(days=20), end_at=today-timedelta(days=18))
 
         # test timestamps are different 5-min for 2 days for 7 fuels
-        # subtract one hour's worth for DST
+        # subtract one hour's worth (5-min for 7 fuels) due to DST
         timestamps = [d['timestamp'] for d in data]
-        self.assertGreaterEqual(len(timestamps), 12*24*2*7-12)
+        self.assertGreaterEqual(len(timestamps), (12*24*2*7)-(12*7))
 
 
 class TestNEVPGenMix(TestBaseGenMix):
@@ -498,32 +479,12 @@ class TestSVERIGenMix(TestBaseGenMix):
     def test_null_response_latest(self):
         self._run_null_response_test(self.bas[0], latest=True)
 
-    # @freezegun.freeze_time('2016-05-20 12:10', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_latest_all(self):  # , mocker):
         for ba in self.bas:
-            # Open both response files and setup mocking
-            # with open('responses/' + ba + '_1-4_latest.txt', 'r') as ffile:
-            #     resp1 = ffile.read()
-            # with open('responses/' + ba + '_5-8_latest.txt', 'r') as ffile:
-            #     resp2 = ffile.read()
-            # mocker.get(self.client.BASE_URL, [{'content': resp1}, {'content': resp2}])
-
-            # run tests
             self._test_latest(ba)
 
-    # @freezegun.freeze_time('2016-05-20 09:00', tz_offset=0, tick=True)
-    # @requests_mock.mock()
     def test_date_range_all(self):  # , mocker):
         for ba in self.bas:
-            # Open both response files and setup mocking
-            # with open('responses/' + ba + '_1-4.txt', 'r') as ffile:
-            #     resp1 = ffile.read()
-            # with open('responses/' + ba + '_5-8.txt', 'r') as ffile:
-            #     resp2 = ffile.read()
-            # mocker.get(self.client.BASE_URL, [{'content': resp1}, {'content': resp2}])
-
-            # run tests
             self._test_date_range(ba)
 
     def _test_latest(self, ba):
@@ -547,7 +508,7 @@ class TestSVERIGenMix(TestBaseGenMix):
 
     def _test_date_range(self, ba):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_test(ba, start_at=today - timedelta(days=3),
                               end_at=today - timedelta(days=2), market=self.MARKET_CHOICES.fivemin)
 
@@ -584,7 +545,7 @@ class TestYukonEnergyClientGenMix(TestBaseGenMix):
 
     def test_date_range(self):
         # basic test
-        now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        now = datetime.now(pytz.utc)
         start_at = now - timedelta(hours=24)
         data = self._run_test('YUKON', start_at=start_at, end_at=now)
 

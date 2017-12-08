@@ -1,10 +1,9 @@
-from pyiso import client_factory, BALANCING_AUTHORITIES
+from pyiso import client_factory
 from pyiso.base import BaseClient
 from unittest import TestCase
 import pytz
 from datetime import datetime, timedelta
 import mock
-from responses import test_trade_responses as responses
 
 
 class TestBaseTrade(TestCase):
@@ -44,9 +43,9 @@ class TestBaseTrade(TestCase):
 
             # test correct temporal relationship to now
             if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertGreaterEqual(dp['timestamp'], datetime.now(pytz.utc))
             else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertLess(dp['timestamp'], datetime.now(pytz.utc))
 
         # return
         return data
@@ -77,9 +76,9 @@ class TestBaseTrade(TestCase):
 
             # test correct temporal relationship to now
             if c.options['forecast']:
-                self.assertGreaterEqual(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertGreaterEqual(dp['timestamp'], datetime.now(pytz.utc))
             else:
-                self.assertLess(dp['timestamp'], pytz.utc.localize(datetime.utcnow()))
+                self.assertLess(dp['timestamp'], datetime.now(pytz.utc))
 
         # return
         return data
@@ -127,7 +126,7 @@ class TestBCHydroTrade(TestBaseTrade):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range(self):
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         start_at = today - timedelta(days=2)
         end_at = today - timedelta(days=1)
         data = self._run_net_test('BCH', start_at=start_at, end_at=end_at)
@@ -163,7 +162,7 @@ class TestCAISOTrade(TestBaseTrade):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_net_test('CAISO', start_at=today-timedelta(days=2),
                                   end_at=today-timedelta(days=1))
 
@@ -178,7 +177,7 @@ class TestCAISOTrade(TestBaseTrade):
 
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_net_test('CAISO', start_at=today+timedelta(hours=10),
                                   end_at=today+timedelta(days=2))
 
@@ -206,20 +205,11 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    @mock.patch.object(BaseClient, 'request')
-    def test_date_range(self, mocker):
-        def mreq(url):
-            day = url[58:60]
-            text = responses.test_date_range_short[1].replace('05/13', '05/' + day)
-            return mock.Mock(status_code=200, text=text)
+    def test_date_range(self):
+        now = datetime.now(pytz.utc)
 
-#         url = ('http://mis.nyiso.com/publ/ExternalLimitsFlows'
-#                '/20160513ExternalLimitsFlows.csv')
-        mocker.side_effect = mreq
-        now = responses.test_date_range_short[0]
         # basic test
-        data = self._run_net_test('NYISO', start_at=now-timedelta(days=2),
-                                  end_at=now-timedelta(days=1))
+        data = self._run_net_test('NYISO', start_at=now-timedelta(days=2), end_at=now-timedelta(days=1))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -230,14 +220,11 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['market'], self.MARKET_CHOICES.fivemin)
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
-    @mock.patch.object(BaseClient, 'request')
-    def test_date_range_short(self, mocker):
-        mocker.return_value = mock.Mock(status_code=200,
-                                        text=responses.test_date_range_short[1])
+    def test_date_range_short(self):
+        now = datetime.now(pytz.utc)
+
         # basic test
-        now = responses.test_date_range_short[0]
-        data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10),
-                                  end_at=now-timedelta(minutes=5))
+        data = self._run_net_test('NYISO', start_at=now-timedelta(minutes=10), end_at=now-timedelta(minutes=5))
 
         # test timestamps are not equal
         timestamps = [d['timestamp'] for d in data]
@@ -249,10 +236,10 @@ class TestNYISOTrade(TestBaseTrade):
             self.assertEqual(dp['freq'], self.FREQUENCY_CHOICES.fivemin)
 
     def test_date_range_future(self):
+        today = datetime.now(pytz.utc).date()
+
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
-        self._run_failing_test('NYISO', start_at=today+timedelta(days=1),
-                               end_at=today+timedelta(days=2))
+        self._run_failing_test('NYISO', start_at=today+timedelta(days=1), end_at=today+timedelta(days=2))
 
 
 class TestERCOTTrade(TestBaseTrade):
@@ -268,7 +255,7 @@ class TestISONETrade(TestBaseTrade):
 class TestMISOTrade(TestBaseTrade):
     def test_forecast(self):
         # basic test
-        today = pytz.utc.localize(datetime.utcnow())
+        today = datetime.now(pytz.utc)
         data = self._run_net_test('MISO', start_at=today+timedelta(hours=2),
                                   end_at=today+timedelta(days=2))
 
@@ -298,7 +285,7 @@ class TestNEVPTrade(TestBaseTrade):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_pairwise_test('NEVP', start_at=today-timedelta(days=2),
                                        end_at=today-timedelta(days=1))
 
@@ -313,7 +300,7 @@ class TestNEVPTrade(TestBaseTrade):
 
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         self._run_failing_test('NEVP', start_at=today+timedelta(hours=10),
                                end_at=today+timedelta(days=2))
 
@@ -354,7 +341,7 @@ class TestSPPCTrade(TestBaseTrade):
 
     def test_date_range(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         data = self._run_pairwise_test('SPPC', start_at=today-timedelta(days=2),
                                        end_at=today-timedelta(days=1))
 
@@ -369,6 +356,6 @@ class TestSPPCTrade(TestBaseTrade):
 
     def test_forecast(self):
         # basic test
-        today = datetime.today().replace(tzinfo=pytz.utc)
+        today = datetime.now(pytz.utc)
         self._run_failing_test('SPPC', start_at=today+timedelta(hours=10),
                                end_at=today+timedelta(days=2))
