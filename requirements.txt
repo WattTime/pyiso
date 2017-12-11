@@ -4,7 +4,7 @@ certifi
 freezegun
 html5lib
 libfaketime
-lxml==3.6.4
+lxml>=3.6.4
 mock
 nose-timer
 nose
