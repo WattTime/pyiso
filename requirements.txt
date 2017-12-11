@@ -7,7 +7,7 @@ libfaketime
 lxml==3.6.4
 mock
 nose-timer
-nose==1.3.1
+nose
 pandas>=0.18,<0.21
 parameterized
 python-dateutil
@@ -15,5 +15,5 @@ pytz
 requests-cache
 requests-mock
 requests
-Sphinx==1.2.2
+Sphinx
 xlrd
