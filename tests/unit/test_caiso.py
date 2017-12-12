@@ -163,38 +163,6 @@ class TestCAISOBase(TestCase):
                     'gen_MW': 580.83}
         self.assertEqual(expected, parsed_data[0])
 
-    @skip('Not ready yet')
-    def test_lmp_loc(self):
-        loc_data = self.c.get_lmp_loc()
-
-        # one entry for each node
-        self.assertGreaterEqual(len(loc_data), 4228)
-
-        # check keys
-        self.assertItemsEqual(loc_data[0].keys(),
-                              ['node_id', 'latitude', 'longitude', 'area'])
-
-    @requests_mock.Mocker()
-    def test_bad_data(self, exptected_request):
-        expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
-        exptected_request.get(expected_url, content='bad data'.encode('utf-8'))
-
-        ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
-        start = ts - timedelta(hours=2)
-        df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts)
-
-        self.assertIsInstance(df, pd.DataFrame)
-
-    @requests_mock.Mocker()
-    def test_bad_data_lmp_only(self, exptected_request):
-        expected_url = 'http://oasis.caiso.com/oasisapi/SingleZip?node=CAISO_AS&version=1&startdatetime=20150301T10%3A00-0000&market_run_id=RTM&queryname=PRC_INTVL_LMP&resultformat=6&enddatetime=20150301T12%3A00-0000'
-        exptected_request.get(expected_url, content='bad data'.encode('utf-8'))
-
-        ts = pytz.utc.localize(datetime(2015, 3, 1, 12))
-        start = ts - timedelta(hours=2)
-        df = self.c.get_lmp_as_dataframe('CAISO_AS', latest=False, start_at=start, end_at=ts, lmp_only=False)
-        self.assertIsInstance(df, pd.DataFrame)
-
     @requests_mock.Mocker()
     def test_get_generation_dst_start(self, mock_request):
         expected_url = 'http://content.caiso.com/green/renewrpt/20170312_DailyRenewablesWatch.txt'
