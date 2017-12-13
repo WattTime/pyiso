@@ -134,26 +134,12 @@ class ISONEClient(BaseClient):
                 else:
                     self.options['frequency'] = self.FREQUENCY_CHOICES.fivemin
 
-        # handle lmp
-        if self.options['data'] == 'lmp':
-            if self.options['market'] == self.MARKET_CHOICES.fivemin:
-                if self.options['forecast']:
-                    raise ValueError('ISONE does not produce forecast five minute lmps')
-
     def request_endpoints(self, location_id=None):
         """Returns a list of endpoints to query, based on handled options"""
         # base endpoint
         ext = ''
         if self.options['data'] == 'gen':
             base_endpoint = 'genfuelmix'
-        elif self.options['data'] == 'lmp' and location_id is not None:
-            ext = '/location/%s' % location_id
-            if self.options['market'] == self.MARKET_CHOICES.fivemin:
-                base_endpoint = 'fiveminutelmp'
-            elif self.options['market'] == self.MARKET_CHOICES.dam:
-                base_endpoint = 'hourlylmp/da/final'
-            elif self.options['market'] == self.MARKET_CHOICES.hourly:
-                base_endpoint = 'hourlylmp/rt/prelim'
         elif self.options['data'] == 'load':
             if self.options['market'] == self.MARKET_CHOICES.dam:
                 base_endpoint = 'hourlyloadforecast'
@@ -204,22 +190,6 @@ class ISONEClient(BaseClient):
         except (KeyError, TypeError):
             raise ValueError('Could not parse ISONE load data %s' % data)
 
-    def parse_json_lmp_data(self, data):
-        """
-        Pull approriate keys from json data set.
-        Raise ValueError if parser fails.
-        """
-        try:
-            if self.options['market'] == self.MARKET_CHOICES.fivemin:
-                if self.options.get('latest'):
-                    return data['FiveMinLmp']
-                else:
-                    return data['FiveMinLmps']['FiveMinLmp']
-            else:
-                return data['HourlyLmps']['HourlyLmp']
-        except (KeyError, TypeError):
-            raise ValueError('Could not parse ISONE lmp data %s' % data)
-
     def _parse_json(self, json):
         if len(json) == 0:
             raise ValueError('No data found for ISONE %s' % self.options)
@@ -235,12 +205,6 @@ class ISONEClient(BaseClient):
         df['ba_name'] = self.NAME
         df['market'] = self.options['market']
         df['freq'] = self.options['frequency']
-
-        # lmp specific
-        if self.options['data'] == 'lmp':
-            df.rename(columns={'LmpTotal': 'lmp'}, inplace=True)
-            df['node_id'] = self.options['node_id']
-            df['lmp_type'] = 'energy'
 
         # genmix specific
         if self.options['data'] == 'gen':
