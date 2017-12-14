@@ -8,7 +8,6 @@ import pandas as pd
 class IntegrationTestERCOT(TestCase):
     def setUp(self):
         self.c = client_factory('ERCOT')
-        self.node_counts = range(612, 633)  # 632 LMP nodes as of 2017-09-04. TODO Why is this a range?
 
     def test_request_report_gen_hrly(self):
         # get data as list of dicts
