@@ -20,8 +20,9 @@ class IntegrationTestERCOT(TestCase):
             self.assertIn(key, df.columns)
 
     def test_request_report_wind_hrly(self):
+        now = datetime.now(pytz.timezone(self.c.TZ_NAME))
         # get data as list of dicts
-        df = self.c._request_report('wind_hrly')
+        df = self.c._request_report('wind_hrly', now)
 
         # test for expected data
         self.assertLessEqual(len(df), 96)
@@ -37,22 +38,3 @@ class IntegrationTestERCOT(TestCase):
         self.assertGreaterEqual(len(df), 8 * 24 - 1)
         for key in ['SystemTotal', 'HourEnding', 'DSTFlag', 'DeliveryDate']:
             self.assertIn(key, df.columns)
-
-    def test_request_report_dam_hrl_lmp(self):
-        now = datetime.now(pytz.timezone(self.c.TZ_NAME))
-        df = self.c._request_report('dam_hrly_lmp', now)
-        s = pd.to_datetime(df['DeliveryDate'], utc=True)
-
-        self.assertEqual(s.min().date(), now.date())
-        self.assertEqual(s.max().date(), now.date())
-        self.assertIn(len(df), [n * 24 for n in self.node_counts])  # nodes * 24 hrs/day
-
-    def test_request_report_rt5m_lmp(self):
-        now = datetime.now(pytz.utc) - timedelta(minutes=5)
-        df = self.c._request_report('rt5m_lmp', now)
-        df.index = df['SCEDTimestamp']
-        s = pd.to_datetime(df.index).tz_localize('Etc/GMT+5').tz_convert('utc')
-
-        self.assertLess((s.min() - now).total_seconds(), 8 * 60)
-        self.assertLess((s.max() - now).total_seconds(), 8 * 60)
-        self.assertIn(len(df), self.node_counts)
