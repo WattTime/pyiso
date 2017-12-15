@@ -47,11 +47,6 @@ class TestISONE(TestCase):
         self.assertEqual(self.c.options['market'], self.c.MARKET_CHOICES.dam)
         self.assertEqual(self.c.options['frequency'], self.c.FREQUENCY_CHOICES.dam)
 
-    def test_handle_options_lmp_latest(self):
-        self.c.handle_options(data='lmp', latest=True)
-        self.assertEqual(self.c.options['market'], self.c.MARKET_CHOICES.fivemin)
-        self.assertEqual(self.c.options['frequency'], self.c.FREQUENCY_CHOICES.fivemin)
-
     def test_endpoints_gen_latest(self):
         self.c.handle_options(data='gen', latest=True)
         endpoints = self.c.request_endpoints()
@@ -89,12 +84,6 @@ class TestISONE(TestCase):
         now = pytz.utc.localize(datetime.utcnow()).astimezone(pytz.timezone('US/Eastern'))
         date_str = now.strftime('%Y%m%d')
         self.assertIn(date_str, endpoints[0])
-
-    def test_endpoints_lmp_latest(self):
-        self.c.handle_options(data='lmp', latest=True)
-        endpoints = self.c.request_endpoints(123)
-        self.assertEqual(len(endpoints), 1)
-        self.assertIn('/fiveminutelmp/current/location/123.json', endpoints)
 
     @requests_mock.Mocker()
     def test_get_morningreport(self, mock_request):

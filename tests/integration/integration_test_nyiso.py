@@ -45,12 +45,3 @@ class IntegrationTestNYISOClient(TestCase):
         self.assertEqual(len(content_list), 1)
         self.assertEqual(content_list[0].split('\r\n')[0],
                          'Time Stamp,Time Zone,Fuel Category,Gen MWh')
-
-    def test_fetch_csv_lmp(self):
-        self.c.options = {'data': 'lmp'}
-        now = pytz.utc.localize(datetime.utcnow())
-        today = now.astimezone(pytz.timezone(self.c.TZ_NAME)).date()
-        content_list = self.c.fetch_csvs(today, 'realtime')
-        self.assertEqual(len(content_list), 1)
-        self.assertEqual(content_list[0].split('\r\n')[0],
-                         '"Time Stamp","Name","PTID","LBMP ($/MWHr)","Marginal Cost Losses ($/MWHr)","Marginal Cost Congestion ($/MWHr)"')

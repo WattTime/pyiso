@@ -239,108 +239,8 @@ class PJMClient(BaseClient):
         else:
             return []
 
-    def parse_datasnapshot_df(self, ts, df):
-        df['timestamp'] = ts
-
-        rename_d = {'LMP': 'lmp'}
-        df.rename(columns=rename_d, inplace=True)
-
-        # convert $(12.44) to float as -12.44
-        df['lmp'] = df['lmp'].apply(lambda x: float(x.replace('$', '').replace(')', '').replace('(', '-')))
-
-        df['node_id'] = df.index
-        df['freq'] = self.options['freq']
-        df['market'] = self.options['market']
-        df['ba_name'] = 'PJM'
-        df['lmp_type'] = 'TotalLMP'
-        return df
-
-    def parse_dataminer_df(self, json):
-        df = pd.DataFrame(json)
-        if df.empty:
-            return df
-
-        # drop CongLMP and LossLMP
-        df = df[df['priceType'] == 'TotalLMP']
-
-        # turn nested prices into DataFrame
-        df['lmp'] = df['prices'].apply(lambda x: pd.DataFrame.from_dict(x))
-
-        # reindex and drop extra columns
-        df = df.reset_index()
-        df.drop(['index', 'prices'], axis=1)
-
-        # list of DataFrames to concatenate
-        dfs = []
-        # group by day
-        grouped = df.groupby('publishDate')
-        for name, gr in grouped:
-            # unpack nested lmp dataframe
-            lmps = pd.concat([d.set_index('utchour') for d in gr['lmp']])
-
-            # set high level columns
-            for col in ['pnodeId', 'priceType', 'publishDate', 'versionNum']:
-                lmps[col] = gr[col].iloc[0]
-
-            dfs.append(lmps)
-
-        retdf = pd.concat(dfs)
-
-        # Convert datetime string to datetime object with timezone
-        retdf['timestamp'] = pd.to_datetime(retdf.index, utc=True)
-
-        # rename, drop and add standard columns
-        rename_d = {'price': 'lmp',
-                    'pnodeId': 'node_id',
-                    'priceType': 'lmp_type',
-                    }
-        retdf.rename(columns=rename_d, inplace=True)
-        retdf.drop(['publishDate', 'versionNum'], axis=1, inplace=True)
-        retdf['freq'] = self.options['freq']
-        retdf['market'] = self.options['market']
-        retdf['ba_name'] = 'PJM'
-
-        retdf.index = retdf['timestamp']
-
-        return retdf
-
-    def fetch_dataminer_df(self, endpoint, params):
-        url = self.base_dataminer_url + endpoint
-        response = self.request(url, mode='post', json=params)
-
-        if not response:
-            return pd.DataFrame()
-        df = self.parse_dataminer_df(response.json())
-
-        return df
-
     def handle_options(self, **kwargs):
         super(PJMClient, self).handle_options(**kwargs)
-
-        # lmp specific options
-        if self.options['data'] == 'lmp':
-            if 'market' not in self.options:
-                self.options['market'] = self.MARKET_CHOICES.dam
-
-            if 'freq' not in self.options:
-                self.options['freq'] = self.FREQUENCY_CHOICES.hourly
-
-            if self.options['market'] in (self.MARKET_CHOICES.dam, self.MARKET_CHOICES.hourly):
-                # set correct endpoint for lmp data
-                endpoints = {
-                    self.MARKET_CHOICES.dam: '/markets/dayahead/lmp/daily',
-                    self.MARKET_CHOICES.hourly: '/markets/realtime/lmp/daily'
-                }
-                self.options['endpoint'] = endpoints[self.options['market']]
-
-            # special handling for five minute lmps
-            elif self.options['market'] == self.MARKET_CHOICES.fivemin:
-                self.options['freq'] = self.FREQUENCY_CHOICES.fivemin
-
-                # no historical data for 5min lmp
-                if self.options.get('start_at') or self.options.get('end_at') or not self.options.get('latest'):
-                        raise ValueError('PJM 5-minute lmp only available for latest, not for date ranges')
-                self.options['latest'] = True
 
         # load specific options
         if self.options['data'] == 'load':
@@ -375,10 +275,7 @@ class PJMClient(BaseClient):
     def fetch_oasis_data(self):
         response = self.request(self.oasis_url)
         if not response:
-            if self.options['data'] == 'lmp':
-                return pd.DataFrame()
-            else:
-                return None, None
+            return None, None
 
         # get timestamp
         ts = self.parse_date_from_oasis(response.content)
@@ -386,32 +283,13 @@ class PJMClient(BaseClient):
         # parse to dataframes
         dfs = pd.read_html(response.content, header=0, index_col=0, parse_dates=False)
 
-        if self.options['data'] == 'lmp':
-            # parse LMP
-            df = dfs[1]
-
-            # parse lmp
-            df['node_id'] = df.index
-            df.rename(columns={'5 Minute Weighted Avg. LMP': 'lmp'}, inplace=True)
-
-            # drop 'Hourly Integrated LMP for Hour Ending XX' and 'Type' columns
-            df.drop([df.columns[2], 'Type'], axis=1, inplace=True)
-
-            df['timestamp'] = ts
-            df['freq'] = self.options['freq']
-            df['market'] = self.options['market']
-            df['ba_name'] = 'PJM'
-            df['lmp_type'] = 'TotalLMP'
-            return df
-
-        elif self.options['data'] == 'load':
+        if self.options['data'] == 'load':
             # parse real-time load
             df = dfs[4]
             load_val = df.loc['PJM RTO'][0]
             return ts, load_val
-
         else:
-            raise ValueError('Cannot parse OASIS LMP data for %s' % self.options['data'])
+            raise ValueError('Cannot parse OASIS load data for %s' % self.options['data'])
 
     def fetch_markets_operations_soup(self):
         response = self.request(self.markets_operations_url)
