@@ -1,9 +1,8 @@
 import os
-from datetime import datetime
 from unittest import TestCase
 
-import pytz
 import requests_mock
+from dateutil.parser import parse
 from freezegun import freeze_time
 from pandas import Timestamp
 
@@ -37,9 +36,9 @@ class TestNBPowerClient(TestCase):
         mocked_html = open(FIXTURES_DIR + '/nbpower/SystemInformation_realtime.html').read().encode('utf8')
         expected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
 
-        start_at = datetime(year=2017, month=7, day=16, hour=0, minute=0, second=0, microsecond=0,tzinfo=pytz.utc)
+        start_at = parse('2017-07-16T21:00:00-03:00')
         # End time is the same as freeze_time (i.e. end_at = "now").
-        end_at = datetime(year=2017, month=7, day=17, hour=1, minute=58, second=0, microsecond=0, tzinfo=pytz.utc)
+        end_at = parse('2017-07-16T22:58:00-03:00')
         load_ts = self.nbpower_client.get_load(start_at=start_at, end_at=end_at)
 
         self.assertEqual(len(load_ts), 1)
@@ -57,8 +56,8 @@ class TestNBPowerClient(TestCase):
         expected_requests.get(self.nbpower_client.LATEST_REPORT_URL, content=mocked_html)
         expected_requests.get(exp_forect_url, content=mocked_csv)
 
-        start_at = datetime(year=2017, month=7, day=16, hour=3, minute=0, second=0, microsecond=0, tzinfo=pytz.utc)
-        end_at = datetime(year=2017, month=7, day=17, hour=4, minute=0, second=0, microsecond=0, tzinfo=pytz.utc)
+        start_at = parse('2017-07-16T00:00:00-03:00')
+        end_at = parse('2017-07-17T01:00:00-03:00')
         load_ts = self.nbpower_client.get_load(start_at=start_at, end_at=end_at)
 
         self.assertEqual(len(load_ts), 4)  # latest + 3 forecasts.
