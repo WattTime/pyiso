@@ -33,9 +33,9 @@ class NBPowerClient(BaseClient):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
 
         if latest:
-            return self._get_latest_report(parser_format=ParserFormat.load)
+            return self._get_latest_report(parser_format='load')
         elif self.local_start_at and self.local_end_at:
-            load_ts = self._get_latest_report(parser_format=ParserFormat.load)
+            load_ts = self._get_latest_report(parser_format='load')
             if self.options.get('forecast', False):
                 forecast_ts = self._get_load_forecast_report()
                 load_ts = load_ts + forecast_ts
@@ -48,7 +48,7 @@ class NBPowerClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         if latest:
-            return self._get_latest_report(parser_format=ParserFormat.trade)
+            return self._get_latest_report(parser_format='trade')
         else:
             warnings.warn(message='NBPower only supports latest=True for retrieving net export data.',
                           category=UserWarning)
@@ -67,9 +67,9 @@ class NBPowerClient(BaseClient):
         report_dt = self._parse_date_from_latest_report(report_soup=report_soup)
 
         if self.options.get('latest', False) or self.local_start_at <= report_dt <= self.local_end_at:
-            if parser_format == ParserFormat.load:
+            if parser_format == 'load':
                 return self._parse_latest_load(report_soup=report_soup, report_dt=report_dt)
-            elif parser_format == ParserFormat.trade:
+            elif parser_format == 'trade':
                 return self._parse_latest_trade(report_soup=report_soup, report_dt=report_dt)
         else:
             return list([])
@@ -168,9 +168,3 @@ class NBPowerClient(BaseClient):
 
     def parse_forecast_timestamps(self, column_value):
         return self.atlantic_tz.localize(datetime.strptime(column_value, '%Y%m%d%H%M%SAD'))
-
-
-class ParserFormat(object):
-    generation = 'generation'
-    load = 'load'
-    trade = 'trade'
