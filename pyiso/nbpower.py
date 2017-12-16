@@ -24,7 +24,7 @@ class NBPowerClient(BaseClient):
     def __init__(self):
         super(NBPowerClient, self).__init__()
         self.atlantic_tz = pytz.timezone(self.TZ_NAME)
-        self._local_now = self.local_now()  # So that all functions compare against the same "now".
+        self.atlantic_now = self.local_now()  # So that all functions compare against the same "now".
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
@@ -35,7 +35,11 @@ class NBPowerClient(BaseClient):
         if latest:
             return self._get_latest_report(parser_format='load')
         elif self.local_start_at and self.local_end_at:
-            load_ts = self._get_latest_report(parser_format='load')
+            load_ts = []
+            # 'Latest' load data is always in the past. Only make the request if start_at is before 'now'.
+            if self.local_start_at < self.atlantic_now:
+                latest_ts = self._get_latest_report(parser_format='load')
+                load_ts = load_ts + latest_ts
             if self.options.get('forecast', False):
                 forecast_ts = self._get_load_forecast_report()
                 load_ts = load_ts + forecast_ts
@@ -142,7 +146,7 @@ class NBPowerClient(BaseClient):
         load_ts = list([])
         forecast_url_base = 'http://tso.nbpower.com/reports%20%26%20assessments/load%20forecast/hourly/'
         forecast_filename_fmt = '%Y-%m-%d %H.csv'
-        earliest_forecast = copy(self._local_now).replace(minute=0, second=0, microsecond=0)
+        earliest_forecast = copy(self.atlantic_now).replace(minute=0, second=0, microsecond=0)
         latest_forecast = earliest_forecast + timedelta(hours=3)
 
         if self.local_start_at <= latest_forecast:
@@ -153,7 +157,7 @@ class NBPowerClient(BaseClient):
             response_df = read_csv(response_body, names=['timestamp', 'load'], usecols=[0, 1],
                                    dtype={'load': float}, parse_dates=[0], date_parser=self.parse_forecast_timestamps)
             for idx, row in response_df.iterrows():
-                if self._local_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
+                if self.atlantic_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
                     load_ts.append({
                         'ba_name': self.NAME,
                         'timestamp': row.timestamp.tz_convert(tz=pytz.utc),
