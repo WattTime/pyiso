@@ -174,4 +174,3 @@ class ParserFormat(object):
     generation = 'generation'
     load = 'load'
     trade = 'trade'
-    lmp = 'lmp'

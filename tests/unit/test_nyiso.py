@@ -8,7 +8,6 @@ from tests import read_fixture
 class TestNYISOBase(TestCase):
     def setUp(self):
         self.c = client_factory('NYISO')
-        self.lmp_csv = read_fixture(ba_name='nyiso', filename='lmp.csv')
 
     def test_parse_load_rtm(self):
         self.c.options = {'data': 'dummy'}
@@ -66,18 +65,4 @@ class TestNYISOBase(TestCase):
             self.assertIn(idx.date(), [date(2016, 1, 19), date(2016, 1, 20)])
             self.assertLess(row['gen_MW'], 5500)
             self.assertIn(row['fuel_name'], self.c.fuel_names.values())
-        self.assertEqual(df.index.name, 'timestamp')
-
-    def test_parse_lmp(self):
-        self.c.options = {'data': 'lmp', 'node_id': ['LONGIL'], 'latest': True}
-        df = self.c.parse_lmp(self.lmp_csv.encode('utf-8'))
-
-        for idx, row in df.iterrows():
-            self.assertEqual(idx.date(), date(2016, 2, 18))
-
-            self.assertLess(row['lmp'], 1000)
-            self.assertGreater(row['lmp'], -100)
-
-            self.assertEqual(row['node_id'], 'LONGIL')
-
         self.assertEqual(df.index.name, 'timestamp')

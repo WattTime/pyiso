@@ -1,5 +1,6 @@
 import os
 import ssl
+import warnings
 import zipfile
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -115,14 +116,13 @@ class BaseClient(object):
         """
         raise NotImplementedError('Derived classes must implement the get_trade method.')
 
-    def get_lmp(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
+    def get_lmp(self, **kwargs):
         """
         Locational Marginal Price (LMP) is no longer considered a useful measure in reducing
-        carbon emissions.  As such the get_lmp function has been removed.  Please see
-        http://watttime.org/lmp for details.
-
+        carbon emissions. As such, this method has been removed. Please see http://watttime.org/lmp
+        for details.
         """
-        raise NotImplementedError('The get_lmp function is no longer supported as part of pyISO. See http://watttime.org/lmp.')
+        warnings.warn('PyISO no longer supports the get_lmp method. See http://watttime.org/lmp.', DeprecationWarning)
 
     def handle_options(self, **kwargs):
         """

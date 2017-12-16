@@ -711,7 +711,6 @@ class ParserFormat:
     generation = 'generation'
     load = 'load'
     trade = 'trade'
-    lmp = 'lmp'
 
 
 class ReportFileInterval:

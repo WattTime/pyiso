@@ -1,10 +1,9 @@
 from bs4 import BeautifulSoup
 from pyiso.base import BaseClient
-from pyiso import LOGGER
 import pandas as pd
 from io import StringIO
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 
 
@@ -17,9 +16,7 @@ class ERCOTClient(BaseClient):
         'wind_5min': '13071',
         'wind_hrly': '13028',
         'gen_hrly': '12358',
-        'load_7day': '12311',
-        'dam_hrly_lmp': '12331',
-        'rt5m_lmp': '12300',
+        'load_7day': '12311'
     }
 
     TZ_NAME = 'US/Central'
@@ -30,7 +27,7 @@ class ERCOTClient(BaseClient):
         response = self.request(self.base_report_url+'/misapp/GetReports.do',
                                 params=params)
         if not response:
-            raise ValueError('ERCOT: No report available for %s' % (report_type))
+            raise ValueError('ERCOT: No report available for %s' % report_type)
         report_list_soup = BeautifulSoup(response.content, 'lxml')
 
         # Round minute down to nearest 5 minute period
@@ -39,30 +36,20 @@ class ERCOTClient(BaseClient):
                             date.minute - (date.minute % 5), tzinfo=date.tzinfo)
             date = pytz.timezone(self.TZ_NAME).normalize(date)
 
-            # DAM reports named 20150520 are for day 20150521
-            if report_type == 'dam_hrly_lmp':
-                date = date - timedelta(days=1)
-
         # find the endpoint to download
         report_endpoint = None
         for elt in report_list_soup.find_all('tr'):
             label = elt.find(class_='labelOptional_ind')
             if label and 'csv' in label.string:
-                if date:
-                    if label.string.split('.')[3] == date.strftime('%Y%m%d'):
-                        # RT5M requires correct 5minute report
-                        if report_type == 'rt5m_lmp':
-                            if not label.string.split('.')[4].startswith(date.strftime('%H%M')):
-                                continue
-                    else:
-                        continue
+                if date and label.string.split('.')[3] != date.strftime('%Y%m%d'):
+                    continue
                 report_endpoint = self.base_report_url + elt.a.attrs['href']
                 break
 
         # test endpoint found
         if not report_endpoint:
             raise ValueError(
-                'ERCOT: No report available for %s' % (report_type))
+                'ERCOT: No report available for %s' % report_type)
 
         # read report from zip
         r = self.request(report_endpoint)
@@ -228,26 +215,3 @@ class ERCOTClient(BaseClient):
             self.options['latest'] = False
         if 'forecast' not in self.options:
             self.options['forecast'] = False
-
-    def _parse_dam_times(self, df):
-        # Construct datetime string and convert to naive datetime
-        df['hour'] = (df['HourEnding'].str.replace(':', '.').astype(float) - 1).astype(int)
-        df['datetime_str'] = df['DeliveryDate'] + ' ' + df['hour'].astype(str)
-        date_format = '%m/%d/%Y %H'
-        df.index = pd.to_datetime(df['datetime_str'], format=date_format)
-
-        # convert to local time, ambiguous times fixed by DSTFlag, then to utc
-        df.index = df.index.tz_localize(self.TZ_NAME, ambiguous=df['DSTFlag'] == 'Y')
-        df.drop(['DeliveryDate', 'HourEnding', 'DSTFlag', 'hour', 'datetime_str'], axis=1, inplace=True)
-        df.rename(columns={'SettlementPointPrice': 'lmp', 'SettlementPoint': 'node_id'}, inplace=True)
-        return df
-
-    def _parse_rtm_times(self, df):
-        date_format = '%m/%d/%Y %H:%M:%S'
-        df.index = pd.to_datetime(df['SCEDTimestamp'], format=date_format)
-
-        # When DST ends in the Fall, the repeated hour is NOT in DST
-        df.index = df.index.tz_localize(self.TZ_NAME, ambiguous=df['RepeatedHourFlag'] == 'N')
-        df.drop(['SCEDTimestamp', 'RepeatedHourFlag'], axis=1, inplace=True)
-        df.rename(columns={'LMP': 'lmp', 'SettlementPoint': 'node_id'}, inplace=True)
-        return df
