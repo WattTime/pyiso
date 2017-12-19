@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 
 import requests_mock
@@ -105,8 +104,8 @@ class TestNBPowerClient(TestCase):
         load_ts = self.nbpower_client.get_load(start_at=start_at, end_at=end_at)
 
         self.assertEqual(len(load_ts), 4)  # 4 hours of load forecasts
-        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-03-12T03:00:00.000Z'))
-        self.assertEqual(load_ts[3].get('timestamp', None), Timestamp('2017-03-12T06:00:00.000Z'))
+        self.assertEqual(load_ts[0].get('timestamp', None), Timestamp('2017-03-13T03:00:00.000Z'))
+        self.assertEqual(load_ts[3].get('timestamp', None), Timestamp('2017-03-13T06:00:00.000Z'))
 
     @requests_mock.Mocker()
     @freeze_time('2017-11-05 00:00:00-03:00')
