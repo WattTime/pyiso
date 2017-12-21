@@ -24,7 +24,9 @@ class NBPowerClient(BaseClient):
     def __init__(self):
         super(NBPowerClient, self).__init__()
         self.atlantic_tz = pytz.timezone(self.TZ_NAME)
-        self._local_now = self.local_now()  # So that all functions compare against the same "now".
+        self.adt_tz = pytz.timezone('Etc/GMT+3')
+        self.ast_tz = pytz.timezone('Etc/GMT+4')
+        self.atlantic_now = self.local_now()  # So that all functions compare against the same "now".
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         pass
@@ -33,9 +35,13 @@ class NBPowerClient(BaseClient):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
 
         if latest:
-            return self._get_latest_report(parser_format=ParserFormat.load)
+            return self._get_latest_report(parser_format='load')
         elif self.local_start_at and self.local_end_at:
-            load_ts = self._get_latest_report(parser_format=ParserFormat.load)
+            load_ts = []
+            # 'Latest' load data is always in the past. Only make the request if start_at is before 'now'.
+            if self.local_start_at < self.atlantic_now:
+                latest_ts = self._get_latest_report(parser_format='load')
+                load_ts = load_ts + latest_ts
             if self.options.get('forecast', False):
                 forecast_ts = self._get_load_forecast_report()
                 load_ts = load_ts + forecast_ts
@@ -48,7 +54,7 @@ class NBPowerClient(BaseClient):
     def get_trade(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
         self.handle_options(latest=latest, yesterday=yesterday, start_at=start_at, end_at=end_at, **kwargs)
         if latest:
-            return self._get_latest_report(parser_format=ParserFormat.trade)
+            return self._get_latest_report(parser_format='trade')
         else:
             warnings.warn(message='NBPower only supports latest=True for retrieving net export data.',
                           category=UserWarning)
@@ -67,16 +73,16 @@ class NBPowerClient(BaseClient):
         report_dt = self._parse_date_from_latest_report(report_soup=report_soup)
 
         if self.options.get('latest', False) or self.local_start_at <= report_dt <= self.local_end_at:
-            if parser_format == ParserFormat.load:
+            if parser_format == 'load':
                 return self._parse_latest_load(report_soup=report_soup, report_dt=report_dt)
-            elif parser_format == ParserFormat.trade:
+            elif parser_format == 'trade':
                 return self._parse_latest_trade(report_soup=report_soup, report_dt=report_dt)
         else:
             return list([])
 
     def _parse_date_from_latest_report(self, report_soup):
         """
-        :param BeautifulSoup report_soup: The Sysytem Information report's HTML content.
+        :param BeautifulSoup report_soup: The System Information report's HTML content.
         :return: A timezone-aware local datetime indicating when the report was generated.
         :rtype: datetime
         """
@@ -142,7 +148,7 @@ class NBPowerClient(BaseClient):
         load_ts = list([])
         forecast_url_base = 'http://tso.nbpower.com/reports%20%26%20assessments/load%20forecast/hourly/'
         forecast_filename_fmt = '%Y-%m-%d %H.csv'
-        earliest_forecast = copy(self._local_now).replace(minute=0, second=0, microsecond=0)
+        earliest_forecast = copy(self.atlantic_now).replace(minute=0, second=0, microsecond=0)
         latest_forecast = earliest_forecast + timedelta(hours=3)
 
         if self.local_start_at <= latest_forecast:
@@ -153,10 +159,16 @@ class NBPowerClient(BaseClient):
             response_df = read_csv(response_body, names=['timestamp', 'load'], usecols=[0, 1],
                                    dtype={'load': float}, parse_dates=[0], date_parser=self.parse_forecast_timestamps)
             for idx, row in response_df.iterrows():
-                if self._local_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
+                if self.atlantic_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
+                    row_pd_timestamp = Timestamp(row.timestamp.astimezone(pytz.utc))
+
+                    # In the event of a duplicate timestamp (e.g. daylight savings transition hours), use latest value.
+                    if len(load_ts) > 0 and load_ts[-1]['timestamp'] == row_pd_timestamp:
+                        del load_ts[-1:]
+
                     load_ts.append({
                         'ba_name': self.NAME,
-                        'timestamp': row.timestamp.tz_convert(tz=pytz.utc),
+                        'timestamp': row_pd_timestamp,
                         'freq': self.FREQUENCY_CHOICES.hourly,
                         'market': self.MARKET_CHOICES.dam,
                         'load_MW': row.load
@@ -167,10 +179,10 @@ class NBPowerClient(BaseClient):
         return load_ts
 
     def parse_forecast_timestamps(self, column_value):
-        return self.atlantic_tz.localize(datetime.strptime(column_value, '%Y%m%d%H%M%SAD'))
-
-
-class ParserFormat(object):
-    generation = 'generation'
-    load = 'load'
-    trade = 'trade'
+        timestamp = column_value[:14]
+        timezone = column_value[14:16]
+        forecast_datetime = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
+        if timezone == 'AD':
+            return forecast_datetime.replace(tzinfo=self.adt_tz)
+        else:
+            return forecast_datetime.replace(tzinfo=self.ast_tz)
