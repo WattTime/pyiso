@@ -5,6 +5,7 @@ from io import BytesIO
 
 import pytz
 from bs4 import BeautifulSoup
+from dateutil.tz import tzoffset
 from pandas import read_csv
 from pandas import Timestamp
 from pyiso import LOGGER
@@ -24,6 +25,8 @@ class NBPowerClient(BaseClient):
     def __init__(self):
         super(NBPowerClient, self).__init__()
         self.atlantic_tz = pytz.timezone(self.TZ_NAME)
+        self.adt_tz = tzoffset(name='ADT', offset=-10800)
+        self.ast_tz = tzoffset(name='AST', offset=-14400)
         self.atlantic_now = self.local_now()  # So that all functions compare against the same "now".
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
@@ -80,7 +83,7 @@ class NBPowerClient(BaseClient):
 
     def _parse_date_from_latest_report(self, report_soup):
         """
-        :param BeautifulSoup report_soup: The Sysytem Information report's HTML content.
+        :param BeautifulSoup report_soup: The System Information report's HTML content.
         :return: A timezone-aware local datetime indicating when the report was generated.
         :rtype: datetime
         """
@@ -171,4 +174,10 @@ class NBPowerClient(BaseClient):
         return load_ts
 
     def parse_forecast_timestamps(self, column_value):
-        return self.atlantic_tz.localize(datetime.strptime(column_value, '%Y%m%d%H%M%SAD'))
+        timestamp = column_value[0:14]
+        timezone = column_value[14:16]
+        forecast_datetime = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
+        if timezone == 'AD':
+            return forecast_datetime.replace(tzinfo=self.adt_tz)
+        else:
+            return forecast_datetime.replace(tzinfo=self.ast_tz)
