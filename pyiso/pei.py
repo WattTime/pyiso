@@ -13,7 +13,7 @@ class PEIClient(BaseClient):
     """
 
     NAME = 'PEI'
-    TZ_NAME = 'Etc/GMT-4'  # Times are always given in Atlantic Standard Time
+    TZ_NAME = 'Etc/GMT+4'  # Times are always given in Atlantic Standard Time
 
     def __init__(self):
         super(PEIClient, self).__init__()
@@ -78,15 +78,14 @@ class PEIClient(BaseClient):
             sysload_list = json.loads(response.content.decode('utf-8'))
             sysload_json = sysload_list[0]
             seconds_epoch = int(sysload_json.get('updateDate', None))
-            last_updated = datetime.fromtimestamp(timestamp=seconds_epoch, tz=self.pei_tz)
+            last_updated_utc = datetime.fromtimestamp(timestamp=seconds_epoch, tz=pytz.utc)
             total_on_island_load = float(sysload_json.get('data1', None))
             wind_mw = float(sysload_json.get('data2', None))
             oil_mw = float(sysload_json.get('data3', None))
             other_mw = total_on_island_load - wind_mw - oil_mw
-            utc_dt = last_updated.astimezone(pytz.utc)
-            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='oil', gen_mw=oil_mw)
-            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='other', gen_mw=other_mw)
-            self._append_generation(generation_ts=genmix, utc_dt=utc_dt, fuel_name='wind', gen_mw=wind_mw)
+            self._append_generation(generation_ts=genmix, utc_dt=last_updated_utc, fuel_name='oil', gen_mw=oil_mw)
+            self._append_generation(generation_ts=genmix, utc_dt=last_updated_utc, fuel_name='other', gen_mw=other_mw)
+            self._append_generation(generation_ts=genmix, utc_dt=last_updated_utc, fuel_name='wind', gen_mw=wind_mw)
         return genmix
 
     def _append_generation(self, generation_ts, utc_dt, fuel_name, gen_mw):
