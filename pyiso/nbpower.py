@@ -163,7 +163,7 @@ class NBPowerClient(BaseClient):
                 if self.atlantic_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
                     load_ts.append({
                         'ba_name': self.NAME,
-                        'timestamp': row.timestamp.tz_convert(tz=pytz.utc),
+                        'timestamp': Timestamp(row.timestamp.astimezone(pytz.utc)),
                         'freq': self.FREQUENCY_CHOICES.hourly,
                         'market': self.MARKET_CHOICES.dam,
                         'load_MW': row.load
