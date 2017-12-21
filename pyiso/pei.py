@@ -13,7 +13,7 @@ class PEIClient(BaseClient):
     """
 
     NAME = 'PEI'
-    TZ_NAME = 'Etc/GMT-4'  # Times are always given in Atlantic Standard Time
+    TZ_NAME = 'Etc/GMT+4'  # Times are always given in Atlantic Standard Time
 
     def __init__(self):
         super(PEIClient, self).__init__()
