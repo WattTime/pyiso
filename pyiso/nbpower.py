@@ -161,9 +161,15 @@ class NBPowerClient(BaseClient):
                                    dtype={'load': float}, parse_dates=[0], date_parser=self.parse_forecast_timestamps)
             for idx, row in response_df.iterrows():
                 if self.atlantic_now <= row.timestamp and self.local_start_at <= row.timestamp <= self.local_end_at:
+                    row_pd_timestamp = Timestamp(row.timestamp.astimezone(pytz.utc))
+
+                    # In the event of a duplicate timestamp (e.g. daylight savings transition hours), use latest value.
+                    if len(load_ts) > 0 and load_ts[-1]['timestamp'] == row_pd_timestamp:
+                        del load_ts[-1:]
+
                     load_ts.append({
                         'ba_name': self.NAME,
-                        'timestamp': Timestamp(row.timestamp.astimezone(pytz.utc)),
+                        'timestamp': row_pd_timestamp,
                         'freq': self.FREQUENCY_CHOICES.hourly,
                         'market': self.MARKET_CHOICES.dam,
                         'load_MW': row.load
@@ -174,7 +180,7 @@ class NBPowerClient(BaseClient):
         return load_ts
 
     def parse_forecast_timestamps(self, column_value):
-        timestamp = column_value[0:14]
+        timestamp = column_value[:14]
         timezone = column_value[14:16]
         forecast_datetime = datetime.strptime(timestamp, '%Y%m%d%H%M%S')
         if timezone == 'AD':
