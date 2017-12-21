@@ -25,8 +25,8 @@ class NBPowerClient(BaseClient):
     def __init__(self):
         super(NBPowerClient, self).__init__()
         self.atlantic_tz = pytz.timezone(self.TZ_NAME)
-        self.adt_tz = tzoffset(name='ADT', offset=-10800)
-        self.ast_tz = tzoffset(name='AST', offset=-14400)
+        self.adt_tz = pytz.timezone('Etc/GMT+3')
+        self.ast_tz = pytz.timezone('Etc/GMT+4')
         self.atlantic_now = self.local_now()  # So that all functions compare against the same "now".
 
     def get_generation(self, latest=False, yesterday=False, start_at=False, end_at=False, **kwargs):
