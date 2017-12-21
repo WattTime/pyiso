@@ -5,7 +5,6 @@ from io import BytesIO
 
 import pytz
 from bs4 import BeautifulSoup
-from dateutil.tz import tzoffset
 from pandas import read_csv
 from pandas import Timestamp
 from pyiso import LOGGER
