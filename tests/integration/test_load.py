@@ -293,7 +293,10 @@ class TestNEVPLoad(TestBaseLoad):
 
     def test_date_range_strings(self):
         # basic test
-        self._run_test('NEVP', start_at='2016-05-01', end_at='2016-05-03')
+        last_month = datetime.now(pytz.utc).replace(day=1) - timedelta(days=1)
+        start_at_str = '%04d-%02d-%02d' % (last_month.year, last_month.month, 1)
+        end_at_str = '%04d-%02d-%02d' % (last_month.year, last_month.month, 3)
+        self._run_test('NEVP', start_at=start_at_str, end_at=end_at_str)
 
     def test_date_range_farpast(self):
         # basic test
