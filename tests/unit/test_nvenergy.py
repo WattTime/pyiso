@@ -1,7 +1,9 @@
-import os
 from pyiso import client_factory
 from unittest import TestCase
 from datetime import datetime, timedelta
+
+from tests import read_fixture
+
 try:
     from urllib2 import HTTPError
 except ImportError:
@@ -9,16 +11,13 @@ except ImportError:
 import pytz
 import mock
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/nvenergy')
-
 
 class TestNVEnergy(TestCase):
     def setUp(self):
         self.c = client_factory('NEVP')
-
-        self.one_day_response = open(FIXTURES_DIR + '/native_system_load_and_ties_for_08_02_2015_.html').read().encode('utf8')
-        self.tomorrow_response = open(FIXTURES_DIR + '/tomorrow.htm').read().encode('utf8')
-        self.one_month_response = open(FIXTURES_DIR + '/Monthly_Ties_and_Loads_L_from_07_01_2015_to_07_31_2015_.html').read().encode('utf8')
+        self.one_day_response = read_fixture('nvenergy', 'native_system_load_and_ties_for_08_02_2015_.html').encode('utf8')
+        self.tomorrow_response = read_fixture('nvenergy', 'tomorrow.htm').encode('utf8')
+        self.one_month_response = read_fixture('nvenergy', 'Monthly_Ties_and_Loads_L_from_07_01_2015_to_07_31_2015_.html').encode('utf8')
 
         self.today = datetime(2015, 8, 2, 12, 34)
         self.tomorrow = datetime(2015, 8, 3, 12, 34)
