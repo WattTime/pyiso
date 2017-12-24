@@ -8,7 +8,6 @@ try:
 except ImportError:
     from urllib.error import HTTPError
 import pytz
-import calendar
 
 
 class NVEnergyClient(BaseClient):
@@ -97,16 +96,14 @@ class NVEnergyClient(BaseClient):
             url_file = ts.strftime('tomorrow.htm')
             mode = 'tomorrow'
         elif mode == 'alternate':
-            url_file = ts.strftime('native_system_load_and_ties_Y_for_%m_%d_%Y_.html')
+            url_file = ts.strftime('native%%20system%%20load%%20and%%20ties_Y%m_%d_%Y.html')
             mode = 'recent'
         elif (ts.month == today.month and ts.year == today.year) or (today-this_day).days < 2:
-            url_file = ts.strftime('native_system_load_and_ties_for_%m_%d_%Y_.html')
+            url_file = ts.strftime('native%%20system%%20load%%20and%%20ties%m_%d_%Y.html')
             mode = 'recent'
         else:
-            dummy, month_length = calendar.monthrange(ts.year, ts.month)
-            url_file = 'Monthly_Ties_and_Loads_L_from_%02d_%02d_%04d_to_%02d_%02d_%04d_.html' % (
-                ts.month, 1, ts.year,
-                ts.month, month_length, ts.year
+            url_file = 'Monthly%%20Ties%%20and%%20Loads_L%02d_%02d_%04d.html' % (
+                ts.month, 1, ts.year
             )
             mode = 'historical'
 
