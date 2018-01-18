@@ -16,7 +16,8 @@ IntervalChoices = namedtuple('IntervalChoices',
 class MISOClient(BaseClient):
     NAME = 'MISO'
 
-    base_url = 'https://api.misoenergy.org'
+    base_url = 'https://api.misoenergy.org/MISORTWDDataBroker/DataBrokerServices.asmx'
+    docs_url = 'https://docs.misoenergy.org/marketreports/'
 
     fuels = {
         'Coal': 'coal',
@@ -98,7 +99,7 @@ class MISOClient(BaseClient):
 
     def get_latest_fuel_mix(self):
         # set up request
-        url = 'https://api.misoenergy.org/MISORTWDDataBroker/DataBrokerServices.asmx?messageType=getfuelmix&returnType=csv'
+        url = self.base_url + '?messageType=getfuelmix&returnType=csv'
 
         # carry out request
         response = self.request(url)
@@ -147,7 +148,7 @@ class MISOClient(BaseClient):
     def fetch_forecast(self, date):
         # construct url
         datestr = date.strftime('%Y%m%d')
-        url = 'https://docs.misoenergy.org/marketreports/' + datestr + '_da_ex.xls'
+        url = self.docs_url +  datestr + '_da_ex.xls'
 
         # make request with self.request for easier debugging, mocking
         response = self.request(url)
@@ -221,7 +222,7 @@ class MISOClient(BaseClient):
 
     def get_realtime_lmp(self, **kwargs):
         # get csv with latest 5 minute data
-        url = self.base_url + '/ria/Consolidated.aspx?format=csv'
+        url = self.base_url + '?messageType=getlmpconsolidatedtable&returnType=csv'
         response = self.request(url)
 
         # parse data into DataFrame
@@ -275,7 +276,7 @@ class MISOClient(BaseClient):
             # get the filename extension
             ext = name_dict[self.options['market']]
             datestr = day.strftime('%Y%m%d')
-            url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+            url = self.docs_url + datestr + ext
 
             response = self.request(url)
             if response.status_code == 404:
@@ -283,7 +284,7 @@ class MISOClient(BaseClient):
                     # try preliminary and tell the user
                     self.options['market'] = self.MARKET_CHOICES.hourly_prelim
                     ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
-                    url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+                    url = self.docs_url + datestr + ext
                     response = self.request(url)
 
             # if that didn't work, don't append to pieces
