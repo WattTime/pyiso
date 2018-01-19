@@ -120,7 +120,7 @@ class MISOClient(BaseClient):
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(BytesIO(content), header=0, index_col=0, parse_dates=True)
+        df = pd.read_csv(BytesIO(content), header=0, index_col=0, skiprows=2, parse_dates=True)
 
         # set index
         try:
