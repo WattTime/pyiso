@@ -15,23 +15,23 @@ import mock
 class TestNVEnergy(TestCase):
     def setUp(self):
         self.c = client_factory('NEVP')
-        self.one_day_response = read_fixture('nvenergy', 'native_system_load_and_ties_for_08_02_2015_.html').encode('utf8')
+        self.one_day_response = read_fixture('nvenergy', 'native system load and ties12_24_2017.html').encode('utf8')
         self.tomorrow_response = read_fixture('nvenergy', 'tomorrow.htm').encode('utf8')
-        self.one_month_response = read_fixture('nvenergy', 'Monthly_Ties_and_Loads_L_from_07_01_2015_to_07_31_2015_.html').encode('utf8')
+        self.one_month_response = read_fixture('nvenergy', 'Monthly Ties and Loads_L11_01_2017.html').encode('utf8')
 
-        self.today = datetime(2015, 8, 2, 12, 34)
-        self.tomorrow = datetime(2015, 8, 3, 12, 34)
-        self.last_month = datetime(2015, 7, 2, 12, 34)
+        self.today = datetime(2017, 12, 24, 12, 34)
+        self.tomorrow = datetime(2017, 12, 25, 12, 34)
+        self.last_month = datetime(2017, 11, 24, 12, 34)
         self.now = pytz.utc.localize(datetime.utcnow())
 
     def test_idx2ts(self):
         # hour 01 is midnight local
-        expected_local_01 = pytz.timezone('US/Pacific').localize(datetime(2015, 8, 2, 0))
+        expected_local_01 = pytz.timezone('US/Pacific').localize(datetime(2017, 12, 24, 0))
         self.assertEqual(self.c.idx2ts(self.today, '01'),
                          expected_local_01.astimezone(pytz.utc))
 
         # hour 24 is 11pm local
-        expected_local_24 = pytz.timezone('US/Pacific').localize(datetime(2015, 8, 2, 23))
+        expected_local_24 = pytz.timezone('US/Pacific').localize(datetime(2017, 12, 24, 23))
         self.assertEqual(self.c.idx2ts(self.today, '24'),
                          expected_local_24.astimezone(pytz.utc))
 
@@ -49,15 +49,16 @@ class TestNVEnergy(TestCase):
 
     def test_data_url_today(self):
         url, mode = self.c.data_url(self.now)
-        self.assertEqual(url, self.c.BASE_URL+'native_system_load_and_ties_for_%02d_%02d_%04d_.html' % (self.now.month, self.now.day, self.now.year))
+        self.assertEqual(url,
+                         self.c.BASE_URL+'native%%20system%%20load%%20and%%20ties%02d_%02d_%04d.html'
+                         % (self.now.month, self.now.day, self.now.year))
         self.assertEqual(mode, 'recent')
 
     def test_data_url_historical(self):
         last_month_date = self.now-timedelta(days=35)
         url, mode = self.c.data_url(last_month_date)
         self.assertIn(self.c.BASE_URL, url)
-        self.assertIn('Monthly_Ties_and_Loads_L_from', url)
-        self.assertIn(last_month_date.strftime('%m_01_%Y'), url)
+        self.assertIn(last_month_date.strftime('Monthly%%20Ties%%20and%%20Loads_L%m_01_%Y'), url)
         self.assertEqual(mode, 'historical')
 
     def test_fetch_df_today(self):
