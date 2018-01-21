@@ -141,11 +141,11 @@ class NVEnergyClient(BaseClient):
             # pull one day of data out of full df
             full_df = dfs[1]
             date_row_idx = np.where(full_df.index == datestr)[0][0]
-            df = full_df.iloc[date_row_idx:date_row_idx+13]
+            df = full_df.iloc[date_row_idx:date_row_idx+14]
 
         # set and slice header
         df.columns = df.iloc[1]
-        df = df[2:]
+        df = df[3:]
 
         # return
         return df, mode
