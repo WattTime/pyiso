@@ -301,6 +301,7 @@ class EUClient(BaseClient):
                         'ba_name': self.options['control_area'],
                         'market': 'RTHR',
                         'timestamp': timestamp,
+                        'freq': 'n/a',
                     }
                     if (self.options['forecast']):
                         datapoint['market'] = 'DAM'
