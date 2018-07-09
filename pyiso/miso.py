@@ -16,7 +16,7 @@ IntervalChoices = namedtuple('IntervalChoices',
 class MISOClient(BaseClient):
     NAME = 'MISO'
 
-    base_url = 'https://www.misoenergy.org'
+    base_url = 'https://docs.misoenergy.org'
 
     fuels = {
         'Coal': 'coal',
@@ -147,7 +147,7 @@ class MISOClient(BaseClient):
     def fetch_forecast(self, date):
         # construct url
         datestr = date.strftime('%Y%m%d')
-        url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
+        url = self.base_url + '/marketreports/' + datestr + '_da_ex.xls'
 
         # make request with self.request for easier debugging, mocking
         response = self.request(url)
@@ -275,7 +275,7 @@ class MISOClient(BaseClient):
             # get the filename extension
             ext = name_dict[self.options['market']]
             datestr = day.strftime('%Y%m%d')
-            url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+            url = self.base_url + '/marketreports/' + datestr + ext
 
             response = self.request(url)
             if response.status_code == 404:
@@ -283,7 +283,7 @@ class MISOClient(BaseClient):
                     # try preliminary and tell the user
                     self.options['market'] = self.MARKET_CHOICES.hourly_prelim
                     ext = name_dict[self.MARKET_CHOICES.hourly_prelim]
-                    url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + ext
+                    url = self.base_url + '/marketreports/' + datestr + ext
                     response = self.request(url)
 
             # if that didn't work, don't append to pieces
