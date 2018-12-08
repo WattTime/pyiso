@@ -22,6 +22,8 @@ class TestNVEnergy(TestCase):
         self.today = datetime(2017, 12, 24, 12, 34)
         self.tomorrow = datetime(2017, 12, 25, 12, 34)
         self.last_month = datetime(2017, 11, 24, 12, 34)
+
+        self.offset_hours = (pytz.timezone('US/Pacific').localize(self.today) - pytz.utc.localize(self.today)).total_seconds() / 3600;
         self.now = pytz.utc.localize(datetime.utcnow())
 
     def test_idx2ts(self):
@@ -83,6 +85,8 @@ class TestNVEnergy(TestCase):
         self.assertEqual(mode, 'error')
 
     def test_parse_load_today(self):
+        local_hour = self.today.hour + self.offset_hours
+
         with mock.patch.object(self.c, 'request') as mocker:
             mocker.return_value = mock.Mock(status_code=200, content=self.one_day_response)
             df, mode = self.c.fetch_df(self.today, url='http://mockurl')
@@ -92,12 +96,13 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_load(df, self.today)
 
             # test
-            self.assertEqual(len(data), 18)
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NEVP')
-            self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
+            self.assertEqual(len(data), local_hour)
+
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertEqual(dp['ba_name'], 'NEVP')
+                self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_load_tomorrow(self):
         with mock.patch.object(self.c, 'request') as mocker:
@@ -127,7 +132,7 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_load(df, self.last_month)
 
             # test
-            self.assertEqual(len(data), 18)
+            self.assertEqual(len(data), 24)
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
@@ -135,6 +140,8 @@ class TestNVEnergy(TestCase):
                 self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_trade_today(self):
+        local_hour = self.today.hour + self.offset_hours
+
         with mock.patch.object(self.c, 'request') as mocker:
             mocker.return_value = mock.Mock(status_code=200, content=self.one_day_response)
             df, mode = self.c.fetch_df(self.today, url='http://mockurl')
@@ -144,14 +151,14 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_trade(df, self.today)
 
             # test
-            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            self.assertEqual(len(data), local_hour * len(self.c.TRADE_BAS))
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
                 self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
                 dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-                idx = idp % 18 + 1
+                idx = idp % local_hour + 1
                 self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_parse_trade_tomorrow(self):
@@ -175,14 +182,14 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_trade(df, self.last_month)
 
             # test
-            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            self.assertEqual(len(data), 24*len(self.c.TRADE_BAS))
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
                 self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
                 dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-                idx = idp % 18 + 1
+                idx = idp % 24 + 1
                 self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_time_subset_latest(self):
