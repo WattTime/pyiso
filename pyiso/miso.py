@@ -13,7 +13,8 @@ IntervalChoices = namedtuple('IntervalChoices',
 class MISOClient(BaseClient):
     NAME = 'MISO'
 
-    base_url = 'https://www.misoenergy.org'
+    base_url = 'https://api.misoenergy.org/MISORTWDDataBroker/DataBrokerServices.asmx'
+    docs_url = 'https://docs.misoenergy.org/marketreports/'
 
     fuels = {
         'Coal': 'coal',
@@ -95,7 +96,7 @@ class MISOClient(BaseClient):
 
     def get_latest_fuel_mix(self):
         # set up request
-        url = self.base_url + '/ria/FuelMix.aspx?CSV=True'
+        url = self.base_url + '?messageType=getfuelmix&returnType=csv'
 
         # carry out request
         response = self.request(url)
@@ -116,7 +117,7 @@ class MISOClient(BaseClient):
             return pd.DataFrame()
 
         # preliminary parsing
-        df = pd.read_csv(BytesIO(content), header=0, index_col=0, parse_dates=True)
+        df = pd.read_csv(BytesIO(content), header=0, index_col=0, skiprows=2, parse_dates=True)
 
         # set index
         try:
@@ -144,7 +145,7 @@ class MISOClient(BaseClient):
     def fetch_forecast(self, date):
         # construct url
         datestr = date.strftime('%Y%m%d')
-        url = self.base_url + '/Library/Repository/Market%20Reports/' + datestr + '_da_ex.xls'
+        url = self.docs_url +  datestr + '_da_ex.xls'
 
         # make request with self.request for easier debugging, mocking
         response = self.request(url)
