@@ -16,7 +16,7 @@ for other researchers, engineers, and citizens too!
 
 Want to chip in and support pyiso?
 You or your company can make a tax-deductible donation
-to WattTime `here <http://watttime.org/donate/>`_.
+to WattTime `here <http://watttime.org/ways-to-support-our-work/>`_.
 Every dollar helps us help you!
 We also have corporate sponsorship opportunities available;
 `get in touch <http://watttime.org/contact/>`_ if you're interested.
