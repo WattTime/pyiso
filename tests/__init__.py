@@ -15,7 +15,7 @@ def fixture_path(ba_name, filename):
 def read_fixture(ba_name, filename, as_bytes=False):
     """
     :param str ba_name: The balancing authority module name.
-    :param str filename: The fixture file you wish to load.
+    :param str filename: The fixture file (interpreted as a raw string literal) you wish to load.
     :param bool as_bytes: Indicates whether file should open with 'read bytes' mode.
     :return: The file's content.
     """

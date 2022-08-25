@@ -1,7 +1,9 @@
-import os
 from pyiso import client_factory
 from unittest import TestCase
 from datetime import datetime, timedelta
+
+from tests import read_fixture
+
 try:
     from urllib2 import HTTPError
 except ImportError:
@@ -9,30 +11,29 @@ except ImportError:
 import pytz
 import mock
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '../fixtures/nvenergy')
-
 
 class TestNVEnergy(TestCase):
     def setUp(self):
         self.c = client_factory('NEVP')
+        self.one_day_response = read_fixture('nvenergy', 'native system load and ties12_24_2017.html').encode('utf8')
+        self.tomorrow_response = read_fixture('nvenergy', 'tomorrow.htm').encode('utf8')
+        self.one_month_response = read_fixture('nvenergy', 'Monthly Ties and Loads_L11_01_2017.html').encode('utf8')
 
-        self.one_day_response = open(FIXTURES_DIR + '/native_system_load_and_ties_for_08_02_2015_.html').read().encode('utf8')
-        self.tomorrow_response = open(FIXTURES_DIR + '/tomorrow.htm').read().encode('utf8')
-        self.one_month_response = open(FIXTURES_DIR + '/Monthly_Ties_and_Loads_L_from_07_01_2015_to_07_31_2015_.html').read().encode('utf8')
+        self.today = datetime(2017, 12, 24, 12, 34)
+        self.tomorrow = datetime(2017, 12, 25, 12, 34)
+        self.last_month = datetime(2017, 11, 24, 12, 34)
 
-        self.today = datetime(2015, 8, 2, 12, 34)
-        self.tomorrow = datetime(2015, 8, 3, 12, 34)
-        self.last_month = datetime(2015, 7, 2, 12, 34)
+        self.offset_hours = (pytz.timezone('US/Pacific').localize(self.today) - pytz.utc.localize(self.today)).total_seconds() / 3600;
         self.now = pytz.utc.localize(datetime.utcnow())
 
     def test_idx2ts(self):
         # hour 01 is midnight local
-        expected_local_01 = pytz.timezone('US/Pacific').localize(datetime(2015, 8, 2, 0))
+        expected_local_01 = pytz.timezone('US/Pacific').localize(datetime(2017, 12, 24, 0))
         self.assertEqual(self.c.idx2ts(self.today, '01'),
                          expected_local_01.astimezone(pytz.utc))
 
         # hour 24 is 11pm local
-        expected_local_24 = pytz.timezone('US/Pacific').localize(datetime(2015, 8, 2, 23))
+        expected_local_24 = pytz.timezone('US/Pacific').localize(datetime(2017, 12, 24, 23))
         self.assertEqual(self.c.idx2ts(self.today, '24'),
                          expected_local_24.astimezone(pytz.utc))
 
@@ -50,15 +51,16 @@ class TestNVEnergy(TestCase):
 
     def test_data_url_today(self):
         url, mode = self.c.data_url(self.now)
-        self.assertEqual(url, self.c.BASE_URL+'native_system_load_and_ties_for_%02d_%02d_%04d_.html' % (self.now.month, self.now.day, self.now.year))
+        self.assertEqual(url,
+                         self.c.BASE_URL+'native%%20system%%20load%%20and%%20ties%02d_%02d_%04d.html'
+                         % (self.now.month, self.now.day, self.now.year))
         self.assertEqual(mode, 'recent')
 
     def test_data_url_historical(self):
         last_month_date = self.now-timedelta(days=35)
         url, mode = self.c.data_url(last_month_date)
         self.assertIn(self.c.BASE_URL, url)
-        self.assertIn('Monthly_Ties_and_Loads_L_from', url)
-        self.assertIn(last_month_date.strftime('%m_01_%Y'), url)
+        self.assertIn(last_month_date.strftime('Monthly%%20Ties%%20and%%20Loads_L%m_01_%Y'), url)
         self.assertEqual(mode, 'historical')
 
     def test_fetch_df_today(self):
@@ -83,6 +85,8 @@ class TestNVEnergy(TestCase):
         self.assertEqual(mode, 'error')
 
     def test_parse_load_today(self):
+        local_hour = self.today.hour + self.offset_hours
+
         with mock.patch.object(self.c, 'request') as mocker:
             mocker.return_value = mock.Mock(status_code=200, content=self.one_day_response)
             df, mode = self.c.fetch_df(self.today, url='http://mockurl')
@@ -92,12 +96,13 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_load(df, self.today)
 
             # test
-            self.assertEqual(len(data), 18)
-        for idp, dp in enumerate(data):
-            self.assertEqual(dp['market'], 'RTHR')
-            self.assertEqual(dp['freq'], '1hr')
-            self.assertEqual(dp['ba_name'], 'NEVP')
-            self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
+            self.assertEqual(len(data), local_hour)
+
+            for idp, dp in enumerate(data):
+                self.assertEqual(dp['market'], 'RTHR')
+                self.assertEqual(dp['freq'], '1hr')
+                self.assertEqual(dp['ba_name'], 'NEVP')
+                self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_load_tomorrow(self):
         with mock.patch.object(self.c, 'request') as mocker:
@@ -127,7 +132,7 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_load(df, self.last_month)
 
             # test
-            self.assertEqual(len(data), 18)
+            self.assertEqual(len(data), 24)
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
@@ -135,6 +140,8 @@ class TestNVEnergy(TestCase):
                 self.assertEqual(dp['load_MW'], df.ix['Actual System Load', idp+1])
 
     def test_parse_trade_today(self):
+        local_hour = self.today.hour + self.offset_hours
+
         with mock.patch.object(self.c, 'request') as mocker:
             mocker.return_value = mock.Mock(status_code=200, content=self.one_day_response)
             df, mode = self.c.fetch_df(self.today, url='http://mockurl')
@@ -144,14 +151,14 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_trade(df, self.today)
 
             # test
-            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            self.assertEqual(len(data), local_hour * len(self.c.TRADE_BAS))
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
                 self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
                 dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-                idx = idp % 18 + 1
+                idx = idp % local_hour + 1
                 self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_parse_trade_tomorrow(self):
@@ -175,14 +182,14 @@ class TestNVEnergy(TestCase):
             data = self.c.parse_trade(df, self.last_month)
 
             # test
-            self.assertEqual(len(data), 18*len(self.c.TRADE_BAS))
+            self.assertEqual(len(data), 24*len(self.c.TRADE_BAS))
             for idp, dp in enumerate(data):
                 self.assertEqual(dp['market'], 'RTHR')
                 self.assertEqual(dp['freq'], '1hr')
                 self.assertIn(dp['dest_ba_name'], self.c.TRADE_BAS.values())
 
                 dest = [k for k, v in self.c.TRADE_BAS.items() if v == dp['dest_ba_name']][0]
-                idx = idp % 18 + 1
+                idx = idp % 24 + 1
                 self.assertEqual(dp['export_MW'], df.ix[dest, idx])
 
     def test_time_subset_latest(self):
