@@ -222,7 +222,7 @@ class EUClient(BaseClient):
     def get_generation(self, control_area=None, latest=False, yesterday=False, start_at=False, 
                        end_at=False, forecast=False, **kwargs):
         self.handle_options(data='gen', start_at=start_at, end_at=end_at, yesterday=yesterday, 
-                            latest=latest, control_area=control_area, forecast=False, **kwargs)
+                            latest=latest, control_area=control_area, forecast=forecast, **kwargs)
 
         response = self.fetch_entsoe()
         return self.parse_response(response)
@@ -303,15 +303,19 @@ class EUClient(BaseClient):
                         'timestamp': timestamp,
                         'freq': 'n/a',
                     }
-                    if (self.options['forecast']):
-                        datapoint['market'] = 'DAM'
                     if self.options['data'] == 'gen':
-                      datapoint['market'] = self.CONTROL_AREAS[self.options['control_area']]['gen_market']
-                      datapoint['freq'] = self.CONTROL_AREAS[self.options['control_area']]['gen_freq']
-                      datapoint['gen_MW'] = int(point.quantity.text)
-                      datapoint['fuel_name'] = self.fuels[ts.MktPSRType.psrType.text]
+                        datapoint['market'] = self.CONTROL_AREAS[self.options['control_area']]['gen_market']
+                        datapoint['freq'] = self.CONTROL_AREAS[self.options['control_area']]['gen_freq']
+                        datapoint['gen_MW'] = int(point.quantity.text)
+                        if hasattr(ts, 'MktPSRType'):
+                            datapoint['fuel_name'] = self.fuels[ts.MktPSRType.psrType.text]
+                        else:
+                            datapoint['fuel_name'] = 'other'
+
                     elif self.options['data'] == 'load':
-                      datapoint['load_MW'] = int(point.quantity.text)
+                        if self.options['forecast']:
+                            datapoint['market'] = 'DAM'
+                        datapoint['load_MW'] = int(point.quantity.text)
                     data.append(datapoint)
         return data
 
