@@ -1,10 +1,5 @@
-import time
 from pyiso.base import BaseClient
-from pyiso import LOGGER
-import requests
-import pandas as pd
-import numpy as np
-from io import StringIO
+from typing import Optional
 from datetime import datetime, timedelta
 import pytz
 from os import environ
@@ -48,7 +43,7 @@ class EUClient(BaseClient):
             'ENTSOe_ID': '10YAT-APG------L',
             'gen_freq': '15m', 'gen_market': 'RTPD'},
         'BY': {'country': 'Belarus', 'Code': 'CTA|BY',
-            'ENSTOe_ID': '10Y1001A1001S51S',
+            'ENTSOe_ID': '10Y1001A1001S51S',
             'gen_freq': '1hr', 'gen_market': 'RTHR'},
         'BE': {'country': 'Belgium', 'Code': 'CTA|BE',
             'ENTSOe_ID': '10YBE----------2',
@@ -219,10 +214,25 @@ class EUClient(BaseClient):
         response = self.fetch_entsoe()
         return self.parse_response(response)
 
-    def get_generation(self, control_area=None, latest=False, yesterday=False, start_at=False, 
-                       end_at=False, forecast=False, **kwargs):
+    def get_generation(self, control_area: Optional[str]=None,
+                       latest: bool=False, yesterday: bool=False, start_at: bool=False,
+                       end_at: bool=False, forecast: bool=False, renewable_forecast=False, **kwargs):
+        """
+        :param control_area: String, matching one of the EU regions defined in the CONTROL AREAS
+        :param latest:
+        :param yesterday:
+        :param start_at:
+        :param end_at:
+        :param renewable_forecast: The default forecast only returns the aggregate generation forecast. A separate
+        report covers solar, wind, and offshore wind as named forecast categories.
+        :param forecast:
+        :param kwargs:
+        :return:
+        """
+        assert control_area in self.CONTROL_AREAS, "Control area must be defined"
         self.handle_options(data='gen', start_at=start_at, end_at=end_at, yesterday=yesterday, 
-                            latest=latest, control_area=control_area, forecast=False, **kwargs)
+                            latest=latest, control_area=control_area, forecast=forecast,
+                            renewable_forecast=renewable_forecast, **kwargs)
 
         response = self.fetch_entsoe()
         return self.parse_response(response)
@@ -237,8 +247,8 @@ class EUClient(BaseClient):
                                 end_at=datetime.now(pytz.utc))
 
         # workaround for base.handle_options setting forecast to false if end_at too far in past
-        if 'forecast' in kwargs and kwargs['forecast']:
-            self.options['forecast'] = True
+        self.options['forecast'] = kwargs.get('forecast', False)
+        self.options['renewable_forecast'] = kwargs.get('renewable_forecast', False)
 
     def fetch_entsoe(self):
         payload = {
@@ -257,7 +267,10 @@ class EUClient(BaseClient):
         elif self.options['data'] == 'gen':
             domainType = 'in_Domain'
             if self.options['forecast']:
-                documentType = 'A71'
+                if self.options['renewable_forecast']:
+                    documentType = 'A69'
+                else:
+                    documentType = 'A71'
             else:
                 documentType = 'A75'
 
@@ -285,6 +298,11 @@ class EUClient(BaseClient):
         """
         data = []
         xmldoc = objectify.fromstring(response)
+
+        if not hasattr(xmldoc, 'TimeSeries'):
+            print("No matching time series returned")
+            return data
+
         for ts in xmldoc.TimeSeries:
             for period in ts.Period:
                 initialOffset = self.utcify(period.timeInterval.start.text)
@@ -303,18 +321,21 @@ class EUClient(BaseClient):
                         'timestamp': timestamp,
                         'freq': 'n/a',
                     }
-                    if (self.options['forecast']):
-                        datapoint['market'] = 'DAM'
                     if self.options['data'] == 'gen':
-                      datapoint['market'] = self.CONTROL_AREAS[self.options['control_area']]['gen_market']
-                      datapoint['freq'] = self.CONTROL_AREAS[self.options['control_area']]['gen_freq']
-                      datapoint['gen_MW'] = int(point.quantity.text)
-                      datapoint['fuel_name'] = self.fuels[ts.MktPSRType.psrType.text]
+                        datapoint['market'] = self.CONTROL_AREAS[self.options['control_area']]['gen_market']
+                        datapoint['freq'] = self.CONTROL_AREAS[self.options['control_area']]['gen_freq']
+                        datapoint['gen_MW'] = int(point.quantity.text)
+                        if hasattr(ts, 'MktPSRType'):
+                            datapoint['fuel_name'] = self.fuels[ts.MktPSRType.psrType.text]
+                        else:
+                            datapoint['fuel_name'] = 'undefined'
+
                     elif self.options['data'] == 'load':
-                      datapoint['load_MW'] = int(point.quantity.text)
+                        if self.options['forecast']:
+                            datapoint['market'] = 'DAM'
+                        datapoint['load_MW'] = int(point.quantity.text)
                     data.append(datapoint)
         return data
-
 
     def parse_resolution(self, resolution):
         """
@@ -345,5 +366,3 @@ class EUClient(BaseClient):
             msg = 'Control area code not found for %s. Options are %s' % (self.options['control_area'],
                                                                           sorted(self.CONTROL_AREAS.keys()))
             raise ValueError(msg)
-
-

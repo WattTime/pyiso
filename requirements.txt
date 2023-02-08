@@ -8,7 +8,7 @@ lxml>=3.6.4
 mock
 nose-timer
 nose
-pandas>=0.18,<0.21
+pandas
 parameterized
 python-dateutil
 pytz
