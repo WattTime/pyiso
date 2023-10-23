@@ -63,6 +63,16 @@ class NYISOClient(BaseClient):
                 'freq': self.FREQUENCY_CHOICES.hourly,
                 'market': self.MARKET_CHOICES.dam,
             }
+        elif self.options['integrated_1h']:
+            #get 1 hr integrated      
+            # get data
+            
+            df = self.get_any('palIntegrated', self.parse_load_1hItegrated)
+            extras = {
+                'ba_name': self.NAME,
+                'freq': self.FREQUENCY_CHOICES.hourly,
+                'market': self.MARKET_CHOICES.hourly,
+            }
         else:
             # get data
             df = self.get_any('pal', self.parse_load_rtm)
@@ -178,6 +188,16 @@ class NYISOClient(BaseClient):
             return unzipped
         else:
             return []
+        
+    def parse_load_1hItegrated(self, content):
+        # parse csv to df
+        df = self.parse_to_df(content, header=0, index_col=0, parse_dates=True)
+
+        # set index
+        df.index = self.utcify_index(df.index, tz_col=df['Time Zone'])
+        df['timestamp'] = df.index
+        return df
+     
 
     def parse_load_rtm(self, content):
         # parse csv to df

@@ -4,11 +4,11 @@ certifi
 freezegun
 html5lib
 libfaketime
-lxml>=3.6.4
+lxml==4.6.4
 mock
 nose-timer
 nose
-pandas>=0.18,<0.21
+pandas==1.3.3
 parameterized
 python-dateutil
 pytz
