@@ -66,12 +66,13 @@ setup(
     install_requires=[
         'beautifulsoup4>=4.5.0',
         'pandas',
+#        'pandas>=1.3.3',
         'python-dateutil',
         'pytz',
         'requests',
         'celery>=3.1',
         'xlrd',
-        'lxml>=3.6.4',
+        'lxml==4.6.4',
         'html5lib',
         'mock',
         'certifi'
