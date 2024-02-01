@@ -232,7 +232,7 @@ class NYISOClient(BaseClient):
         final_df = pd.DataFrame({'load_MW': df['NYISO']})
 
         # return
-        return final_df
+        return df
 
     def parse_trade(self, content):
         # parse csv to df

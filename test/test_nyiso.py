@@ -10,4 +10,13 @@ def test_nyiso():
     # start=, end=, | latest
     data = c.get_load(start_at='2016-05-01', end_at='2016-05-03',integrated_1h=True, freq='hourly')
     df=pd.DataFrame(data)
+
+
+def test_get_nyiso_fst_load():
+
+    c = client_factory('NYISO')
+    data = c.get_load(latest=True, forecast=True)
+    df = pd.DataFrame(data)
+
+    assert df.shape[1] > 10
   
