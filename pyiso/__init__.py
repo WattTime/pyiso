@@ -4,7 +4,7 @@ import os.path
 import sys
 from os import environ
 
-__version__ = 'zv1.01'
+__version__ = 'zv1.11'
 
 
 # ERROR = 40, WARNING = 30, INFO = 20, DEBUG = 10
