@@ -225,13 +225,9 @@ class NYISOClient(BaseClient):
         df = self.parse_to_df(content, index_col=0, header=0, parse_dates=True)
 
         # set index
-        df.index.name = 'timestamp'
+        df.index.name = 'timestamp_utc'
         df.index = self.utcify_index(df.index)
-
-        # pull out column
-        final_df = pd.DataFrame({'load_MW': df['NYISO']})
-
-        # return
+     
         return df
 
     def parse_trade(self, content):
